@@ -180,3 +180,7 @@ Mover uma pessoa altera posições contíguas dentro da sessão por uma RPC tran
 ### Aplicação remota
 
 A migração `20261103000700_arrival_speed_tools.sql` foi aplicada ao projeto de produção pela CLI autenticada. O histórico local/remoto ficou alinhado. O lint remoto não encontrou erro novo; permanece somente o aviso anterior de variável não lida em `accept_legal_document`, fora deste ajuste.
+
+### Goleiros fora da fila de linha
+
+Goleiros aparecem sempre em um bloco próprio no topo e recebem a identificação `GK`, sem consumir a numeração `01–24` da fila de jogadores de linha. A reordenação visual é restrita ao próprio grupo, pois a prioridade operacional de goleiros não é a mesma regra de formação sequencial dos times de linha. A operação transacional já publicada continua persistindo a posição absoluta e preserva a ordem relativa do outro grupo.

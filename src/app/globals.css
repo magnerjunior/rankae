@@ -439,11 +439,19 @@ body { overscroll-behavior-y: auto; }
 .arrival-feedback .saved::before { background: var(--brand-600); }
 .bulk-open { min-height: 36px; padding: 6px 10px; border: 0; background: transparent; color: var(--brand-700); font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .arrival-list { padding-top: 18px; border-top: 1px solid var(--border); }
+.arrival-group-head { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 8px; }
+.arrival-group-head .panel-title { margin-top: 2px; }
+.line-group-head { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+.arrival-group-empty { padding: 12px 0 16px; color: var(--muted); font-size: .88rem; }
+.keeper-index { width: 38px; padding: 4px 5px; border-radius: 8px; background: var(--brand-100); font-size: .88rem; letter-spacing: .04em; }
 .arrival-remove { width: 42px; height: 42px; border: 0; border-radius: 12px; background: #fff0f0; color: var(--danger); font-size: 1.5rem; }
 .arrival-manage-row { min-height: 66px; gap: 10px; transition: opacity .18s ease, transform .18s ease; }
 .arrival-manage-row.pending { opacity: .62; }
 .arrival-row-actions { display: flex; gap: 4px; margin-left: auto; }
 .arrival-row-actions button, .arrival-edit button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: white; color: var(--brand-900); font-size: 1.05rem; font-weight: 800; cursor: pointer; }
+.arrival-row-actions .move { border: 0; background: #edf4ef; color: var(--brand-700); }
+.arrival-row-actions .move:hover { background: #dfece3; color: var(--brand-900); }
+.arrival-row-actions .move svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .arrival-row-actions button:disabled { opacity: .3; cursor: default; }
 .arrival-row-actions .remove { border-color: #f1d6d8; background: #fff2f2; color: var(--danger); font-size: 1.35rem; }
 .arrival-edit { display: flex; align-items: center; gap: 6px; }

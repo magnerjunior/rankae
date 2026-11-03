@@ -243,6 +243,9 @@ Resultados reais de 2026-11-03:
 - [x] Edição inline do nome e remoção na mesma tela.
 - [x] Botão para formar dois times pela ordem, preparar a partida e iniciar o relógio em um único fluxo.
 - [x] Cache local isolado por ranka/sessão para rascunho e recuperação visual; banco permanece fonte de verdade.
-- [x] Migração `20261103000700_arrival_speed_tools.sql` aplicada em produção; nove versões locais/remotas alinhadas.
+- [x] Migração `20261103000700_arrival_speed_tools.sql` aplicada em produção.
+- [x] Goleiros separados no topo, identificados por `GK`, sem ocupar a numeração dos jogadores de linha.
+- [x] Reordenação limitada ao próprio grupo e setas com maior contraste, sem borda marcada.
+- [x] Nove versões locais/remotas permanecem alinhadas; o ajuste utiliza a RPC transacional já publicada.
 - [x] `npm run lint`, `npm run typecheck`, 36 testes unitários e `npm run build` aprovados.
 - [x] `supabase db lint --remote`: sem erro novo; um aviso preexistente em `accept_legal_document`.

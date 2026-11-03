@@ -55,6 +55,8 @@ export function ArrivalManager(props: ArrivalManagerProps) {
   const parsedBulk = useMemo(() => parseArrivalList(bulkText), [bulkText]);
   const lineCount = entries.filter((entry) => entry.role === "line").length;
   const keeperCount = entries.filter((entry) => entry.role === "keeper").length;
+  const keepers = entries.filter((entry) => entry.role === "keeper").toSorted((a, b) => a.arrivalIndex - b.arrivalIndex);
+  const linePlayers = entries.filter((entry) => entry.role === "line").toSorted((a, b) => a.arrivalIndex - b.arrivalIndex);
   const requiredLines = props.squadSize * 2;
   const canStart = lineCount >= requiredLines || props.canStartExisting;
 
@@ -116,17 +118,19 @@ export function ArrivalManager(props: ArrivalManagerProps) {
     }, () => setEntries((current) => renumber(current.filter((entry) => !entry.id.startsWith(prefix)))));
   }
 
-  function move(entry: ArrivalItem, direction: -1 | 1) {
+  function move(entry: ArrivalItem, direction: -1 | 1, group: ArrivalItem[]) {
     if (entry.id.startsWith("temp-")) return;
     const previous = entries;
-    const currentIndex = entries.findIndex((item) => item.id === entry.id);
+    const currentIndex = group.findIndex((item) => item.id === entry.id);
     const targetIndex = currentIndex + direction;
-    if (targetIndex < 0 || targetIndex >= entries.length) return;
+    if (targetIndex < 0 || targetIndex >= group.length) return;
+    const currentGlobalIndex = entries.findIndex((item) => item.id === entry.id);
+    const targetGlobalIndex = entries.findIndex((item) => item.id === group[targetIndex].id);
     const moved = [...entries];
-    [moved[currentIndex], moved[targetIndex]] = [moved[targetIndex], moved[currentIndex]];
+    [moved[currentGlobalIndex], moved[targetGlobalIndex]] = [moved[targetGlobalIndex], moved[currentGlobalIndex]];
     setEntries(renumber(moved));
     setMessage("Ordem alterada. Salvando…");
-    enqueue(props.reorderAction, { playerId: entry.playerId, targetPosition: targetIndex + 1 }, (result) => {
+    enqueue(props.reorderAction, { playerId: entry.playerId, targetPosition: targetGlobalIndex + 1 }, (result) => {
       if (result.arrivals) setEntries(result.arrivals);
     }, () => setEntries(previous));
   }
@@ -156,6 +160,15 @@ export function ArrivalManager(props: ArrivalManagerProps) {
     setBulkOpen(true);
   }
 
+  function renderArrival(entry: ArrivalItem, index: number, group: ArrivalItem[]) {
+    const isKeeper = entry.role === "keeper";
+    return <div className={`person-row arrival-manage-row ${entry.id.startsWith("temp-") ? "pending" : ""}`} key={entry.id}>
+      <span className={`arrival-index ${isKeeper ? "keeper-index" : ""}`}>{isKeeper ? "GK" : String(index + 1).padStart(2, "0")}</span>
+      <span className="person-info">{editingId === entry.id ? <span className="arrival-edit"><input className="input" value={editingName} onChange={(event) => setEditingName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveName(entry); if (event.key === "Escape") setEditingId(undefined); }} autoFocus /><button type="button" onClick={() => saveName(entry)} aria-label="Salvar nome">✓</button></span> : <><strong>{entry.fullName}</strong><small>{isKeeper ? "Goleiro" : "Linha"}</small></>}</span>
+      <span className="arrival-row-actions"><button className="move" type="button" onClick={() => move(entry, -1, group)} disabled={index === 0 || entry.id.startsWith("temp-")} aria-label={`Mover ${entry.fullName} para cima`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" /></svg></button><button className="move" type="button" onClick={() => move(entry, 1, group)} disabled={index === group.length - 1 || entry.id.startsWith("temp-")} aria-label={`Mover ${entry.fullName} para baixo`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-5.5-5.5L12 19l5.5-5.5" /></svg></button><button type="button" onClick={() => { setEditingId(entry.id); setEditingName(entry.fullName); }} disabled={entry.id.startsWith("temp-")} aria-label={`Editar ${entry.fullName}`}>✎</button><button className="remove" type="button" onClick={() => remove(entry)} disabled={entry.id.startsWith("temp-")} aria-label={`Remover ${entry.fullName}`}>×</button></span>
+    </div>;
+  }
+
   return <>
     <div className="arrival-capacity"><span><b>{lineCount}</b>/{props.maxLinePlayers} linha</span><span><b>{keeperCount}</b>/{props.maxKeepers} goleiros</span></div>
     <section className="panel arrival-panel">
@@ -171,11 +184,7 @@ export function ArrivalManager(props: ArrivalManagerProps) {
         <p className="quick-arrival-message" role="status">{message}</p>
       </div>
 
-      <div className="arrival-list"><div className="panel-head"><h2 className="panel-title display">Ordem de chegada</h2><span className="badge badge-green">{entries.length}</span></div>{entries.length ? entries.map((entry, index) => <div className={`person-row arrival-manage-row ${entry.id.startsWith("temp-") ? "pending" : ""}`} key={entry.id}>
-        <span className="arrival-index">{String(index + 1).padStart(2, "0")}</span>
-        <span className="person-info">{editingId === entry.id ? <span className="arrival-edit"><input className="input" value={editingName} onChange={(event) => setEditingName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") saveName(entry); if (event.key === "Escape") setEditingId(undefined); }} autoFocus /><button type="button" onClick={() => saveName(entry)} aria-label="Salvar nome">✓</button></span> : <><strong>{entry.fullName}</strong><small>{entry.role === "keeper" ? "Goleiro" : "Linha"}</small></>}</span>
-        <span className="arrival-row-actions"><button type="button" onClick={() => move(entry, -1)} disabled={index === 0 || entry.id.startsWith("temp-")} aria-label={`Mover ${entry.fullName} para cima`}>↑</button><button type="button" onClick={() => move(entry, 1)} disabled={index === entries.length - 1 || entry.id.startsWith("temp-")} aria-label={`Mover ${entry.fullName} para baixo`}>↓</button><button type="button" onClick={() => { setEditingId(entry.id); setEditingName(entry.fullName); }} disabled={entry.id.startsWith("temp-")} aria-label={`Editar ${entry.fullName}`}>✎</button><button className="remove" type="button" onClick={() => remove(entry)} disabled={entry.id.startsWith("temp-")} aria-label={`Remover ${entry.fullName}`}>×</button></span>
-      </div>) : <div className="empty"><strong>Ninguém chegou ainda</strong><span>Digite um nome ou adicione uma lista.</span></div>}</div>
+      <div className="arrival-list"><div className="arrival-group-head"><div><span className="eyebrow">Fora da fila de linha</span><h2 className="panel-title display">Goleiros</h2></div><span className="badge badge-green">{keepers.length}</span></div>{keepers.length ? keepers.map((entry, index) => renderArrival(entry, index, keepers)) : <div className="arrival-group-empty">Nenhum goleiro confirmado.</div>}<div className="arrival-group-head line-group-head"><div><span className="eyebrow">Ordem de chegada</span><h2 className="panel-title display">Jogadores de linha</h2></div><span className="badge badge-green">{linePlayers.length}</span></div>{linePlayers.length ? linePlayers.map((entry, index) => renderArrival(entry, index, linePlayers)) : <div className="empty"><strong>Ninguém na fila de linha</strong><span>Digite um nome ou adicione uma lista.</span></div>}</div>
 
       <div className="arrival-start"><div><strong>{props.activeGameHref ? "Jogo em andamento" : canStart ? "Dois times prontos" : `Faltam ${Math.max(0, requiredLines - lineCount)} jogadores de linha`}</strong><small>{props.activeGameHref ? "O placar e o cronômetro estão prontos." : canStart ? "Os times serão formados pela ordem acima." : `São necessários ${requiredLines} para iniciar.`}</small></div>{props.activeGameHref ? <Link className="button button-primary" href={props.activeGameHref}>Ir para o jogo</Link> : <form action={async () => { await props.startGameAction({ expectedRevision: revisionRef.current }); }}><button className="button button-primary" disabled={!canStart || syncing > 0}>Iniciar jogo</button></form>}</div>
     </section>
