@@ -22,7 +22,7 @@ Abra `http://localhost:3000/entrar`. Para validar a entrega, execute `npm run li
 4. Aplique `supabase/migrations/` em ordem via Supabase CLI ou SQL Editor em ambiente de desenvolvimento/staging.
 5. Execute `npx supabase test db` em uma máquina com Docker para validar o isolamento multi-tenant.
 
-No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicadas pelo SQL Editor e posteriormente reconciliadas no histórico oficial da CLI. As migrações das fases 2 e 3 foram aplicadas com `supabase db push`; as seis versões locais e remotas estão alinhadas.
+No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicadas pelo SQL Editor e posteriormente reconciliadas no histórico oficial da CLI. As migrações seguintes foram aplicadas com `supabase db push`; as nove versões locais e remotas estão alinhadas.
 
 Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo só existe em desenvolvimento e exige opt-in explícito.
 
@@ -32,7 +32,7 @@ Produção: `https://rankae.vercel.app`. A branch `main` do GitHub é a fonte da
 
 Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_ENABLE_DEMO=false` e `NEXT_PUBLIC_APP_URL=https://rankae.vercel.app`. No Supabase Auth, use `https://rankae.vercel.app` como Site URL e autorize `/auth/callback` no domínio de produção e nos endereços locais usados no desenvolvimento. O cadastro de organizadores exige confirmação de e-mail; recuperação de senha também retorna pelo callback autorizado.
 
-O fluxo principal de campo começa em **Iniciar ranka** e segue para **Chegada**. Nome + posição cadastram ou reutilizam o jogador e confirmam a presença na mesma ação. O proprietário pode criar até três rankas; limites de linha/goleiros e contribuição em reais ficam em **Configurar ranka**. A migração `20261103000600_fast_court_experience.sql`, já aplicada em produção, reforça essas operações de forma transacional no banco. A aplicação preserva compatibilidade com ambientes ainda desatualizados.
+O fluxo principal de campo começa em **Iniciar ranka** e segue para **Chegada**. Nome + posição cadastram ou reutilizam o jogador e confirmam a presença na mesma ação. A opção **Adicionar lista** aceita `GK- Nome` para goleiros e linhas numeradas como `1- Nome`; todos entram na ordem informada. A mesma tela permite corrigir nomes, reorganizar a chegada e iniciar o jogo assim que houver dois times completos. A interface responde de forma otimista e salva as operações em fila, mantendo o banco como fonte de verdade. O proprietário pode criar até três rankas; limites de linha/goleiros e contribuição em reais ficam em **Configurar ranka**. As migrações `20261103000600` e `20261103000700`, já aplicadas em produção, reforçam essas operações de forma transacional no banco.
 
 ## Operar a Fase 2
 

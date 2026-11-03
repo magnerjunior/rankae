@@ -17,6 +17,46 @@ export interface ArrivalActionState {
   message?: string;
 }
 
+export interface ArrivalItem {
+  id: string;
+  playerId: string;
+  fullName: string;
+  role: "line" | "keeper";
+  arrivalIndex: number;
+}
+
+export interface ArrivalMutationResult {
+  status: "success" | "error";
+  message: string;
+  revision?: number;
+  arrivals?: ArrivalItem[];
+}
+
+const arrivalInputSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  role: z.enum(["line", "keeper"]),
+});
+
+function readArrivalResult(data: unknown): { revision?: number; arrivals?: ArrivalItem[] } {
+  if (!data || typeof data !== "object") return {};
+  const value = data as { session_revision?: unknown; arrivals?: unknown };
+  const arrivals = z.array(z.object({
+    id: z.string().uuid(), playerId: z.string().uuid(), fullName: z.string(),
+    role: z.enum(["line", "keeper"]), arrivalIndex: z.number().int().positive(),
+  })).safeParse(value.arrivals);
+  return {
+    revision: typeof value.session_revision === "number" ? value.session_revision : undefined,
+    arrivals: arrivals.success ? arrivals.data : undefined,
+  };
+}
+
+function arrivalError(code?: string): ArrivalMutationResult {
+  if (code === "23514") return { status: "error", message: "O limite dessa posição foi atingido." };
+  if (code === "23505") return { status: "error", message: "Há nomes iguais. Use também o sobrenome." };
+  if (code === "40001") return { status: "error", message: "A lista mudou em outro aparelho. Atualize e tente novamente." };
+  return { status: "error", message: "Não foi possível salvar agora. Tente novamente." };
+}
+
 function idempotencyKey(formData: FormData) {
   return uuid.safeParse(formData.get("idempotencyKey")).data ?? randomUUID();
 }
@@ -109,6 +149,114 @@ export async function addArrivalAction(rankaId: string, sessionId: string, expec
   }
   revalidatePath(`/app/rankas/${rankaId}/chegada`);
   return { status: "success", message: `${parsed.data.fullName} chegou.` };
+}
+
+export async function addFastArrivalAction(sessionId: string, input: { fullName: string; role: "line" | "keeper"; expectedRevision: number; idempotencyKey: string }): Promise<ArrivalMutationResult> {
+  const parsed = arrivalInputSchema.safeParse(input);
+  const revision = z.number().int().positive().safeParse(input.expectedRevision);
+  if (!parsed.success || !revision.success) return { status: "error", message: "Digite o nome do jogador." };
+  const result = await rpc("bulk_add_arrivals", {
+    p_session_id: sessionId,
+    p_entries: [parsed.data],
+    p_expected_revision: revision.data,
+    p_idempotency_key: uuid.safeParse(input.idempotencyKey).data ?? randomUUID(),
+  });
+  if (result.error) return arrivalError(result.error.code);
+  const output = readArrivalResult(result.data);
+  return { status: "success", message: `${parsed.data.fullName} chegou.`, ...output };
+}
+
+export async function bulkAddArrivalsAction(sessionId: string, input: { entries: Array<{ fullName: string; role: "line" | "keeper" }>; expectedRevision: number; idempotencyKey: string }): Promise<ArrivalMutationResult> {
+  const parsed = z.array(arrivalInputSchema).min(1).max(60).safeParse(input.entries);
+  const revision = z.number().int().positive().safeParse(input.expectedRevision);
+  if (!parsed.success || !revision.success) return { status: "error", message: "Revise a lista antes de confirmar." };
+  const result = await rpc("bulk_add_arrivals", {
+    p_session_id: sessionId,
+    p_entries: parsed.data,
+    p_expected_revision: revision.data,
+    p_idempotency_key: uuid.safeParse(input.idempotencyKey).data ?? randomUUID(),
+  });
+  if (result.error) return arrivalError(result.error.code);
+  const output = readArrivalResult(result.data);
+  return { status: "success", message: `${parsed.data.length} jogadores adicionados.`, ...output };
+}
+
+export async function reorderArrivalAction(sessionId: string, input: { playerId: string; targetPosition: number; expectedRevision: number; idempotencyKey: string }): Promise<ArrivalMutationResult> {
+  const parsed = z.object({ playerId: uuid, targetPosition: z.number().int().positive(), expectedRevision: z.number().int().positive(), idempotencyKey: uuid }).safeParse(input);
+  if (!parsed.success) return { status: "error", message: "Não foi possível mudar essa posição." };
+  const result = await rpc("reorder_session_arrival", {
+    p_session_id: sessionId,
+    p_player_id: parsed.data.playerId,
+    p_target_position: parsed.data.targetPosition,
+    p_expected_revision: parsed.data.expectedRevision,
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (result.error) return arrivalError(result.error.code);
+  return { status: "success", message: "Ordem atualizada.", ...readArrivalResult(result.data) };
+}
+
+export async function renameArrivalAction(sessionId: string, input: { playerId: string; fullName: string; expectedRevision: number; idempotencyKey: string }): Promise<ArrivalMutationResult> {
+  const parsed = z.object({ playerId: uuid, fullName: z.string().trim().min(2).max(120), expectedRevision: z.number().int().positive(), idempotencyKey: uuid }).safeParse(input);
+  if (!parsed.success) return { status: "error", message: "Digite um nome válido." };
+  const result = await rpc("rename_arrival_player", {
+    p_session_id: sessionId,
+    p_player_id: parsed.data.playerId,
+    p_full_name: parsed.data.fullName,
+    p_expected_revision: parsed.data.expectedRevision,
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (result.error) return arrivalError(result.error.code);
+  const output = readArrivalResult(result.data);
+  return { status: "success", message: "Nome atualizado.", revision: output.revision };
+}
+
+export async function removeArrivalAction(sessionId: string, input: { playerId: string; expectedRevision: number; idempotencyKey: string }): Promise<ArrivalMutationResult> {
+  const parsed = z.object({ playerId: uuid, expectedRevision: z.number().int().positive(), idempotencyKey: uuid }).safeParse(input);
+  if (!parsed.success) return { status: "error", message: "Não foi possível remover esse jogador." };
+  const result = await rpc("set_attendance_status", {
+    p_session_id: sessionId,
+    p_player_id: parsed.data.playerId,
+    p_status: "left",
+    p_reason: "Removido da chegada",
+    p_expected_revision: parsed.data.expectedRevision,
+    p_idempotency_key: parsed.data.idempotencyKey,
+  });
+  if (result.error) return arrivalError(result.error.code);
+  const output = readArrivalResult(result.data);
+  return { status: "success", message: "Jogador removido.", revision: output.revision };
+}
+
+export async function startGameFromArrivalAction(rankaId: string, sessionId: string, squadSize: number, hasPersistedSquads: boolean, expectedRevision: number) {
+  let revision = expectedRevision;
+  if (!hasPersistedSquads) {
+    const generated = await rpc("generate_session_squads", {
+      p_session_id: sessionId,
+      p_squad_size: squadSize,
+      p_method: "sequential",
+      p_seed: null,
+      p_expected_revision: revision,
+      p_idempotency_key: randomUUID(),
+    });
+    if (generated.error) finish(rankaId, "chegada", false, "times");
+    revision = readArrivalResult(generated.data).revision ?? revision + 1;
+  }
+  const prepared = await rpc("prepare_next_match", {
+    p_session_id: sessionId,
+    p_expected_revision: revision,
+    p_idempotency_key: randomUUID(),
+  });
+  if (prepared.error || !prepared.data || typeof prepared.data !== "object") finish(rankaId, "chegada", false, "jogo");
+  const match = prepared.data as { id?: unknown; revision?: unknown };
+  if (typeof match.id !== "string" || typeof match.revision !== "number") finish(rankaId, "chegada", false, "jogo");
+  const started = await rpc("transition_match_clock", {
+    p_match_id: match.id,
+    p_command: "start",
+    p_expected_revision: match.revision,
+    p_idempotency_key: randomUUID(),
+  });
+  if (started.error) finish(rankaId, "partida", false, "iniciar");
+  revalidatePath(`/app/rankas/${rankaId}`);
+  redirect(`/app/rankas/${rankaId}/partida`);
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {

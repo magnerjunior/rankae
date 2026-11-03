@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { ArrivalQuickAdd } from "@/components/arrival-quick-add";
+import { ArrivalManager } from "@/components/arrival-manager";
 import { EmptyState } from "@/components/feedback";
 import { LiveTimer } from "@/components/live-timer";
 import { PlayerCreateForm } from "@/components/player-create-form";
@@ -15,7 +15,8 @@ import type { RankaSnapshot } from "@/data/ports/ranka-repository";
 import type { RankaSection } from "@/lib/navigation";
 import {
   batchContributionsAction,
-  addArrivalAction,
+  addFastArrivalAction,
+  bulkAddArrivalsAction,
   clockAction,
   completeMatchAction,
   confirmOfficialsAction,
@@ -24,13 +25,16 @@ import {
   prepareMatchAction,
   recordEventAction,
   resolveTieAction,
-  setAttendanceStatusAction,
   substitutePlayerAction,
   updateRulesAction,
   voidEventAction,
   configurePortalAction,
   setPlayerPublicProfileAction,
   startRankaAction,
+  reorderArrivalAction,
+  renameArrivalAction,
+  removeArrivalAction,
+  startGameFromArrivalAction,
 } from "@/app/app/rankas/[rankaId]/actions";
 
 function Key() { return <input type="hidden" name="idempotencyKey" value={randomUUID()} />; }
@@ -58,11 +62,38 @@ function Players({ snapshot, success, error }: { snapshot: RankaSnapshot; succes
 }
 
 function Arrival({ snapshot, success, error }: { snapshot: RankaSnapshot; success?: string; error?: string }) {
-  const present = snapshot.attendance.filter((entry) => entry.status === "present");
-  const lineCount = present.filter((entry) => entry.rolePreference === "line" || snapshot.players.find((player) => player.id === entry.playerId)?.role === "line").length;
-  const keeperCount = present.length - lineCount;
-  const action = addArrivalAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision);
-  return <><Heading eyebrow="Rápido e na ordem" title="Chegada" description="Digite o nome, escolha a posição e confirme." sessionId={snapshot.sessionId} /><Notice success={success} error={error} /><div className="arrival-capacity"><span><b>{lineCount}</b>/{snapshot.rules.maxLinePlayers} linha</span><span><b>{keeperCount}</b>/{snapshot.rules.maxKeepers} goleiros</span></div><section className="panel arrival-panel"><ArrivalQuickAdd players={snapshot.players} action={action} /><div className="arrival-list"><div className="panel-head"><h2 className="panel-title display">Quem chegou</h2><span className="badge badge-green">{present.length}</span></div>{present.length ? present.map((entry) => { const player = snapshot.players.find((item) => item.id === entry.playerId); const statusAction = setAttendanceStatusAction.bind(null, snapshot.id, snapshot.sessionId!, entry.playerId, snapshot.revision); return <div className="person-row" key={entry.id}><span className="arrival-index">{String(entry.arrivalIndex).padStart(2,"0")}</span><span className="person-info"><strong>{player?.fullName ?? "Jogador"}</strong><small>{entry.rolePreference === "keeper" || player?.role === "keeper" ? "Goleiro" : "Linha"}</small></span><form action={statusAction}><Key /><input type="hidden" name="status" value="left" /><input type="hidden" name="reason" value="Removido da chegada" /><button className="arrival-remove" aria-label={`Remover ${player?.fullName ?? "jogador"}`}>×</button></form></div>; }) : <EmptyState title="Ninguém chegou ainda" description="O primeiro campo já está pronto para digitar." />}</div></section></>;
+  const sessionId = snapshot.sessionId!;
+  const initialEntries = snapshot.attendance
+    .filter((entry) => entry.status === "present")
+    .toSorted((a, b) => a.arrivalIndex - b.arrivalIndex)
+    .map((entry) => {
+      const player = snapshot.players.find((item) => item.id === entry.playerId);
+      return {
+        id: entry.id,
+        playerId: entry.playerId,
+        fullName: player?.fullName ?? "Jogador",
+        role: entry.rolePreference === "keeper" || player?.role === "keeper" ? "keeper" as const : "line" as const,
+        arrivalIndex: entry.arrivalIndex,
+      };
+    });
+  return <><Heading eyebrow="Rápido e na ordem" title="Chegada" description="Adicione um nome ou cole a lista inteira." /><Notice success={success} error={error} /><ArrivalManager
+    rankaId={snapshot.id}
+    sessionId={sessionId}
+    initialRevision={snapshot.revision}
+    initialEntries={initialEntries}
+    knownNames={snapshot.players.map((player) => player.fullName)}
+    maxLinePlayers={snapshot.rules.maxLinePlayers}
+    maxKeepers={snapshot.rules.maxKeepers}
+    squadSize={snapshot.rules.squadSize}
+    canStartExisting={snapshot.hasPersistedSquads && !snapshot.activeMatch}
+    activeGameHref={snapshot.activeMatch ? `/app/rankas/${snapshot.id}/partida` : undefined}
+    addAction={addFastArrivalAction.bind(null, sessionId)}
+    bulkAction={bulkAddArrivalsAction.bind(null, sessionId)}
+    reorderAction={reorderArrivalAction.bind(null, sessionId)}
+    renameAction={renameArrivalAction.bind(null, sessionId)}
+    removeAction={removeArrivalAction.bind(null, sessionId)}
+    startGameAction={startGameFromArrivalAction.bind(null, snapshot.id, sessionId, snapshot.rules.squadSize, snapshot.hasPersistedSquads, snapshot.revision)}
+  /></>;
 }
 
 function Teams({ snapshot, success, error }: { snapshot: RankaSnapshot; success?: string; error?: string }) {

@@ -162,3 +162,21 @@ O domínio canônico da primeira publicação é `https://rankae.vercel.app`. O 
 - Limites de jogadores de linha e goleiros entram no snapshot da sessão, com defaults de 24 e 3. A contribuição aceita valor fixo em reais ou divisão do custo total pelos presentes.
 - “Expo Glass Effect” permanece uma direção visual web: `backdrop-filter`, transparência seletiva e animações de mola com alternativas para redução de movimento/transparência; nenhuma dependência Expo foi adicionada.
 - Textos de infraestrutura (Supabase, RLS, revisão, persistência e ambiente) foram removidos das telas comuns e continuam apenas na implementação e no painel técnico de superadmin.
+
+## 2026-11-03 — chegada instantânea e importação em massa
+
+### Resposta imediata sem transformar cache em fonte de verdade
+
+A chegada passa a atualizar a interface de forma otimista. As mutações são enfileiradas no cliente e enviadas com a revisão mais recente, preservando a ordem dos toques e evitando recarregar toda a rota após cada nome. O `localStorage` guarda somente estado recente da tela e rascunho da importação, segmentados por ranka e sessão; autorização, limites, ordem definitiva e dados compartilhados continuam validados no servidor.
+
+### Lista textual simples e previsível
+
+O parser puro aceita uma pessoa por linha, remove apenas prefixos conhecidos e preserva a ordem: `GK-`, `GOL-` e `GOLEIRO-` indicam goleiro; números como `1-` indicam linha. Nomes repetidos na mesma colagem são ignorados e informados antes da confirmação. Não existe leitura de WhatsApp nem importação automática.
+
+### Ordem e correções auditáveis
+
+Mover uma pessoa altera posições contíguas dentro da sessão por uma RPC transacional. Editar o nome altera o perfil da organização após checagem de duplicidade. As duas operações exigem permissão de organizador, revisão otimista e idempotency key, e registram auditoria. O botão de início forma times sequenciais quando necessário, prepara a partida e inicia o relógio autoritativo.
+
+### Aplicação remota
+
+A migração `20261103000700_arrival_speed_tools.sql` foi aplicada ao projeto de produção pela CLI autenticada. O histórico local/remoto ficou alinhado. O lint remoto não encontrou erro novo; permanece somente o aviso anterior de variável não lida em `accept_legal_document`, fora deste ajuste.

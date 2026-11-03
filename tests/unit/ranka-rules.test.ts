@@ -18,6 +18,7 @@ import {
   validateOfficialAssignments,
 } from "@/domain/ranka/rules";
 import type { Attendance, Player, TiePolicy } from "@/domain/ranka/types";
+import { parseArrivalList } from "@/domain/ranka/arrival-import";
 
 const players: Player[] = Array.from({ length: 30 }, (_, index) => ({
   id: `p${index + 1}`,
@@ -198,5 +199,23 @@ describe("motor puro do ranka", () => {
     expect(calculateContributionShare({ mode: "fixed", fixedCents: 550, totalCents: 10_000, presentCount: 20 })).toBe(550);
     expect(calculateContributionShare({ mode: "divide_total", fixedCents: 0, totalCents: 10_000, presentCount: 24 })).toBe(417);
     expect(calculateContributionShare({ mode: "divide_total", fixedCents: 0, totalCents: 10_000, presentCount: 0 })).toBe(0);
+  });
+
+  it("importa lista numerada e reconhece GK como goleiro", () => {
+    const result = parseArrivalList("GK- Fernando\nGK- Ryan\n1- Esdras\n2- Samuel\n3 - José");
+    expect(result.entries).toEqual([
+      { fullName: "Fernando", role: "keeper" },
+      { fullName: "Ryan", role: "keeper" },
+      { fullName: "Esdras", role: "line" },
+      { fullName: "Samuel", role: "line" },
+      { fullName: "José", role: "line" },
+    ]);
+    expect(result.ignoredLines).toEqual([]);
+  });
+
+  it("ignora nomes repetidos em uma importação sem mudar a ordem", () => {
+    const result = parseArrivalList("1- Magner\n2- Magner\nPedro\n");
+    expect(result.entries.map((entry) => entry.fullName)).toEqual(["Magner", "Pedro"]);
+    expect(result.ignoredLines).toEqual([2]);
   });
 });

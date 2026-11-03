@@ -234,3 +234,15 @@ Resultados reais de 2026-11-03:
 - [x] Comunicação técnica removida das telas comuns.
 - [x] Compatibilidade com as RPCs anteriores preservada para instalações desatualizadas.
 - [x] Migração `20261103000600_fast_court_experience.sql` aplicada em produção em 2026-11-03; histórico local/remoto alinhado.
+
+## Agilidade da chegada — 2026-11-03
+
+- [x] Inclusão individual com resposta otimista, foco mantido no campo e gravações enfileiradas sem recarregar a página.
+- [x] Importação em massa por texto com `GK- Nome`, numeração e prévia de reconhecidos/ignorados.
+- [x] Ordem de chegada visível e persistente, com ações para mover para cima ou para baixo.
+- [x] Edição inline do nome e remoção na mesma tela.
+- [x] Botão para formar dois times pela ordem, preparar a partida e iniciar o relógio em um único fluxo.
+- [x] Cache local isolado por ranka/sessão para rascunho e recuperação visual; banco permanece fonte de verdade.
+- [x] Migração `20261103000700_arrival_speed_tools.sql` aplicada em produção; nove versões locais/remotas alinhadas.
+- [x] `npm run lint`, `npm run typecheck`, 36 testes unitários e `npm run build` aprovados.
+- [x] `supabase db lint --remote`: sem erro novo; um aviso preexistente em `accept_legal_document`.
