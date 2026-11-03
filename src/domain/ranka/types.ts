@@ -12,6 +12,8 @@ export interface Player {
   fullName: string;
   aliases: string[];
   role: PlayerRole;
+  publicVisible?: boolean;
+  publicDisplayName?: string;
 }
 
 export interface Attendance {

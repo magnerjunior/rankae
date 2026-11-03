@@ -214,3 +214,77 @@ button { cursor: pointer; }
   .dashboard-grid { grid-template-columns: minmax(0,1.45fr) minmax(320px,.75fr); }
   .squad-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* Fase 3 · portal público, privacidade e instalação */
+.share-link { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-alt); }
+.share-link code { overflow-wrap: anywhere; color: var(--brand-900); }
+.privacy-player-grid { display: grid; gap: 12px; }
+.privacy-player { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-alt); }
+.date-filter { display: flex; align-items: end; gap: 10px; margin-top: 12px; max-width: 420px; }
+.date-filter .field { flex: 1; }
+.ranking-list { display: grid; }
+.ranking-row { min-height: 62px; display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.ranking-row:last-child { border-bottom: 0; }
+.ranking-row span:nth-child(2) strong, .ranking-row span:nth-child(2) small { display: block; }
+.ranking-row small { color: var(--muted); }
+.ranking-position { font-family: "Barlow Condensed", sans-serif; font-size: 1.25rem; font-weight: 800; color: var(--brand-700); }
+.result-row { min-height: 68px; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.result-row:last-child { border-bottom: 0; }
+.result-row span strong, .result-row span small { display: block; }
+.result-row small { color: var(--muted); }
+.right { text-align: right; }
+
+.public-portal { width: min(1120px, 100%); min-height: 100dvh; margin: 0 auto; padding: 18px 16px 52px; }
+.portal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; }
+.portal-hero { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 30px 0 24px; }
+.portal-hero h1 { margin: 4px 0; color: var(--brand-900); font-size: clamp(2.6rem, 12vw, 5.6rem); line-height: .83; }
+.portal-hero p { margin: 8px 0 0; color: var(--muted); }
+.portal-scoreboard { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: white; box-shadow: var(--shadow); }
+.portal-timer { padding: 18px; color: white; text-align: center; background: var(--brand-900); }
+.portal-timer > small { display: block; margin-top: 7px; text-transform: uppercase; letter-spacing: .08em; }
+.portal-sides { display: grid; grid-template-columns: 1fr 1fr; }
+.portal-side { min-width: 0; padding: 20px 14px; text-align: center; }
+.portal-side-yellow { background: #fffbea; border-right: 1px solid var(--border); }
+.portal-side-red { background: #fff6f6; }
+.portal-score { display: block; margin: 16px 0; font-family: "Barlow Condensed", sans-serif; font-size: clamp(5rem, 24vw, 9rem); line-height: .72; font-variant-numeric: tabular-nums; }
+.portal-side ul { min-height: 80px; margin: 0; padding: 0; list-style: none; color: var(--muted); }
+.portal-side li { padding: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portal-support { display: grid; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: .875rem; }
+.portal-support strong { color: var(--ink); margin-right: 6px; }
+.portal-section { padding: 30px 0; border-bottom: 1px solid var(--border); }
+.portal-next-grid, .portal-stats-grid { display: grid; gap: 14px; }
+.portal-share { display: grid; gap: 20px; padding: 30px 0; }
+.portal-share h2 { margin: 4px 0; font-size: clamp(2rem, 8vw, 3.5rem); color: var(--brand-900); }
+.portal-share p { color: var(--muted); }
+.portal-footer { padding-top: 20px; color: var(--muted); font-size: .8rem; text-align: center; }
+.share-actions { align-content: center; }
+
+.portal-gate { min-height: 100dvh; display: grid; align-content: center; justify-items: center; gap: 22px; padding: 24px; background: radial-gradient(circle at 80% 15%, var(--brand-100), transparent 34%), var(--bg); }
+.portal-gate-card { width: min(100%, 460px); display: grid; gap: 18px; padding: 24px; border: 1px solid var(--border); border-radius: 22px; background: rgba(255,255,255,.92); box-shadow: var(--shadow); }
+.portal-gate-card h1 { margin: 0; color: var(--brand-900); font-size: clamp(2.6rem, 12vw, 4.6rem); line-height: .86; }
+.portal-gate-card p { margin: 0; color: var(--muted); }
+.pin-input { text-align: center; font-size: 1.6rem; letter-spacing: .45em; font-variant-numeric: tabular-nums; }
+.privacy-note { padding-top: 14px; border-top: 1px solid var(--border); font-size: .78rem; }
+
+.marketing-page { min-height: 100dvh; background: radial-gradient(circle at 82% 6%, #dceee2 0, transparent 31%), var(--bg); }
+.marketing-header { width: min(1160px, 100%); min-height: 78px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
+.marketing-hero { width: min(1160px, 100%); margin: 0 auto; padding: 54px 20px 76px; display: grid; gap: 36px; align-items: center; }
+.marketing-hero h1 { max-width: 780px; margin: 10px 0 20px; color: var(--brand-900); font-size: clamp(3.8rem, 13vw, 8.6rem); line-height: .76; }
+.marketing-hero p { max-width: 610px; color: var(--muted); font-size: 1.1rem; line-height: 1.55; }
+.marketing-score { min-height: 290px; display: grid; place-items: center; align-content: center; gap: 8px; border: 1px solid rgba(218,229,220,.9); border-radius: 24px; color: white; background: var(--brand-900); box-shadow: 0 28px 70px rgba(11,61,46,.18); transform: rotate(1deg); }
+.marketing-score strong { font-family: "Barlow Condensed", sans-serif; font-size: clamp(4.8rem, 20vw, 8rem); line-height: .8; }
+.marketing-score span, .marketing-score small { letter-spacing: .12em; font-weight: 700; }
+.marketing-score small { color: #b8d3c5; }
+.marketing-features { width: min(1160px, 100%); margin: 0 auto; padding: 0 20px 76px; display: grid; gap: 12px; }
+.marketing-features article { padding: 22px; border-top: 3px solid var(--brand-700); background: white; }
+.marketing-features h2 { margin: 9px 0; color: var(--brand-900); font-size: 2rem; }
+.marketing-features p { margin: 0; color: var(--muted); }
+
+@media (min-width: 760px) {
+  .privacy-player-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .portal-next-grid, .portal-stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .portal-support { grid-template-columns: 1fr 1fr; }
+  .portal-share { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+  .marketing-hero { grid-template-columns: minmax(0,1.45fr) minmax(300px,.55fr); }
+  .marketing-features { grid-template-columns: repeat(3, 1fr); }
+}

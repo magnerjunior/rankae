@@ -93,3 +93,25 @@ O teste `phase2_operations_test.sql` passou a carregar pgTAP dentro da própria 
 O ranka existente foi preservado e validado sem recriação: há um proprietário ativo da organização, o mesmo membro é proprietário do ranka e existe uma sessão inicial em `check_in`. O nome exibido no projeto Supabase é apenas metadado do projeto e não foi alterado.
 
 O Security Advisor mantém avisos para RPCs `security definer` executáveis por `authenticated`; isso é intencional para os comandos transacionais expostos, que usam autorização interna, `search_path` controlado, idempotência e revisão otimista. A proteção de senhas vazadas permanece como ajuste operacional do Auth, fora do escopo da migração da Fase 2.
+
+## 2026-11-03 — Fase 3
+
+### Projeção pública única e minimizada
+
+O portal não recebe `select` em tabelas privadas. `get_public_ranka_snapshot` valida visibilidade ou concessão temporária e monta JSON com campos esportivos explícitos. Contribuições, contatos, logs administrativos, chaves, hashes e IDs de identidade ficam fora do contrato. Jogadores começam com `public_visible = false`; somente opt-in do organizador libera um nome esportivo.
+
+### Link e PIN como barreiras leves
+
+Links não listados usam 256 bits aleatórios e persistem apenas SHA-256. PINs usam bcrypt e só funcionam junto do link longo no modo protegido. Cinco falhas em 15 minutos bloqueiam temporariamente o mesmo fingerprint/recurso. A concessão é um bearer aleatório em cookie `httpOnly`, `SameSite=Lax`, com duas horas de duração e hash no banco. A interface informa que isso não prova identidade nem impede repasse.
+
+### Cache e Realtime sem dados privados
+
+O trigger público usa `realtime.send` em canal público e envia somente uma versão temporal para solicitar refetch; nenhuma linha de banco acompanha o Broadcast. O cliente também atualiza a cada 15 segundos, ao recuperar rede e ao voltar para a aba. Respostas `/r/*` são `private, no-store`. O service worker guarda somente assets estáticos e a página offline, nunca HTML do portal ou painel autenticado.
+
+### Estatísticas derivadas
+
+Rankings consideram apenas partidas concluídas, eventos ativos e jogadores com nome público autorizado. Gol sem autor continua no placar, mas não cria artilharia; gol contra não credita gol normal. Períodos usam a data da sessão e a zona do ranka: último concluído, mês-calendário, temporada e dia específico. Correções são refletidas no próximo snapshot.
+
+### Migrações incrementais e validação
+
+`20261103000200` criou o portal; `20261103000300` corrigiu uma ambiguidade detectada pelo teste de rate limit; `20261103000400` ajustou a volatilidade declarada do snapshot. A suíte remota aprovou 19/19 casos com rollback. O lint remoto terminou sem erros ou avisos de esquema.

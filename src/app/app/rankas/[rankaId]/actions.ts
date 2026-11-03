@@ -1,6 +1,6 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -121,4 +121,46 @@ export async function updateRulesAction(rankaId: string, sessionId: string, expe
   const rules = { squadSize: parsed.data.squadSize, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy };
   const { error } = await rpc("update_session_rules", { p_session_id: sessionId, p_rules: rules, p_contribution_amount_cents: parsed.data.contributionAmountCents, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "configuracoes", !error, error ? "conflito" : "regras");
+}
+
+export interface PortalSettingsActionState {
+  status: "idle" | "success" | "error";
+  message?: string;
+  sharePath?: string;
+}
+
+export async function configurePortalAction(rankaId: string, slug: string, _previous: PortalSettingsActionState, formData: FormData): Promise<PortalSettingsActionState> {
+  const parsed = z.object({
+    visibility: z.enum(["public", "unlisted", "pin_protected", "private_off"]),
+    pin: z.preprocess((value) => value || undefined, z.string().regex(/^\d{4}$/).optional()),
+  }).safeParse({ visibility: formData.get("visibility"), pin: formData.get("pin") });
+  if (!parsed.success || (parsed.data.visibility === "pin_protected" && !parsed.data.pin)) {
+    return { status: "error", message: "Revise o modo de acesso e informe exatamente quatro dígitos para o PIN." };
+  }
+  const protectedMode = parsed.data.visibility === "unlisted" || parsed.data.visibility === "pin_protected";
+  const linkToken = protectedMode ? randomBytes(32).toString("base64url") : null;
+  const { error } = await rpc("configure_public_portal", {
+    p_ranka_id: rankaId,
+    p_visibility: parsed.data.visibility,
+    p_pin: parsed.data.pin ?? null,
+    p_link_token: linkToken,
+  });
+  if (error) return { status: "error", message: "Não foi possível atualizar o portal. Tente novamente sem reutilizar o link anterior." };
+  revalidatePath(`/app/rankas/${rankaId}`);
+  revalidatePath(`/r/${slug}`);
+  return {
+    status: "success",
+    message: protectedMode ? "Novo link protegido gerado. Links anteriores foram revogados." : parsed.data.visibility === "public" ? "Portal público ativado." : "Portal público desativado.",
+    sharePath: linkToken ? `/r/${slug}?token=${encodeURIComponent(linkToken)}` : parsed.data.visibility === "public" ? `/r/${slug}` : undefined,
+  };
+}
+
+export async function setPlayerPublicProfileAction(rankaId: string, playerId: string, formData: FormData) {
+  const parsed = z.object({ visible: z.boolean(), displayName: z.string().trim().max(80).optional() }).safeParse({
+    visible: formData.get("visible") === "on",
+    displayName: formData.get("displayName") || undefined,
+  });
+  if (!parsed.success || (parsed.data.visible && (!parsed.data.displayName || parsed.data.displayName.length < 2))) finish(rankaId, "configuracoes", false, "perfil_publico");
+  const { error } = await rpc("set_player_public_profile", { p_player_id: playerId, p_visible: parsed.data.visible, p_display_name: parsed.data.displayName ?? null });
+  finish(rankaId, "configuracoes", !error, error ? "perfil_publico" : "perfil_publico");
 }

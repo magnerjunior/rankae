@@ -3,9 +3,9 @@ import { groupSquads } from "@/domain/ranka/rules";
 import type { Attendance, MatchEvent, Player, Squad } from "@/domain/ranka/types";
 import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, SessionRules } from "@/data/ports/ranka-repository";
 
-interface RankaRow { id: string; org_id: string; name: string; }
+interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
 interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
-interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; player_aliases?: { alias: string }[]; }
+interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; }
 interface SquadRow { id: string; squad_number: number; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
 interface MatchRow {
@@ -42,12 +42,12 @@ export class SupabaseRankaRepository implements RankaRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async getSnapshot(rankaId: string): Promise<RankaSnapshot> {
-    const { data: ranka, error: rankaError } = await this.client.from("rankas").select("id,org_id,name").eq("id", rankaId).single();
+    const { data: ranka, error: rankaError } = await this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).single();
     if (rankaError || !ranka) throw new Error("Ranka não encontrado ou não autorizado.");
     const typedRanka = ranka as RankaRow;
     const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
       this.client.from("sessions").select("id,scheduled_on,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
-      this.client.from("players").select("id,full_name,nickname,role_preference,player_aliases(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
+      this.client.from("players").select("id,full_name,nickname,role_preference,public_visible,public_display_name,player_aliases(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (sessionError || playersError) throw new Error("Não foi possível carregar a sessão autorizada.");
     const session = (sessions?.[0] ?? null) as SessionRow | null;
@@ -66,6 +66,8 @@ export class SupabaseRankaRepository implements RankaRepository {
       id: row.id, fullName: row.full_name,
       aliases: [row.nickname, ...(row.player_aliases ?? []).map((alias) => alias.alias)].filter((value): value is string => Boolean(value)),
       role: row.role_preference === "keeper" ? "keeper" : "line",
+      publicVisible: row.public_visible,
+      publicDisplayName: row.public_display_name ?? undefined,
     }));
     const attendance: Attendance[] = ((attendanceResult.data ?? []) as AttendanceRow[]).map((row) => ({ id: row.id, playerId: row.player_id, arrivalIndex: row.arrival_index, status: row.status }));
     const rules = readRules(session.rules_snapshot ?? {});
@@ -101,6 +103,7 @@ export class SupabaseRankaRepository implements RankaRepository {
       rules, contributionAmountCents: session.contribution_amount_cents,
       contributions: ((contributionsResult.data ?? []) as ContributionRow[]).map((row) => ({ playerId: row.player_id, amountCents: row.amount_cents, status: row.status })),
       activeMatch, revision: session.revision,
+      portal: { slug: typedRanka.slug, visibility: typedRanka.visibility, hasProtectedLink: Boolean(typedRanka.invite_token_hash) },
     };
   }
 

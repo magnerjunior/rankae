@@ -2,12 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import { RankaWorkspace } from "@/components/ranka-workspace";
 import { RealRankaWorkspace } from "@/components/real-ranka-workspace";
 import { SupabaseRankaRepository } from "@/data/supabase/supabase-ranka-repository";
+import { PublicPortalRepository } from "@/data/supabase/public-portal-repository";
+import { parsePortalPeriod } from "@/domain/public-portal/rules";
 import { isRankaSection } from "@/lib/navigation";
 import { isDemoEnabled } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserId } from "@/server/auth";
 
-export default async function RankaPage({ params, searchParams }: { params: Promise<{ rankaId: string; section?: string[] }>; searchParams: Promise<{ sucesso?: string; erro?: string }> }) {
+export default async function RankaPage({ params, searchParams }: { params: Promise<{ rankaId: string; section?: string[] }>; searchParams: Promise<{ sucesso?: string; erro?: string; period?: string; date?: string }> }) {
   const { rankaId, section } = await params;
   const active = section?.[0] ?? "inicio";
   if (!isRankaSection(active)) notFound();
@@ -16,9 +18,14 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     return <RankaWorkspace initialSection={active} />;
   }
   await requireUserId();
-  const repository = new SupabaseRankaRepository(await createClient());
+  const client = await createClient();
+  const repository = new SupabaseRankaRepository(client);
   const snapshot = await repository.getSnapshot(rankaId).catch(() => null);
   if (!snapshot) notFound();
-  const { sucesso, erro } = await searchParams;
-  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} />;
+  const { sucesso, erro, period: periodValue, date } = await searchParams;
+  const period = parsePortalPeriod(periodValue, date);
+  const statsSnapshot = active === "estatisticas" && snapshot.portal
+    ? await new PublicPortalRepository(client).getSnapshot({ slug: snapshot.portal.slug, period: period.period, date: period.date }).catch(() => null)
+    : null;
+  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} statsDate={period.date} />;
 }

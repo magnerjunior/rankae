@@ -1,4 +1,4 @@
-# Progresso — Fases 1, 1.5 e 2
+# Progresso — Fases 1, 1.5, 2 e 3
 
 Atualizado em 2026-11-03.
 
@@ -138,3 +138,43 @@ Resultados reais de 2026-11-03:
 - [x] `supabase db lint --remote`: nenhum erro de esquema.
 - [x] Security Advisor: zero erros; avisos de RPCs `security definer` são intencionais e protegidos por autorização interna. A proteção de senhas vazadas continua desativada como configuração operacional do Auth.
 - [ ] Smoke manual de Realtime com dois navegadores autenticados; não bloqueia a integridade transacional validada, mas deve ser repetido antes de disponibilização pública.
+
+## Fase 3 — portal, estatísticas e compartilhamento
+
+### Implementado
+
+- [x] Portal `/r/[slug]` somente leitura, com metadata indexável apenas no modo público.
+- [x] Modos `public`, `unlisted`, `pin_protected` e `private_off` configuráveis pelo organizador.
+- [x] Link protegido por token aleatório longo, armazenado apenas como hash, com rotação e revogação das concessões anteriores.
+- [x] PIN de quatro dígitos com bcrypt, limite de cinco falhas por visitante/recurso em 15 minutos, resposta genérica e sessão temporária `httpOnly` de duas horas.
+- [x] Avisos claros de que link compartilhado e PIN curto não garantem sigilo forte.
+- [x] Projeção pública por RPC `security definer` com `search_path` controlado; nenhuma leitura pública direta das tabelas privadas.
+- [x] Nomes públicos em opt-in individual; padrão oculto e fallback “Participante” sem incluir o perfil em ranking nominal.
+- [x] Placar, relógio autoritativo, times atuais, próximos squads, goleiros, gandulas e resultados sanitizados.
+- [x] Rankings de gols, assistências, penalidades, jogos e resultados nos períodos último ranka, mês, temporada e dia específico.
+- [x] Broadcast público com payload somente de invalidação e fallback de refetch a cada 15 segundos/reconexão.
+- [x] Compartilhamento manual por cópia ou abertura do WhatsApp, sem chatbot, leitura ou envio automático.
+- [x] Manifesto PWA, ícone instalável, service worker restrito a assets estáticos e página offline sem conteúdo protegido em cache.
+- [x] Landing page responsiva com identidade visual Rankaê.
+
+### Validação local e remota de 2026-11-03
+
+- `npm run lint`: passou, zero erros e zero avisos.
+- `npm run typecheck`: passou.
+- `npm test`: 2 arquivos, 26 testes unitários aprovados.
+- `npm run build`: build de produção aprovado; rotas públicas, manifesto e offline gerados.
+- `npm audit --omit=dev`: zero vulnerabilidades em produção.
+- Migrações `20261103000200`, `20261103000300` e `20261103000400` aplicadas; histórico local/remoto alinhado em seis versões.
+- Teste remoto `phase3_public_portal_test.sql`: 19/19, com `rollback` e sem dados fictícios persistidos.
+- Privacidade remota: contribuição e nome interno oculto ausentes do snapshot; grant, rotação, PIN e rate limit aprovados.
+- Filtros remotos: mês e dia específico aprovados com eventos auditáveis.
+- `supabase db lint --remote`: nenhum erro ou aviso de esquema.
+- Smoke HTTP: `/`, `/offline`, `/manifest.webmanifest` e `/r/enganos` retornaram 200; portal privado gerou `noindex`; rota administrativa sem cookie redirecionou para `/entrar`.
+- O ranka real permanece `private_off` e com zero nomes públicos até ação explícita do organizador.
+
+### Riscos e pendências não bloqueantes
+
+- O Security Advisor lista as RPCs públicas/autenticadas `security definer` por desenho; cada função tem escopo, autorização interna e retorno sanitizado. O teste de privacidade cobre os três endpoints anônimos.
+- A proteção de senhas vazadas do Supabase Auth permanece desativada como ajuste operacional anterior, fora do escopo do portal.
+- O Broadcast público depende da opção de canais públicos do projeto; o polling de 15 segundos mantém atualização eventual se WebSocket estiver indisponível.
+- Teste de carga 100/1000 VUs, observabilidade e minutas legais pertencem exclusivamente à Fase 4.

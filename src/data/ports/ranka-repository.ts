@@ -58,6 +58,11 @@ export interface RankaSnapshot {
   contributions: ContributionRecord[];
   activeMatch?: LiveMatch;
   revision: number;
+  portal?: {
+    slug: string;
+    visibility: "public" | "unlisted" | "pin_protected" | "private_off";
+    hasProtectedLink: boolean;
+  };
 }
 
 export interface RankaRepository {

@@ -5,10 +5,13 @@ import "@fontsource/barlow/600.css";
 import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/800.css";
 import "./globals.css";
+import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
   title: "Rankaê · Gestão de peladas",
-  description: "Demonstração local da fundação visual e do motor de regras do Rankaê.",
+  description: "Gestão presencial, placar ao vivo e estatísticas para peladas brasileiras.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/rankae-icon.svg", apple: "/rankae-icon.svg" },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#f8faf8" };
@@ -16,7 +19,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
-      <body>{children}</body>
+      <body><PwaRegister />{children}</body>
     </html>
   );
 }

@@ -1,7 +1,7 @@
 # RANKAÊ — Pacote de especificação para Codex
 
 **Produto:** SaaS multi-peladas, mobile-first, gestão presencial de futebol amador.
-**Estado:** Fase 2 concluída localmente e aplicada ao projeto Supabase. A operação presencial completa possui domínio, UI, migração versionada, RLS e validação transacional remota com 19/19 asserções aprovadas.
+**Estado:** Fase 3 concluída localmente e aplicada ao projeto Supabase. O produto possui operação presencial, portal público/restrito, estatísticas por período, compartilhamento manual e PWA, com validações transacionais remotas das fases 2 e 3 aprovadas em 19/19 asserções cada.
 
 ## Executar a Fase 1
 
@@ -22,7 +22,7 @@ Abra `http://localhost:3000/entrar`. Para validar a entrega, execute `npm run li
 4. Aplique `supabase/migrations/` em ordem via Supabase CLI ou SQL Editor em ambiente de desenvolvimento/staging.
 5. Execute `npx supabase test db` em uma máquina com Docker para validar o isolamento multi-tenant.
 
-No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicadas pelo SQL Editor e posteriormente reconciliadas no histórico oficial da CLI. A migração da Fase 2 foi aplicada com `supabase db push`; as três versões locais e remotas estão alinhadas.
+No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicadas pelo SQL Editor e posteriormente reconciliadas no histórico oficial da CLI. As migrações das fases 2 e 3 foram aplicadas com `supabase db push`; as seis versões locais e remotas estão alinhadas.
 
 Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo só existe em desenvolvimento e exige opt-in explícito.
 
@@ -31,6 +31,15 @@ Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo 
 Após aplicar as migrações em ordem, um organizador autenticado pode executar o ciclo em **Chegada → Times → Partida → Contribuições**. O relógio é derivado do horário do servidor, eventos são idempotentes e revisões otimistas impedem que dois mesários sobrescrevam alterações concorrentes. O canal privado `session:<uuid>` usa autorização RLS e apenas sinaliza clientes autorizados para refazer o snapshot.
 
 Para testar a instalação atual, execute `npm run dev` e abra `http://127.0.0.1:3000/entrar`. Depois do login, o ranka existente fica disponível em `/app/rankas/4cef25dc-6a62-4efa-892f-2769161aa951`.
+
+## Publicar o portal da Fase 3
+
+1. Entre no ranka e abra **Regras e privacidade**.
+2. Autorize individualmente os nomes esportivos que podem aparecer; o padrão é oculto.
+3. Escolha **Público**, **Link não listado** ou **Link + PIN**. Modos protegidos geram um novo link longo e revogam links antigos.
+4. Compartilhe manualmente o link. O portal `/r/[slug]` mostra somente placar, times, apoio, resultados e estatísticas autorizadas.
+
+O portal protegido usa sessão temporária `httpOnly`, rate limit por recurso/visitante e respostas genéricas. PIN de quatro dígitos e link compartilhado são barreiras leves, não garantia de sigilo. Respostas protegidas usam `private, no-store`; o service worker não armazena documentos do portal.
 
 ## Como começar
 1. Extraia esta pasta em um diretório novo e abra **a pasta-raiz** no Codex.
