@@ -241,7 +241,7 @@ export async function startGameFromArrivalAction(rankaId: string, sessionId: str
     if (generated.error) finish(rankaId, "chegada", false, "times");
   }
   revalidatePath(`/app/rankas/${rankaId}`);
-  redirect(`/app/rankas/${rankaId}/times`);
+  redirect(`/app/rankas/${rankaId}/jogo?etapa=times`);
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {
@@ -274,40 +274,41 @@ export async function setAttendanceStatusAction(rankaId: string, sessionId: stri
 
 export async function generateSquadsAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
-  if (!parsed.success) finish(rankaId, "times", false, "dados");
+  if (!parsed.success) finish(rankaId, "jogo", false, "dados");
   const { error } = await rpc("generate_session_squads", { p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: parsed.data.seed ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "times", !error, error ? "conflito" : "times");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "times");
 }
 
 export async function substitutePlayerAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ targetSquadId: uuid, outgoingPlayerId: uuid, incomingPlayerId: uuid, reason: z.string().trim().min(3).max(240), override: z.coerce.boolean().default(false) }).safeParse({ targetSquadId: formData.get("targetSquadId"), outgoingPlayerId: formData.get("outgoingPlayerId"), incomingPlayerId: formData.get("incomingPlayerId"), reason: formData.get("reason"), override: formData.get("override") === "on" });
-  if (!parsed.success) finish(rankaId, "times", false, "dados");
+  if (!parsed.success) finish(rankaId, "jogo", false, "dados");
   const { error } = await rpc("substitute_squad_member", { p_session_id: sessionId, p_target_squad_id: parsed.data.targetSquadId, p_outgoing_player_id: parsed.data.outgoingPlayerId, p_incoming_player_id: parsed.data.incomingPlayerId, p_reason: parsed.data.reason, p_override_priority: parsed.data.override, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "times", !error, error ? "conflito" : "substituicao");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "substituicao");
 }
 
 export async function prepareMatchAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
   const { error } = await rpc("prepare_next_match", { p_session_id: sessionId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "preparar" : "pre_jogo");
+  finish(rankaId, "jogo", !error, error ? "preparar" : "pre_jogo");
 }
 
 export async function confirmOfficialsAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ yellowKeeperId: optionalUuid, redKeeperId: optionalUuid, ballBoyIds: z.array(uuid).max(2) }).safeParse({ yellowKeeperId: formData.get("yellowKeeperId"), redKeeperId: formData.get("redKeeperId"), ballBoyIds: formData.getAll("ballBoyIds") });
-  if (!parsed.success) finish(rankaId, "partida", false, "escala");
+  if (!parsed.success) finish(rankaId, "jogo", false, "escala");
   const { error } = await rpc("confirm_match_officials", { p_match_id: matchId, p_yellow_keeper_id: parsed.data.yellowKeeperId ?? null, p_red_keeper_id: parsed.data.redKeeperId ?? null, p_ball_boy_ids: parsed.data.ballBoyIds, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "escala");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "escala");
 }
 
 export async function clockAction(rankaId: string, matchId: string, expectedRevision: number, command: string, formData: FormData) {
   const parsed = z.enum(["start", "pause", "resume", "reset", "finish_regulation", "start_overtime", "finish_overtime"]).safeParse(command);
-  if (!parsed.success) finish(rankaId, "partida", false, "comando");
+  if (!parsed.success) finish(rankaId, "jogo", false, "comando");
   const { error } = await rpc("transition_match_clock", { p_match_id: matchId, p_command: parsed.data, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : parsed.data);
+  finish(rankaId, "jogo", !error, error ? "conflito" : parsed.data);
 }
 
 export async function recordEventAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ eventType: z.enum(["goal", "penalty_attempt", "marker"]), side: z.preprocess((value) => value || undefined, z.enum(["yellow", "red"]).optional()), scorerPlayerId: optionalUuid, assistPlayerId: optionalUuid, keeperPlayerId: optionalUuid, goalKind: z.preprocess((value) => value || undefined, z.enum(["normal", "penalty", "own_goal"]).optional()), penaltyOutcome: z.preprocess((value) => value || undefined, z.enum(["converted", "missed", "saved"]).optional()), label: z.string().trim().max(80).optional(), markerKind: z.enum(["note", "card"]).default("note"), cardColor: z.enum(["yellow", "red", "blue"]).optional(), cardMinutes: z.coerce.number().int().min(0).max(30).optional(), cardPlayerId: optionalUuid }).safeParse({ eventType: formData.get("eventType"), side: formData.get("side"), scorerPlayerId: formData.get("scorerPlayerId"), assistPlayerId: formData.get("assistPlayerId"), keeperPlayerId: formData.get("keeperPlayerId"), goalKind: formData.get("goalKind"), penaltyOutcome: formData.get("penaltyOutcome"), label: formData.get("label") || undefined, markerKind: formData.get("markerKind") || "note", cardColor: formData.get("cardColor") || undefined, cardMinutes: formData.get("cardMinutes") || undefined, cardPlayerId: formData.get("cardPlayerId") });
-  if (!parsed.success) finish(rankaId, "partida", false, "evento");
+  if (!parsed.success) finish(rankaId, "jogo", false, "evento");
+  if (parsed.data.eventType === "goal" && parsed.data.scorerPlayerId && parsed.data.scorerPlayerId === parsed.data.assistPlayerId) finish(rankaId, "jogo", false, "assistencia");
   const cardPlayer = parsed.data.cardPlayerId && parsed.data.markerKind === "card" ? parsed.data.cardPlayerId : undefined;
   let cardPlayerName: string | undefined;
   if (cardPlayer) {
@@ -321,35 +322,35 @@ export async function recordEventAction(rankaId: string, matchId: string, expect
     : parsed.data.label || "Marco";
   const metadata = parsed.data.markerKind === "card" ? { kind: "card", color: parsed.data.cardColor, durationMinutes: parsed.data.cardMinutes, playerId: cardPlayer } : { kind: "note" };
   const { error } = await rpc("record_match_event", { p_match_id: matchId, p_event_type: parsed.data.eventType, p_side: parsed.data.side ?? null, p_scorer_player_id: cardPlayer ?? parsed.data.scorerPlayerId ?? null, p_assist_player_id: parsed.data.assistPlayerId ?? null, p_keeper_player_id: parsed.data.keeperPlayerId ?? null, p_goal_kind: parsed.data.goalKind ?? null, p_penalty_outcome: parsed.data.penaltyOutcome ?? null, p_label: parsed.data.eventType === "marker" ? markerLabel.slice(0, 80) : parsed.data.label ?? null, p_metadata: metadata, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "evento");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "evento");
 }
 
 export async function voidEventAction(rankaId: string, eventId: string, expectedRevision: number, formData: FormData) {
   const reason = z.string().trim().min(3).max(240).safeParse(formData.get("reason"));
-  if (!reason.success) finish(rankaId, "partida", false, "motivo");
+  if (!reason.success) finish(rankaId, "jogo", false, "motivo");
   const { error } = await rpc("void_match_event", { p_event_id: eventId, p_reason: reason.data, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "correcao");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "correcao");
 }
 
 export async function updateMarkerAction(rankaId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ eventId: uuid, label: z.string().trim().min(1).max(80) }).safeParse({ eventId: formData.get("eventId"), label: formData.get("label") });
-  if (!parsed.success) finish(rankaId, "partida", false, "rotulo");
+  if (!parsed.success) finish(rankaId, "jogo", false, "rotulo");
   const { error } = await rpc("update_match_marker", { p_event_id: parsed.data.eventId, p_label: parsed.data.label, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "marco");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "marco");
 }
 
 export async function resolveTieAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ method: z.enum(["penalties", "odd_even", "both_out", "manual"]), winnerSquadId: optionalUuid }).safeParse({ method: formData.get("method"), winnerSquadId: formData.get("winnerSquadId") });
-  if (!parsed.success) finish(rankaId, "partida", false, "desempate");
+  if (!parsed.success) finish(rankaId, "jogo", false, "desempate");
   const { error } = await rpc("resolve_match_tie", { p_match_id: matchId, p_method: parsed.data.method, p_winner_squad_id: parsed.data.winnerSquadId ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "desempate");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "desempate");
 }
 
 export async function completeMatchAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ resultOverride: z.preprocess((value) => value || undefined, z.enum(["yellow", "red", "both_out"]).optional()), reason: z.string().trim().max(240).optional() }).safeParse({ resultOverride: formData.get("resultOverride"), reason: formData.get("reason") || undefined });
-  if (!parsed.success) finish(rankaId, "partida", false, "rotacao");
+  if (!parsed.success) finish(rankaId, "jogo", false, "rotacao");
   const { error } = await rpc("complete_match_and_rotate", { p_match_id: matchId, p_result_override: parsed.data.resultOverride ?? null, p_reason: parsed.data.reason ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "partida", !error, error ? "conflito" : "rotacao");
+  finish(rankaId, "jogo", !error, error ? "conflito" : "rotacao");
 }
 
 export async function batchContributionsAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {

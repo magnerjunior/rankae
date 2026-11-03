@@ -6,6 +6,7 @@ import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/800.css";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
+import { CookieConsent } from "@/components/cookie-consent";
 
 const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
 
@@ -39,7 +40,7 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
-      <body><PwaRegister />{children}</body>
+      <body><PwaRegister />{children}<CookieConsent /></body>
     </html>
   );
 }

@@ -206,3 +206,9 @@ O portal do espectador deixa de abrir Broadcast, polling e cronômetro. Ele apre
 ### Escala e eventos
 
 Seletores de goleiro mostram apenas goleiros presentes; gandulas mostram somente jogadores de linha em espera. A partida mantém elencos compactos sempre visíveis, com contadores de gol e assistência derivados dos eventos ativos. Marcos podem ser criados em um toque, rotulados e editados com histórico; cartões são registrados como marcos estruturados com jogador, cor e minutos fora. Jogadores podem ser classificados como fixos ou visitantes por RPC auditada.
+
+## 2026-11-03 — hub único e operação de quadra
+
+Chegada, formação de times e partida passam a ser etapas do mesmo hub `Jogo`, mantendo rotas antigas apenas por compatibilidade. A escala de apoio sugere e salva automaticamente os goleiros e os dois primeiros jogadores do próximo time como gandulas; qualquer seletor pode ser trocado diretamente. A barra persistente da partida usa o horário autoritativo já carregado e não depende de novas consultas por segundo.
+
+Por decisão explícita do proprietário, um portal habilitado exibe automaticamente o nome esportivo de todos os jogadores ativos, removendo a confirmação individual repetitiva. Pedidos de privacidade continuam capazes de ocultar ou anonimizar registros pelos fluxos administrativos existentes.

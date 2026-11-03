@@ -1,6 +1,7 @@
 export const rankaSections = [
   { key: "inicio", label: "Início", short: "Início" },
   { key: "jogadores", label: "Jogadores", short: "Pessoas" },
+  { key: "jogo", label: "Jogo", short: "Jogo" },
   { key: "chegada", label: "Chegada", short: "Chegada" },
   { key: "times", label: "Times", short: "Times" },
   { key: "partida", label: "Partida", short: "Jogo" },

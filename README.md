@@ -32,7 +32,7 @@ Produção: `https://rankae.vercel.app`. A branch `main` do GitHub é a fonte da
 
 Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_ENABLE_DEMO=false` e `NEXT_PUBLIC_APP_URL=https://rankae.vercel.app`. No Supabase Auth, use `https://rankae.vercel.app` como Site URL e autorize `/auth/callback` no domínio de produção e nos endereços locais usados no desenvolvimento. O cadastro de organizadores exige confirmação de e-mail; recuperação de senha também retorna pelo callback autorizado.
 
-O fluxo principal de campo começa em **Iniciar ranka** e segue para **Chegada**. Nome + posição cadastram ou reutilizam o jogador e confirmam a presença na mesma ação. A opção **Adicionar lista** aceita `GK- Nome` para goleiros e linhas numeradas como `1- Nome`. Goleiros aparecem em um bloco separado; somente os jogadores de linha recebem a numeração de chegada. **Iniciar jogo** abre primeiro a revisão dos times; o relógio só começa no pré-jogo, após confirmação explícita. O padrão é 7 minutos, prorrogação de 3 minutos e ímpar ou par se o empate persistir. O cronômetro responde de forma otimista e sincroniza em segundo plano, mantendo o servidor como autoridade. O portal público exibe somente resultados e estatísticas, sem placar ao vivo ou conexão contínua. A migração `20261103000800`, já aplicada em produção, também habilita jogador fixo/visitante e edição auditável de marcos.
+O fluxo principal de campo fica no hub **Jogo**, com as etapas **Chegada → Times → Partida** na mesma área. Nome + posição cadastram ou reutilizam o jogador e confirmam a presença na mesma ação. A opção **Adicionar lista** aceita `GK- Nome` para goleiros e linhas numeradas como `1- Nome`. Goleiros aparecem em um bloco separado; somente os jogadores de linha recebem a numeração de chegada. Preparar a partida não dispara o relógio. A escala sugere os goleiros e usa os dois primeiros jogadores do próximo time como gandulas, salvando mudanças diretamente nos seletores. O padrão é 7 minutos, prorrogação de 3 minutos e ímpar ou par se o empate persistir. O cronômetro responde de forma otimista e sincroniza em segundo plano, mantendo o servidor como autoridade. O portal público exibe somente resultados e estatísticas, sem placar ao vivo ou conexão contínua.
 
 ## Operar a Fase 2
 
@@ -42,10 +42,9 @@ Para testar a instalação atual, execute `npm run dev` e abra `http://127.0.0.1
 
 ## Publicar o portal da Fase 3
 
-1. Entre no ranka e abra **Regras e privacidade**.
-2. Autorize individualmente os nomes esportivos que podem aparecer; o padrão é oculto.
-3. Escolha **Público**, **Link não listado** ou **Link + PIN**. Modos protegidos geram um novo link longo e revogam links antigos.
-4. Compartilhe manualmente o link. O portal `/r/[slug]` mostra somente placar, times, apoio, resultados e estatísticas autorizadas.
+1. Entre no ranka e abra **Regras**.
+2. Escolha **Público**, **Link não listado** ou **Link + PIN**. Modos protegidos geram um novo link longo e revogam links antigos.
+3. Compartilhe manualmente o link. Quando habilitado, o portal `/r/[slug]` mostra automaticamente os nomes esportivos dos jogadores ativos, resultados e estatísticas.
 
 O portal protegido usa sessão temporária `httpOnly`, rate limit por recurso/visitante e respostas genéricas. PIN de quatro dígitos e link compartilhado são barreiras leves, não garantia de sigilo. Respostas protegidas usam `private, no-store`; o service worker não armazena documentos do portal.
 
