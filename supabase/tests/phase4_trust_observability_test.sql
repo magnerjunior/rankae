@@ -113,5 +113,5 @@ set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select results_eq($$select public.platform_health_check()->>'status'$$, array['ok'], 'anonymous synthetic health check exposes only safe status');
 
-select * from finish();
+select case when count(*) = 0 then 'ok 20/20' else 'failed: ' || string_agg(result, E'\n') end as phase4_test_summary from finish() as result;
 rollback;
