@@ -8,9 +8,13 @@ const initialState: PortalSettingsActionState = { status: "idle" };
 export function PortalSettingsForm({ action, currentVisibility }: { action: (state: PortalSettingsActionState, formData: FormData) => Promise<PortalSettingsActionState>; currentVisibility: "public" | "unlisted" | "pin_protected" | "private_off" }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [visibility, setVisibility] = useState(currentVisibility);
+  const [copied, setCopied] = useState(false);
   const absoluteLink = useMemo(() => state.sharePath && typeof window !== "undefined" ? `${window.location.origin}${state.sharePath}` : state.sharePath, [state.sharePath]);
   async function copyLink() {
-    if (absoluteLink) await navigator.clipboard.writeText(absoluteLink);
+    if (absoluteLink) {
+      await navigator.clipboard.writeText(absoluteLink);
+      setCopied(true);
+    }
   }
   return <form className="stack" action={formAction}>
     <label className="field">Acesso ao portal
@@ -24,7 +28,7 @@ export function PortalSettingsForm({ action, currentVisibility }: { action: (sta
     {visibility === "pin_protected" && <label className="field">Novo PIN<input className="input mono" name="pin" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" placeholder="0000" required /></label>}
     {(visibility === "unlisted" || visibility === "pin_protected") && <p className="muted portal-help">Ao salvar, você receberá um novo link para compartilhar. Quem receber o link poderá repassá-lo.</p>}
     {state.message && <div className={`notice ${state.status === "error" ? "notice-warning" : ""}`} role="status">{state.message}</div>}
-    {absoluteLink && <div className="share-link"><code>{absoluteLink}</code><button className="button button-secondary button-small" type="button" onClick={copyLink}>Copiar link</button></div>}
+    {absoluteLink && <div className="share-link"><code>{absoluteLink}</code><div className="cluster"><button className="button button-secondary button-small" type="button" onClick={copyLink}>{copied ? "Copiado" : "Copiar link"}</button><a className="button button-primary button-small" href={absoluteLink} target="_blank" rel="noreferrer">Testar portal</a></div></div>}
     <button className="button button-primary" disabled={pending}>{pending ? "Salvando…" : "Salvar acesso público"}</button>
   </form>;
 }
