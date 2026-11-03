@@ -226,8 +226,10 @@ export async function removeArrivalAction(sessionId: string, input: { playerId: 
   return { status: "success", message: "Jogador removido.", revision: output.revision };
 }
 
-export async function startGameFromArrivalAction(rankaId: string, sessionId: string, squadSize: number, hasPersistedSquads: boolean, expectedRevision: number) {
-  let revision = expectedRevision;
+export async function startGameFromArrivalAction(rankaId: string, sessionId: string, squadSize: number, hasPersistedSquads: boolean, input: { expectedRevision: number }) {
+  const parsedRevision = z.number().int().positive().safeParse(input.expectedRevision);
+  if (!parsedRevision.success) finish(rankaId, "chegada", false, "revisao");
+  let revision = parsedRevision.data;
   if (!hasPersistedSquads) {
     const generated = await rpc("generate_session_squads", {
       p_session_id: sessionId,

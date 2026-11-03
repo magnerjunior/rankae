@@ -92,7 +92,7 @@ function Arrival({ snapshot, success, error }: { snapshot: RankaSnapshot; succes
     reorderAction={reorderArrivalAction.bind(null, sessionId)}
     renameAction={renameArrivalAction.bind(null, sessionId)}
     removeAction={removeArrivalAction.bind(null, sessionId)}
-    startGameAction={startGameFromArrivalAction.bind(null, snapshot.id, sessionId, snapshot.rules.squadSize, snapshot.hasPersistedSquads, snapshot.revision)}
+    startGameAction={startGameFromArrivalAction.bind(null, snapshot.id, sessionId, snapshot.rules.squadSize, snapshot.hasPersistedSquads)}
   /></>;
 }
 
