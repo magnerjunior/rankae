@@ -82,13 +82,12 @@ export function groupSquads(
     .filter((playerId) => playerById.get(playerId)?.role === "line");
 
   const blockSize = squadSize * 2;
-  const selected =
-    options.method === "shuffle_blocks"
-      ? orderedIds.flatMap((_, blockStart, all) => {
-          if (blockStart % blockSize !== 0) return [];
-          return seededShuffle(all.slice(blockStart, blockStart + blockSize), (options.seed ?? 1) + blockStart);
-        })
-      : orderedIds;
+  const selected = options.method === "shuffle_blocks"
+    ? [
+        ...seededShuffle(orderedIds.slice(0, blockSize), options.seed ?? 1),
+        ...orderedIds.slice(blockSize),
+      ]
+    : orderedIds;
 
   const squads: Squad[] = [];
   for (let index = 0; index < selected.length; index += squadSize) {
@@ -191,6 +190,7 @@ interface RotateSquadsInput {
   redSquadId: string;
   waitingSquadIds: string[];
   result: "yellow_win" | "red_win" | "both_out";
+  requeuedSquadIds?: string[];
 }
 
 export function rotateSquads(input: RotateSquadsInput): RotationResult {
@@ -206,6 +206,7 @@ export function rotateSquads(input: RotateSquadsInput): RotationResult {
     redSquadId = waiting.shift();
   }
 
+  waiting.push(...(input.requeuedSquadIds ?? []));
   if (!yellowSquadId || !redSquadId) warnings.push("Não há times completos suficientes; revisão manual necessária.");
   return { yellowSquadId, redSquadId, waitingSquadIds: waiting, warnings };
 }

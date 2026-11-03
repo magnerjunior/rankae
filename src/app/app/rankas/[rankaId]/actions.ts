@@ -259,8 +259,8 @@ export async function startGameFromArrivalAction(rankaId: string, sessionId: str
     const generated = await rpc("generate_session_squads", {
       p_session_id: sessionId,
       p_squad_size: squadSize,
-      p_method: "sequential",
-      p_seed: null,
+      p_method: "shuffle_blocks",
+      p_seed: randomBytes(4).readUInt32BE(0) % 2_147_483_647,
       p_expected_revision: parsedRevision.data,
       p_idempotency_key: randomUUID(),
     });
@@ -301,7 +301,8 @@ export async function setAttendanceStatusAction(rankaId: string, sessionId: stri
 export async function generateSquadsAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
   if (!parsed.success) finish(rankaId, "jogo", false, "dados");
-  const { error } = await rpc("generate_session_squads", { p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: parsed.data.seed ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const seed = parsed.data.method === "shuffle_blocks" ? parsed.data.seed ?? randomBytes(4).readUInt32BE(0) % 2_147_483_647 : null;
+  const { error } = await rpc("generate_session_squads", { p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: seed, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "jogo", !error, error ? "conflito" : "times");
 }
 

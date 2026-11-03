@@ -96,7 +96,8 @@ describe("motor puro do ranka", () => {
     expect(squads.slice(0, 2).flatMap((squad) => squad.playerIds).sort()).toEqual(
       Array.from({ length: 12 }, (_, index) => `p${index + 1}`).sort(),
     );
-    expect(squads.slice(2).flatMap((squad) => squad.playerIds).every((id) => Number(id.slice(1)) >= 13)).toBe(true);
+    expect(squads[2].playerIds).toEqual(["p13", "p14", "p15", "p16", "p17", "p18"]);
+    expect(squads[3].playerIds).toEqual(["p19", "p20", "p21", "p22", "p23", "p24"]);
   });
 
   it("exclui goleiros dedicados da formação de linha", () => {
@@ -155,6 +156,25 @@ describe("motor puro do ranka", () => {
     expect(
       rotateSquads({ yellowSquadId: "squad-1", redSquadId: "squad-2", waitingSquadIds: ["squad-3"], result: "red_win" }),
     ).toMatchObject({ yellowSquadId: "squad-3", redSquadId: "squad-2" });
+  });
+
+  it("coloca o time recomposto no fim e não pula o próximo da fila", () => {
+    const first = rotateSquads({
+      yellowSquadId: "squad-1",
+      redSquadId: "squad-2",
+      waitingSquadIds: ["squad-3", "squad-4"],
+      result: "yellow_win",
+      requeuedSquadIds: ["squad-5"],
+    });
+    expect(first).toMatchObject({ redSquadId: "squad-3", waitingSquadIds: ["squad-4", "squad-5"] });
+    const second = rotateSquads({
+      yellowSquadId: "squad-1",
+      redSquadId: "squad-3",
+      waitingSquadIds: first.waitingSquadIds,
+      result: "yellow_win",
+      requeuedSquadIds: ["squad-6"],
+    });
+    expect(second).toMatchObject({ redSquadId: "squad-4", waitingSquadIds: ["squad-5", "squad-6"] });
   });
 
   it("sinaliza revisão quando os dois saem e falta time completo", () => {

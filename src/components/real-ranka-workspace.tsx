@@ -382,7 +382,6 @@ function Teams({
         {present.length ? (
           <form action={generate} className="cluster">
             <Key />
-            <input type="hidden" name="seed" value="1" />
             <label className="field compact-field">
               Jogadores por time
               <select
@@ -400,10 +399,10 @@ function Teams({
               <select
                 className="select"
                 name="method"
-                defaultValue="sequential"
+                defaultValue="shuffle_blocks"
               >
                 <option value="sequential">Por ordem de chegada</option>
-                <option value="shuffle_blocks">Sortear</option>
+                <option value="shuffle_blocks">Sortear T1/T2 · demais por chegada</option>
               </select>
             </label>
             <button className="button button-primary">

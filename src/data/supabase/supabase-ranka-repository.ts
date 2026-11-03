@@ -16,7 +16,7 @@ interface RankaRow { id: string; org_id: string; name: string; slug: string; vis
 interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
 interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; membership_status: "regular" | "guest"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
-interface SquadRow { id: string; squad_number: number; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
+interface SquadRow { id: string; squad_number: number; state: "waiting" | "field" | "resting" | "archived"; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
 interface MatchRow {
   id: string; ordinal: number; yellow_squad_id: string; red_squad_id: string; state: LiveMatch["state"];
   clock_phase: LiveMatch["clockPhase"]; started_at_server: string | null; elapsed_ms_before_start: number;
@@ -85,7 +85,7 @@ export class SupabaseRankaRepository implements RankaRepository {
 
     const [attendanceResult, squadsResult, matchResult, contributionsResult] = await Promise.all([
       this.client.from("attendance").select("id,player_id,arrival_index,status,role_preference").eq("session_id", session.id).order("arrival_index"),
-      this.client.from("squads").select("id,squad_number,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).order("squad_number"),
+      this.client.from("squads").select("id,squad_number,state,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).neq("state", "archived").order("squad_number"),
       this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1),
       this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id),
     ]);

@@ -224,3 +224,9 @@ Ao finalizar uma partida, a rotação transacional já cria a próxima em estado
 O aviso global da partida aparece somente fora da tela do jogo e identifica os dois times pelas etiquetas coloridas T1/T2, placar e relógio. O hub de etapas permanece no topo do conteúdo, mas deixa de acompanhar a rolagem. A ação de finalizar e abrir o próximo jogo antecede o placar e passa a acompanhar apenas o trecho operacional necessário.
 
 A formação permite trocar dois jogadores de times diferentes por toque ou arraste, com resposta otimista no aparelho. A confirmação usa RPC transacional, permissão de organizador, idempotência, revisão otimista e auditoria; em conflito a interface desfaz a alteração. Para preservar escala e eventos, a troca é aceita somente antes de uma partida ser preparada.
+
+## 2026-11-03 — fila justa e números de time imutáveis
+
+T1, T2, T3... passam a identificar uma única passagem do grupo pela fila. Ao sair de campo, o time original é arquivado para preservar resultados e o mesmo conjunto de jogadores volta ao fim com um novo número, podendo ser ajustado antes de jogar novamente. A fila nunca antecipa um time recomposto: T4 joga antes de T5.
+
+A formação padrão sorteia apenas os 12 primeiros jogadores entre T1 e T2. T3 em diante são blocos estritos da chegada, evitando que o 24º colocado ultrapasse o 13º. O sorteio completo permanece substituível por formação sequencial explícita na tela.

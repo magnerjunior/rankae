@@ -15,14 +15,15 @@
 
 ## Formação default
 1. Excluir goleiros dedicados do pool de linha quando configurado.
-2. Selecionar até 6 primeiros elegíveis para T1, próximos 6 T2, T3, T4 e assim adiante.
-3. Método opcional: sorteio **dentro do bloco dos primeiros 12** (T1/T2), depois bloco 13–24 (T3/T4), preservando grupos de prioridade; guardar seed/sorteio para auditoria.
+2. Por padrão, sortear somente os 12 primeiros elegíveis entre T1 e T2.
+3. Do 13º em diante, preservar blocos estritos de chegada: 13º–18º formam T3, 19º–24º formam T4 e assim sucessivamente. Guardar seed do sorteio inicial para auditoria.
 4. Times podem ficar incompletos; apresentar número faltante, não alocar o mesmo jogador duas vezes na mesma partida.
 5. Quando chegam mais jogadores ao longo da sessão, criar T5/T6 conforme capacidade e regra do organizador, sem renumerar T1–T4.
 
 ## Rotação de campo (default)
 - Primeira partida: T1 (amarelo) × T2 (vermelho); espera T3, T4...
-- Perdedor sai da vaga; vencedor fica em sua vaga de cor; próximo time elegível ocupa a vaga desocupada **herdando cor do colete**, mas preserva ID (ex.: T3 veste amarelo).
+- Perdedor sai da vaga; vencedor fica em sua vaga de cor; próximo time elegível ocupa a vaga desocupada **herdando cor do colete**.
+- O número do time identifica uma passagem única pela fila. O grupo derrotado é arquivado com seu número histórico e, se voltar para a espera, recebe o próximo número disponível (ex.: T2 sai e seus jogadores retornam como T5). Isso permite recomposição sem reescrever partidas anteriores.
 - Partida seguinte não é necessariamente T1×T2. Registrar `yellow_squad_id`, `red_squad_id` em cada match.
 - Com empate, executar `tie_policy` (ver estados); algumas políticas tiram ambos, outras decidem vencedor.
 - Quando os dois saem, entrar os dois próximos completos; se não existirem, sugerir reorganização/continuar com autorização explícita.
