@@ -157,8 +157,8 @@ O domínio canônico da primeira publicação é `https://rankae.vercel.app`. O 
 ## 2026-11-03 — experiência de quadra após validação em produção
 - A navegação operacional passa a usar menu lateral recolhido por padrão, aberto pelo botão hambúrguer; a barra inferior continua como atalho no celular.
 - A chegada concentra cadastro e presença em uma única ação: somente nome e posição, com linha como padrão. O perfil continua pertencendo à organização, mas não exige tela separada durante a pelada.
-- Cada proprietário pode manter no máximo três rankas. O limite é validado no servidor e reforçado por trigger quando a migração `20261103000600` estiver aplicada.
-- “Iniciar ranka” abre a chegada e cria/reutiliza a sessão da data quando a função remota nova estiver disponível. Há compatibilidade temporária com o banco anterior para não interromper a operação publicada.
+- Cada proprietário pode manter no máximo três rankas. O limite é validado no servidor e reforçado por trigger desde a aplicação da migração `20261103000600` em produção.
+- “Iniciar ranka” abre a chegada e cria/reutiliza a sessão da data. A compatibilidade com o banco anterior permanece para instalações desatualizadas.
 - Limites de jogadores de linha e goleiros entram no snapshot da sessão, com defaults de 24 e 3. A contribuição aceita valor fixo em reais ou divisão do custo total pelos presentes.
 - “Expo Glass Effect” permanece uma direção visual web: `backdrop-filter`, transparência seletiva e animações de mola com alternativas para redução de movimento/transparência; nenhuma dependência Expo foi adicionada.
 - Textos de infraestrutura (Supabase, RLS, revisão, persistência e ambiente) foram removidos das telas comuns e continuam apenas na implementação e no painel técnico de superadmin.

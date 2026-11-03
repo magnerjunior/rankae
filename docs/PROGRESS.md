@@ -232,5 +232,5 @@ Resultados reais de 2026-11-03:
 - [x] Contribuição exibida em reais, fixa ou dividida pelo total da quadra.
 - [x] Menu operacional recolhido e glass/spring seletivos.
 - [x] Comunicação técnica removida das telas comuns.
-- [x] Compatibilidade temporária com as RPCs anteriores até a nova migração ser aplicada.
-- [ ] Aplicar `20261103000600_fast_court_experience.sql` no projeto remoto; a CLI retornou 403 de privilégio para o login atual.
+- [x] Compatibilidade com as RPCs anteriores preservada para instalações desatualizadas.
+- [x] Migração `20261103000600_fast_court_experience.sql` aplicada em produção em 2026-11-03; histórico local/remoto alinhado.
