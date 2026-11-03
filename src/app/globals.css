@@ -621,6 +621,10 @@ body { overscroll-behavior-y: auto; }
 .cost-box h3 { margin: 0; color: var(--brand-900); }
 .two-column-even { display: grid; gap: 12px; }
 .portal-help { margin: 0; font-size: .88rem; }
+.fast-action-state, .form-message, .inline-error { display: block; margin: 6px 0 0; color: var(--brand-700); font-size: .78rem; font-weight: 700; }
+.inline-error { color: var(--danger); }
+form[aria-busy="true"] { cursor: progress; }
+form[aria-busy="true"] button { pointer-events: none; opacity: .72; }
 
 @media (min-width: 680px) {
   .ranka-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }

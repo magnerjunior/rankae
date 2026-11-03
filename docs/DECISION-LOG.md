@@ -238,3 +238,11 @@ A sessão passa a expor data e estado na aplicação. Uma sessão concluída nã
 Antes do cronômetro, times podem ser reorganizados inclusive depois de preparar o pré-jogo. Durante a partida, tocar em um jogador permite trocá-lo por alguém da espera ou marcá-lo como ausente pelo restante do dia. A operação atualiza presença, squads, escala temporal da partida, substituição e auditoria de forma transacional.
 
 Quando uma saída definitiva usa alguém de um time da espera, a recomposição avança em cascata pela fila: o primeiro jogador do time seguinte completa o déficit anterior, sucessivamente, deixando eventual vaga apenas no último time. A regra pura é testada separadamente antes da integração SQL.
+
+## 2026-11-03 — resposta imediata e sincronização entre organizadores
+
+O canal privado `session:<uuid>` passa a acompanhar a área autenticada durante toda a sessão aberta. Broadcasts confirmados invalidam a projeção do servidor com debounce, sem exibir um estado permanente de conexão e sem tornar o Realtime fonte de verdade.
+
+O placar recebe a projeção do gol no mesmo toque. A mesma idempotency key acompanha a primeira tentativa e uma única reconciliação de revisão concorrente; uma rejeição desfaz o ponto local. Contribuições usam a mesma estratégia de projeção e rollback. Cartões, marcos, pênaltis, preparação e rotação deixam de usar redirecionamentos completos, mantendo validação, auditoria e versionamento no servidor.
+
+A observabilidade passa a medir também formação, preparação, rotação, contribuições e encerramento. Nenhum payload pessoal é incluído nas amostras. As migrations `015` e `016` permanecem apenas preparadas por decisão do proprietário e devem ser aplicadas em ordem antes de publicar este lote.

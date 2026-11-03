@@ -234,7 +234,20 @@ Resultados reais de 2026-11-03:
 - [x] Saída definitiva atualiza presença, escala temporal, squad, substituição e auditoria na mesma transação.
 - [x] Recomposição em cascata leva eventual déficit ao último time da fila; regra pura testada.
 - [x] Resumo ampliado com mais vitórias, mais derrotas e goleiros menos/mais vazados.
-- [ ] Migração `20261103001500` aguarda restabelecer acesso da conta correta ao projeto Supabase Rankaê; a CLI atual retorna 403 e o controle do navegador está desativado nas configurações do Work.
+- [ ] Migração `20261103001500` está preparada para aplicação manual pelo proprietário no projeto Supabase Rankaê.
+
+## Plano operacional em três fases — Fase 2
+
+- [x] Canal Realtime privado da sessão montado em todas as telas autenticadas enquanto o ranka estiver aberto.
+- [x] Estado de conexão deixou de ocupar a interface; falha de WebSocket não bloqueia as ações confirmadas pelo servidor.
+- [x] Gol atualiza o placar imediatamente e desfaz a projeção local se a confirmação falhar.
+- [x] Gol suporta reconciliação automática de uma revisão concorrente, mantendo idempotency key.
+- [x] Cartão, marco, pênalti, preparação e rotação não usam mais redirecionamento integral para confirmar a ação.
+- [x] Contribuições em lote atualizam as linhas de forma otimista, com rollback em conflito.
+- [x] Observabilidade ampliada para formação, preparação, rotação, contribuições e encerramento.
+- [x] `npm run lint`, `npm run typecheck`, 40 testes unitários e `npm run build` aprovados localmente.
+- [ ] Migrações `20261103001500` e `20261103001600` preparadas, mas não aplicadas, conforme combinado: o proprietário fará o envio ao Supabase.
+- [ ] Teste remoto com 2–3 organizadores permanece bloqueado até as duas migrations serem aplicadas.
 
 ## Ajuste de campo — 2026-11-03
 - [x] Até três rankas por proprietário, com criação pela tela inicial.

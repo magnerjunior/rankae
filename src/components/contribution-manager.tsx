@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { ContributionMutationResult } from "@/app/app/rankas/[rankaId]/actions";
 
 type Row = {
   id: string;
@@ -15,18 +17,23 @@ export function ContributionManager({
   action,
 }: {
   rows: Row[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<ContributionMutationResult>;
 }) {
+  const router = useRouter();
+  const [currentRows, setCurrentRows] = useState(rows);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [key, setKey] = useState(() => crypto.randomUUID());
   const visible = useMemo(
     () =>
-      rows.filter((row) =>
+      currentRows.filter((row) =>
         row.name
           .toLocaleLowerCase("pt-BR")
           .includes(query.toLocaleLowerCase("pt-BR")),
       ),
-    [query, rows],
+    [query, currentRows],
   );
   const allVisible =
     visible.length > 0 && visible.every((row) => selected.includes(row.id));
@@ -36,9 +43,33 @@ export function ContributionManager({
         ? current.filter((id) => !visible.some((row) => row.id === id))
         : [...new Set([...current, ...visible.map((row) => row.id)])],
     );
+  const submit = async (formData: FormData) => {
+    if (!selected.length || pending) return;
+    const status = String(formData.get("status")) as Row["status"];
+    const before = currentRows;
+    setCurrentRows((items) => items.map((item) => selected.includes(item.id) ? { ...item, status } : item));
+    setPending(true);
+    setMessage("");
+    try {
+      const result = await action(formData);
+      if (result.status === "error") {
+        setCurrentRows(before);
+        setMessage(result.message);
+      } else {
+        setSelected([]);
+        setMessage(result.message);
+        setKey(crypto.randomUUID());
+        router.refresh();
+      }
+    } catch {
+      setCurrentRows(before);
+      setMessage("Sem conexão para confirmar. Tente novamente.");
+    }
+    setPending(false);
+  };
   return (
-    <form action={action}>
-      <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+    <form action={submit}>
+      <input type="hidden" name="idempotencyKey" value={key} />
       <div className="contribution-tools">
         <input
           className="input"
@@ -95,10 +126,11 @@ export function ContributionManager({
           name="note"
           placeholder="Observação opcional"
         />
-        <button className="button button-primary" disabled={!selected.length}>
-          Aplicar a {selected.length || 0}
+        <button className="button button-primary" disabled={!selected.length || pending}>
+          {pending ? "Aplicando…" : `Aplicar a ${selected.length || 0}`}
         </button>
       </div>
+      {message && <p className="form-message" role="status">{message}</p>}
     </form>
   );
 }

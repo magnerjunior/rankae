@@ -16,11 +16,12 @@ Prioridade imediata. O organizador deve conseguir operar uma sessão inteira e e
 
 ## Fase 2 — resposta imediata e múltiplos organizadores
 
-- Montar a atualização privada Realtime nas telas autenticadas.
-- Evitar recarga integral em gol, cartão, contribuição, preparação e rotação.
-- Aplicar atualização otimista com rollback e confirmação discreta.
-- Medir navegação, formação, rotação e encerramento, além de relógio/eventos.
-- Validar dois ou três organizadores operando simultaneamente.
+- [x] Montar a atualização privada Realtime nas telas autenticadas.
+- [x] Evitar recarga integral em gol, cartão, contribuição, preparação e rotação.
+- [x] Aplicar atualização otimista com rollback e confirmação discreta.
+- [x] Medir navegação, formação, rotação e encerramento, além de relógio/eventos.
+- [x] Preservar idempotência e conflito de revisão para dois ou três organizadores operando simultaneamente.
+- [ ] Executar a validação remota com dois ou três organizadores após aplicar as migrations `015` e `016`.
 
 ## Fase 3 — validação de lançamento
 

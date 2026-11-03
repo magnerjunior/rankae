@@ -7,13 +7,16 @@ import { GoalDialog } from "@/components/goal-dialog";
 import { ArrivalManager } from "@/components/arrival-manager";
 import { EmptyState } from "@/components/feedback";
 import { FlashNotice } from "@/components/flash-notice";
+import { FastMutationForm } from "@/components/fast-mutation-form";
 import { OptimisticMatchClock } from "@/components/optimistic-match-clock";
+import { OptimisticScore } from "@/components/optimistic-score";
 import { PlayerCreateForm } from "@/components/player-create-form";
 import { SupportAssignments } from "@/components/support-assignments";
 import { PortalSettingsForm } from "@/components/portal-settings-form";
 import { TeamRoster } from "@/components/ranka-workspace";
 import { TeamEditor } from "@/components/team-editor";
 import { MatchPlayerManager } from "@/components/match-player-manager";
+import { RealtimeSessionRefresh } from "@/components/realtime-session-refresh";
 import {
   projectScore,
   suggestOfficials,
@@ -36,6 +39,7 @@ import {
   finishRankaSessionAction,
   prepareMatchAction,
   recordEventAction,
+  recordGoalFastAction,
   resolveTieAction,
   substitutePlayerAction,
   updateRulesAction,
@@ -465,7 +469,7 @@ function Teams({
         </section>
       )}
       {snapshot.hasPersistedSquads && (
-        <form
+        <FastMutationForm
           className="teams-confirm-bar"
           action={prepareMatchAction.bind(
             null,
@@ -482,7 +486,7 @@ function Teams({
           <button className="button button-primary">
             Confirmar e ir para o pré-jogo
           </button>
-        </form>
+        </FastMutationForm>
       )}
       {snapshot.hasPersistedSquads && replacements.length > 0 && (
         <section className="panel" style={{ marginTop: 16 }}>
@@ -596,7 +600,7 @@ function MatchConsole({
             }
           />
           {snapshot.hasPersistedSquads && (
-            <form
+            <FastMutationForm
               action={prepareMatchAction.bind(
                 null,
                 snapshot.id,
@@ -611,7 +615,7 @@ function MatchConsole({
               >
                 Preparar jogo
               </button>
-            </form>
+            </FastMutationForm>
           )}
         </section>
       </>
@@ -714,11 +718,11 @@ function MatchConsole({
       {["regulation_ended", "tie_break"].includes(match.state) && (
         <section className="next-match-bar next-match-primary">
           <span><strong>Partida encerrada</strong><small>Salva o resultado, aplica a rotação e abre o próximo jogo.</small></span>
-          <form className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
+          <FastMutationForm className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
             <Key />
             {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">{match.state === "tie_break" ? "Usar desempate registrado" : "Quem continua?"}</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
             <button className="button button-primary">Finalizar e próximo jogo</button>
-          </form>
+          </FastMutationForm>
         </section>
       )}
       <section className="scoreboard">
@@ -743,17 +747,13 @@ function MatchConsole({
             <span className="side-label side-yellow">
               Amarelo · T{yellow?.number}
             </span>
-            <div className="score-number">{score.yellow}</div>
+            <OptimisticScore key={`${match.id}:${match.revision}:yellow`} matchId={match.id} side="yellow" initial={score.yellow} />
             {canRecord && (
               <GoalForm
+                matchId={match.id}
                 side="yellow"
                 players={yellowPlayers}
-                action={recordEventAction.bind(
-                  null,
-                  snapshot.id,
-                  match.id,
-                  match.revision,
-                )}
+                action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
@@ -761,17 +761,13 @@ function MatchConsole({
             <span className="side-label side-red">
               Vermelho · T{red?.number}
             </span>
-            <div className="score-number">{score.red}</div>
+            <OptimisticScore key={`${match.id}:${match.revision}:red`} matchId={match.id} side="red" initial={score.red} />
             {canRecord && (
               <GoalForm
+                matchId={match.id}
                 side="red"
                 players={redPlayers}
-                action={recordEventAction.bind(
-                  null,
-                  snapshot.id,
-                  match.id,
-                  match.revision,
-                )}
+                action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
@@ -953,11 +949,10 @@ function MatchConsole({
         </section>
         <section className="panel">
           <h2 className="panel-title display">Marcos, cartões e pênaltis</h2>
-          <form
+          <FastMutationForm
             className="quick-marker-form"
             action={recordEventAction.bind(
               null,
-              snapshot.id,
               match.id,
               match.revision,
             )}
@@ -972,14 +967,13 @@ function MatchConsole({
               placeholder="Rótulo opcional"
               maxLength={80}
             />
-          </form>
+          </FastMutationForm>
           <details className="event-details">
             <summary>Registrar cartão</summary>
-            <form
+            <FastMutationForm
               className="stack compact-form"
               action={recordEventAction.bind(
                 null,
-                snapshot.id,
                 match.id,
                 match.revision,
               )}
@@ -1017,15 +1011,14 @@ function MatchConsole({
               <button className="button button-secondary">
                 Registrar cartão
               </button>
-            </form>
+            </FastMutationForm>
           </details>
           <details className="event-details">
             <summary>Registrar pênalti</summary>
-            <form
+            <FastMutationForm
               className="stack compact-form"
               action={recordEventAction.bind(
                 null,
-                snapshot.id,
                 match.id,
                 match.revision,
               )}
@@ -1062,7 +1055,7 @@ function MatchConsole({
               <button className="button button-secondary">
                 Registrar cobrança
               </button>
-            </form>
+            </FastMutationForm>
           </details>
         </section>
       </div>
@@ -1107,15 +1100,17 @@ function MatchConsole({
 }
 
 function GoalForm({
+  matchId,
   side,
   players,
   action,
 }: {
+  matchId: string;
   side: "yellow" | "red";
   players: Player[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").MatchEventMutationResult>;
 }) {
-  return <GoalDialog side={side} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
+  return <GoalDialog matchId={matchId} side={side} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
 }
 
 function CompactMatchRoster({
@@ -1278,7 +1273,7 @@ function Contributions({
             const status = record?.status ?? "pending";
             return { id: entry.playerId, name: player?.fullName ?? "Jogador", status, detail: status === "paid" ? `Pago · ${money(record?.amountCents ?? snapshot.contributionAmountCents)}` : status === "waived" ? "Isento" : `Pendente · ${money(snapshot.contributionAmountCents)}` };
           })}
-          action={batchContributionsAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}
+          action={batchContributionsAction.bind(null, snapshot.sessionId!, snapshot.revision)}
         />
       </section>
     </>
@@ -1715,6 +1710,7 @@ export function RealRankaWorkspace({
     : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
   return (
     <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status}>
+      {snapshot.sessionId && snapshot.sessionState !== "completed" && <RealtimeSessionRefresh sessionId={snapshot.sessionId} />}
       {content}
     </AppShell>
   );
