@@ -18,6 +18,10 @@ Os testes de 100 e 1000 VUs **não foram executados**. O projeto conectado está
 
 Os scripts estão em `tests/load/`. A execução futura deve registrar ambiente/região/tier, commit, seed, duração, VUs, HTTP e realtime separadamente, CPU/conexões, p50/p95/p99, erros, event lag, custo e correções/reteste.
 
+## Validação remota
+
+Em 03/11/2026, a migração `20261103000500_phase4_trust_observability.sql` foi aplicada no projeto `cxxzdjbinmzqifspkklo` pela sessão autenticada do SQL Editor. O histórico foi reconciliado preservando o SQL integral. A suíte pgTAP terminou em `ok 20/20` com rollback. A consulta final confirmou health `ok`, `legal_documents` e `privacy_requests` presentes.
+
 ## Pendências operacionais
 
 - Revisão jurídica e designação do canal/responsável LGPD.

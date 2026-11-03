@@ -1,7 +1,7 @@
 # RANKAÊ — Pacote de especificação para Codex
 
 **Produto:** SaaS multi-peladas, mobile-first, gestão presencial de futebol amador.
-**Estado:** Fase 4 implementada localmente. O produto possui operação presencial, portal público/restrito, estatísticas, PWA, minutas legais revisáveis, protocolos de privacidade, superadmin com MFA e observabilidade. A migração da Fase 4 aguarda restauração do acesso ao projeto Supabase; os testes de carga aguardam staging e aprovação de quota/custo.
+**Estado:** Fase 4 concluída e aplicada ao projeto Supabase. O produto possui operação presencial, portal público/restrito, estatísticas, PWA, minutas legais revisáveis, protocolos de privacidade, superadmin com MFA e observabilidade. Os testes de carga aguardam staging e aprovação de quota/custo, conforme a trava operacional documentada.
 
 ## Executar a Fase 1
 

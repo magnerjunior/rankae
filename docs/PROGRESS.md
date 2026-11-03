@@ -205,7 +205,9 @@ Resultados reais de 2026-11-03:
 
 ### Bloqueios e evidências
 
-- [ ] Migração `20261103000500_phase4_trust_observability.sql` ainda não aplicada ao projeto remoto. A CLI identifica o alvo como produção e retorna HTTP 403 para a role atual; o navegador integrado está desabilitado nas configurações do Work.
+- [x] Migração `20261103000500_phase4_trust_observability.sql` aplicada ao projeto remoto pelo SQL Editor autenticado; histórico reconciliado com SQL integral preservado.
+- [x] Teste remoto `phase4_trust_observability_test.sql`: 20/20, dentro de transação com `rollback`.
+- [x] Verificação remota: versão `20261103000500`, health `ok`, tabelas legal e privacidade presentes.
 - [ ] Testes 100/1000 VUs não executados: não existe staging autorizado com seed fictícia nem aprovação de quotas/custos. Não há capacidade, p95/p99 ou custo verificados a declarar.
 - [ ] Alerta externo por e-mail/webhook aguarda canal autorizado; o incidente interno no banco e dashboard está implementado.
 - [ ] Ensaio real de restauração aguarda staging isolado e política de backup/PITR confirmada.

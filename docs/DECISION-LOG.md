@@ -137,3 +137,7 @@ p95 acima de 1 segundo exige pelo menos 50 amostras em duas janelas consecutivas
 ### Carga recusada em produção
 
 O único alvo Rankaê conhecido pela CLI está marcado como produção. Além disso, a role atual passou a receber 403 e o projeto não aparece entre os projetos acessíveis. Por isso não se usou outro projeto, não se executou 100/1000 VUs e não se alegou capacidade. Os scripts exigem `TARGET_ENV=staging`; 1000 VUs também exige `ACK_COSTS=approved`.
+
+### Aplicação remota pelo SQL Editor e reconciliação
+
+Após o usuário habilitar explicitamente o controle do Chrome, a migração versionada foi carregada diretamente do commit publicado e aplicada no SQL Editor autenticado do projeto correto. Como a CLI permaneceu sem privilégio, o histórico `supabase_migrations.schema_migrations` foi reconciliado no mesmo projeto com a versão, o nome e o SQL integral aplicado. A consulta final confirmou `20261103000500`, health `ok` e os módulos legal/privacidade. O pgTAP remoto aprovou 20/20 dentro de transação com rollback.
