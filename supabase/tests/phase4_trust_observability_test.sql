@@ -90,13 +90,13 @@ select is((public.get_platform_admin_capability()->>'aal2')::boolean, false, 'ad
 select set_config('request.jwt.claims', '{"sub":"61000000-0000-0000-0000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is((public.get_platform_admin_capability()->>'aal2')::boolean, true, 'verified TOTP session reaches AAL2');
 select lives_ok($$select public.get_platform_admin_overview('Teste automatizado do painel agregado')$$, 'AAL2 admin reads aggregate overview');
+reset role;
 select results_eq(
   $$select count(*)::integer from public.privileged_access_audit where actor_id = '61000000-0000-0000-0000-000000000001' and action = 'platform_overview' and outcome = 'allowed'$$,
   array[1],
   'privileged overview access is audited with actor and reason'
 );
 
-reset role;
 insert into public.observability_route_samples(route_key, duration_ms, status_code, occurred_at)
 select 'public_snapshot', 1500, 200, clock_timestamp() - interval '6 minutes'
 from generate_series(1, 50);
