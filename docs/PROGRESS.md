@@ -224,6 +224,18 @@ Resultados reais de 2026-11-03:
 - [x] Produção Vercel recebeu as quatro variáveis públicas necessárias; domínio canônico e callbacks de produção/local foram autorizados no Supabase Auth.
 - [x] Cadastro público de organizadores e confirmação por e-mail verificados como ativos no Supabase; recuperação e redefinição de senha implementadas.
 
+## Plano operacional em três fases — Fase 1
+
+- [x] Plano priorizado registrado em `docs/PLANO-3-FASES-OPERACIONAIS.md`.
+- [x] Sessão identificada pela data e estado; sessão concluída não oferece continuação infinita.
+- [x] Encerramento do ranka destacado no pré-jogo, com redirecionamento para o resumo.
+- [x] Edição dos times preservada enquanto a partida estiver preparada e o relógio não tiver iniciado.
+- [x] Jogador em campo abre troca/saída pelo próprio nome.
+- [x] Saída definitiva atualiza presença, escala temporal, squad, substituição e auditoria na mesma transação.
+- [x] Recomposição em cascata leva eventual déficit ao último time da fila; regra pura testada.
+- [x] Resumo ampliado com mais vitórias, mais derrotas e goleiros menos/mais vazados.
+- [ ] Migração `20261103001500` aguarda restabelecer acesso da conta correta ao projeto Supabase Rankaê; a CLI atual retorna 403 e o controle do navegador está desativado nas configurações do Work.
+
 ## Ajuste de campo — 2026-11-03
 - [x] Até três rankas por proprietário, com criação pela tela inicial.
 - [x] Botão “Iniciar ranka” levando diretamente à chegada.

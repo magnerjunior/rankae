@@ -53,6 +53,8 @@ export interface RankaSnapshot {
   sessionId?: string;
   name: string;
   sessionLabel: string;
+  sessionDate: string;
+  sessionState: "planned" | "check_in" | "team_formation" | "running" | "paused" | "completed";
   players: Player[];
   attendance: Attendance[];
   squads: Squad[];
@@ -71,10 +73,12 @@ export interface RankaSnapshot {
 
 export interface SessionSummary {
   matches: number;
-  topTeam?: { number: number; wins: number; players: string[] };
+  topTeam?: { number: number; label?: string; wins: number; players: string[] };
+  bottomTeam?: { number: number; label?: string; losses: number; players: string[] };
   topScorer?: { name: string; total: number };
   topAssist?: { name: string; total: number };
   bestKeeper?: { name: string; conceded: number; matches: number };
+  worstKeeper?: { name: string; conceded: number; matches: number };
 }
 
 export interface RankaRepository {

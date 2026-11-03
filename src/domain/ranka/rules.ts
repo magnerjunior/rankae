@@ -308,3 +308,19 @@ export function swapPlayersBetweenSquads(
     return squad;
   });
 }
+
+export function cascadeWaitingSquadDeficit(squads: Squad[], deficitSquadId: string): Squad[] {
+  const ordered = squads.toSorted((a, b) => a.number - b.number).map((squad) => ({ ...squad, playerIds: [...squad.playerIds] }));
+  const start = ordered.findIndex((squad) => squad.id === deficitSquadId);
+  if (start < 0) throw new Error("Time com déficit não encontrado.");
+  for (let index = start; index < ordered.length - 1; index += 1) {
+    const incoming = ordered[index + 1].playerIds.shift();
+    if (!incoming) break;
+    ordered[index].playerIds.push(incoming);
+  }
+  return ordered.map((squad) => {
+    const original = squads.find((item) => item.id === squad.id)!;
+    const squadSize = original.playerIds.length + original.deficit;
+    return { ...squad, complete: squad.playerIds.length >= squadSize, deficit: Math.max(0, squadSize - squad.playerIds.length) };
+  });
+}

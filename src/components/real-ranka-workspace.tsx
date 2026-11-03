@@ -13,6 +13,7 @@ import { SupportAssignments } from "@/components/support-assignments";
 import { PortalSettingsForm } from "@/components/portal-settings-form";
 import { TeamRoster } from "@/components/ranka-workspace";
 import { TeamEditor } from "@/components/team-editor";
+import { MatchPlayerManager } from "@/components/match-player-manager";
 import {
   projectScore,
   suggestOfficials,
@@ -48,6 +49,7 @@ import {
   removeArrivalAction,
   startGameFromArrivalAction,
   swapSquadPlayersAction,
+  manageMatchPlayerAction,
 } from "@/app/app/rankas/[rankaId]/actions";
 
 function Key() {
@@ -106,7 +108,15 @@ function Dashboard({ snapshot }: { snapshot: RankaSnapshot }) {
   const present = snapshot.attendance.filter(
     (entry) => entry.status === "present",
   ).length;
-  const launch = snapshot.sessionId ? (
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const completedToday = snapshot.sessionState === "completed" && snapshot.sessionDate === today;
+  const launch = snapshot.sessionState === "completed" ? (
+    completedToday ? (
+      <Link className="start-ranka-button compact" href={`/app/rankas/${snapshot.id}/estatisticas?period=last`}><span>Ver resumo do ranka encerrado</span><b>→</b></Link>
+    ) : (
+      <form action={startRankaAction.bind(null, snapshot.id)}><button className="start-ranka-button compact"><span>Iniciar ranka de hoje</span><b>→</b></button></form>
+    )
+  ) : snapshot.sessionId ? (
     <Link
       className="start-ranka-button compact"
       href={`/app/rankas/${snapshot.id}/jogo`}
@@ -427,7 +437,7 @@ function Teams({
         )}
       </section>
       {snapshot.squads.length ? (
-        !snapshot.activeMatch ? (
+        !snapshot.activeMatch || snapshot.activeMatch.state === "ready" ? (
           <TeamEditor
             initialSquads={snapshot.squads}
             players={snapshot.players}
@@ -548,6 +558,13 @@ function Teams({
   );
 }
 
+function FinishDayControl({ snapshot }: { snapshot: RankaSnapshot }) {
+  return <section className="finish-day-banner">
+    <span><small>Ranka de {snapshot.sessionLabel}</small><strong>Terminou o futebol de hoje?</strong></span>
+    <details><summary>Encerrar ranka</summary><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><p>Encerra definitivamente esta data e abre o resumo do dia.</p><button className="button button-danger">Confirmar encerramento</button></form></details>
+  </section>;
+}
+
 function MatchConsole({
   snapshot,
   success,
@@ -568,6 +585,7 @@ function MatchConsole({
           sessionId={snapshot.sessionId}
         />
         <Notice success={success} error={error} />
+        <FinishDayControl snapshot={snapshot} />
         <section className="panel">
           <EmptyState
             title="Nenhum jogo preparado"
@@ -680,6 +698,7 @@ function MatchConsole({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
+      {match.state === "ready" && <FinishDayControl snapshot={snapshot} />}
       {match.state === "regulation_ended" && score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0 && (
         <section className="next-match-bar overtime-choice">
           <span><strong>O jogo terminou empatado</strong><small>Jogue a prorrogação ou defina manualmente quem continua.</small></span>
@@ -763,12 +782,16 @@ function MatchConsole({
             title={`T${yellow?.number ?? "-"}`}
             players={yellowPlayers}
             events={match.events}
+            replacements={waitingSquads.flatMap((squad) => squad.playerIds.map((id) => ({ id, team: squad.number }))).map((entry) => ({ ...entry, name: snapshot.players.find((player) => player.id === entry.id)?.fullName ?? "Jogador" }))}
+            actionFor={(playerId) => manageMatchPlayerAction.bind(null, snapshot.id, snapshot.sessionId!, match.id, yellow.id, playerId, snapshot.revision, match.revision)}
           />
           <CompactMatchRoster
             side="red"
             title={`T${red?.number ?? "-"}`}
             players={redPlayers}
             events={match.events}
+            replacements={waitingSquads.flatMap((squad) => squad.playerIds.map((id) => ({ id, team: squad.number }))).map((entry) => ({ ...entry, name: snapshot.players.find((player) => player.id === entry.id)?.fullName ?? "Jogador" }))}
+            actionFor={(playerId) => manageMatchPlayerAction.bind(null, snapshot.id, snapshot.sessionId!, match.id, red.id, playerId, snapshot.revision, match.revision)}
           />
         </div>
       </section>
@@ -1079,14 +1102,6 @@ function MatchConsole({
           </details>
         </section>
       )}
-      {match.state === "ready" && (
-        <section className="end-ranka-zone">
-          <details>
-            <summary>Encerrar o ranka de hoje</summary>
-            <div><p>Use somente quando não haverá outra partida. Os resultados e eventos já registrados serão preservados.</p><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><button className="button button-danger">Confirmar encerramento do ranka</button></form></div>
-          </details>
-        </section>
-      )}
     </>
   );
 }
@@ -1108,11 +1123,15 @@ function CompactMatchRoster({
   title,
   players,
   events,
+  replacements,
+  actionFor,
 }: {
   side: "yellow" | "red";
   title: string;
   players: Player[];
   events: MatchEvent[];
+  replacements: { id: string; name: string; team: number }[];
+  actionFor: (playerId: string) => (formData: FormData) => void | Promise<void>;
 }) {
   const active = events.filter(
     (event) =>
@@ -1136,7 +1155,7 @@ function CompactMatchRoster({
           ).length;
           return (
             <li key={player.id}>
-              <span>{player.fullName}</span>
+              <MatchPlayerManager name={player.fullName} replacements={replacements.filter((candidate) => candidate.id !== player.id)} action={actionFor(player.id)} />
               <span className="player-event-counts">
                 {goals > 0 && (
                   <small title={`${goals} gol(s)`}>⚽ {goals}x</small>
@@ -1501,7 +1520,7 @@ function Stats({
         description=""
         sessionId={snapshot.sessionId}
       />
-      {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de hoje</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Time com mais vitórias</span><strong>{sessionSummary.topTeam ? `T${sessionSummary.topTeam.number} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) sofrido(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
+      {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de {snapshot.sessionLabel}</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Mais vitórias</span><strong>{sessionSummary.topTeam ? `${sessionSummary.topTeam.label ?? `T${sessionSummary.topTeam.number}`} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Mais derrotas</span><strong>{sessionSummary.bottomTeam ? `${sessionSummary.bottomTeam.label ?? `T${sessionSummary.bottomTeam.number}`} · ${sessionSummary.bottomTeam.losses}` : "—"}</strong><small>{sessionSummary.bottomTeam?.players.join(" · ") ?? "Sem derrotas"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article><article><span>Goleiro mais vazado</span><strong>{sessionSummary.worstKeeper?.name ?? "—"}</strong><small>{sessionSummary.worstKeeper ? `${sessionSummary.worstKeeper.conceded} gol(s) em ${sessionSummary.worstKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
       {publicSnapshot ? (
         <>
           <nav className="period-tabs">
@@ -1615,11 +1634,21 @@ function Stats({
 }
 
 function GameHub({ snapshot, success, error, stage }: { snapshot: RankaSnapshot; success?: string; error?: string; stage?: string }) {
+  if (snapshot.sessionState === "completed") return <>
+    <div className="session-day-strip"><span>Ranka do dia</span><strong>{snapshot.sessionLabel}</strong><em>Encerrado</em></div>
+    <section className="session-finished-panel">
+      <span className="eyebrow">Dia finalizado</span>
+      <h1 className="display">Ranka encerrado</h1>
+      <p>As partidas e os eventos deste dia estão preservados. O próximo encontro começa em uma nova data.</p>
+      <Link className="button button-primary" href={`/app/rankas/${snapshot.id}/estatisticas?period=last`}>Ver resumo do dia</Link>
+    </section>
+  </>;
   const current = stage === "chegada" || stage === "times" || stage === "partida"
     ? stage
     : snapshot.activeMatch ? "partida" : snapshot.hasPersistedSquads ? "times" : "chegada";
   const base = `/app/rankas/${snapshot.id}/jogo`;
   return <>
+    <div className="session-day-strip"><span>Ranka do dia</span><strong>{snapshot.sessionLabel}</strong><em>Em andamento</em></div>
     <nav className="game-flow-nav" aria-label="Etapas do jogo">
       <Link className={current === "chegada" ? "active" : ""} href={`${base}?etapa=chegada`}>1. Chegada</Link>
       <Link className={current === "times" ? "active" : ""} href={`${base}?etapa=times`}>2. Times</Link>
@@ -1681,7 +1710,7 @@ export function RealRankaWorkspace({
   const isMatchScreen = active === "partida" || (active === "jogo" && (gameStage === "partida" || (!gameStage && Boolean(snapshot.activeMatch))));
   const yellowTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.yellowSquadId)?.number : undefined;
   const redTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.redSquadId)?.number : undefined;
-  const status = isMatchScreen ? undefined : snapshot.activeMatch
+  const status = snapshot.sessionState === "completed" || isMatchScreen ? undefined : snapshot.activeMatch
     ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} state={snapshot.activeMatch.state} score={`${score?.yellow ?? 0} × ${score?.red ?? 0}`} startedAt={snapshot.activeMatch.startedAtServer} elapsedMs={snapshot.activeMatch.elapsedMsBeforeStart} label={`Jogo ${snapshot.activeMatch.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} />
     : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
   return (

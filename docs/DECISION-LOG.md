@@ -230,3 +230,11 @@ A formação permite trocar dois jogadores de times diferentes por toque ou arra
 T1, T2, T3... passam a identificar uma única passagem do grupo pela fila. Ao sair de campo, o time original é arquivado para preservar resultados e o mesmo conjunto de jogadores volta ao fim com um novo número, podendo ser ajustado antes de jogar novamente. A fila nunca antecipa um time recomposto: T4 joga antes de T5.
 
 A formação padrão sorteia apenas os 12 primeiros jogadores entre T1 e T2. T3 em diante são blocos estritos da chegada, evitando que o 24º colocado ultrapasse o 13º. O sorteio completo permanece substituível por formação sequencial explícita na tela.
+
+## 2026-11-03 — ciclo explícito do ranka do dia
+
+A sessão passa a expor data e estado na aplicação. Uma sessão concluída não oferece mais continuação de jogo; preserva partidas e abre o resumo daquele dia. O próximo encontro é criado com a data local de São Paulo.
+
+Antes do cronômetro, times podem ser reorganizados inclusive depois de preparar o pré-jogo. Durante a partida, tocar em um jogador permite trocá-lo por alguém da espera ou marcá-lo como ausente pelo restante do dia. A operação atualiza presença, squads, escala temporal da partida, substituição e auditoria de forma transacional.
+
+Quando uma saída definitiva usa alguém de um time da espera, a recomposição avança em cascata pela fila: o primeiro jogador do time seguinte completa o déficit anterior, sucessivamente, deixando eventual vaga apenas no último time. A regra pura é testada separadamente antes da integração SQL.

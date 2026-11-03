@@ -32,6 +32,8 @@ export const demoSnapshot: RankaSnapshot = {
   id: "demo",
   name: "Ranka do Parque",
   sessionLabel: "Sessão demonstrativa · 19h",
+  sessionDate: "2026-11-03",
+  sessionState: "running",
   players: demoPlayers,
   attendance: demoAttendance,
   squads: groupSquads(demoAttendance, demoPlayers),

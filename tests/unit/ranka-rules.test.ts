@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assignKeepersToSquads,
   calculateContributionShare,
+  cascadeWaitingSquadDeficit,
   canAcceptArrival,
   computeClockElapsed,
   evaluateTiePolicy,
@@ -175,6 +176,20 @@ describe("motor puro do ranka", () => {
       requeuedSquadIds: ["squad-6"],
     });
     expect(second).toMatchObject({ redSquadId: "squad-4", waitingSquadIds: ["squad-5", "squad-6"] });
+  });
+
+  it("recompõe a espera em cascata e deixa o déficit somente no último time", () => {
+    const result = cascadeWaitingSquadDeficit([
+      { id: "t3", number: 3, playerIds: ["p13", "p14", "p15", "p16", "p17"], complete: false, deficit: 1 },
+      { id: "t4", number: 4, playerIds: ["p19", "p20", "p21", "p22", "p23", "p24"], complete: true, deficit: 0 },
+      { id: "t5", number: 5, playerIds: ["p25", "p26", "p27", "p28", "p29", "p30"], complete: true, deficit: 0 },
+    ], "t3");
+    expect(result.map((squad) => squad.playerIds)).toEqual([
+      ["p13", "p14", "p15", "p16", "p17", "p19"],
+      ["p20", "p21", "p22", "p23", "p24", "p25"],
+      ["p26", "p27", "p28", "p29", "p30"],
+    ]);
+    expect(result.map((squad) => squad.deficit)).toEqual([0, 0, 1]);
   });
 
   it("sinaliza revisão quando os dois saem e falta time completo", () => {

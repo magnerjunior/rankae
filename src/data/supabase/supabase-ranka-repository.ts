@@ -6,14 +6,16 @@ import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, Sessio
 
 const sessionSummarySchema = z.object({
   matches: z.coerce.number().int().nonnegative(),
-  topTeam: z.object({ number: z.coerce.number().int(), wins: z.coerce.number().int(), players: z.array(z.string()) }).nullish(),
+  topTeam: z.object({ number: z.coerce.number().int(), label: z.string().optional(), wins: z.coerce.number().int(), players: z.array(z.string()) }).nullish(),
+  bottomTeam: z.object({ number: z.coerce.number().int(), label: z.string().optional(), losses: z.coerce.number().int(), players: z.array(z.string()) }).nullish(),
   topScorer: z.object({ name: z.string(), total: z.coerce.number().int() }).nullish(),
   topAssist: z.object({ name: z.string(), total: z.coerce.number().int() }).nullish(),
   bestKeeper: z.object({ name: z.string(), conceded: z.coerce.number().int(), matches: z.coerce.number().int() }).nullish(),
+  worstKeeper: z.object({ name: z.string(), conceded: z.coerce.number().int(), matches: z.coerce.number().int() }).nullish(),
 });
 
 interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
-interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
+interface SessionRow { id: string; scheduled_on: string; state: RankaSnapshot["sessionState"]; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
 interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; membership_status: "regular" | "guest"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
 interface SquadRow { id: string; squad_number: number; state: "waiting" | "field" | "resting" | "archived"; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
@@ -75,7 +77,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     if (!ranka) throw new RankaNotFoundError();
     const typedRanka = ranka as RankaRow;
     const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
-      this.client.from("sessions").select("id,scheduled_on,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
+      this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
       this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);
@@ -132,6 +134,8 @@ export class SupabaseRankaRepository implements RankaRepository {
     return {
       id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session.id, name: typedRanka.name,
       sessionLabel: new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${session.scheduled_on}T12:00:00Z`)),
+      sessionDate: session.scheduled_on,
+      sessionState: session.state,
       players, attendance,
       squads: persistedSquads.length ? persistedSquads : groupSquads(attendance, players, { squadSize: rules.squadSize }),
       hasPersistedSquads: persistedSquads.length > 0,
@@ -150,6 +154,6 @@ export class SupabaseRankaRepository implements RankaRepository {
     const { data, error } = await this.client.rpc("get_session_summary", { p_session_id: sessionId });
     if (error) throw new Error("Não foi possível carregar o resumo do ranka.");
     const parsed = sessionSummarySchema.parse(data);
-    return { matches: parsed.matches, topTeam: parsed.topTeam ?? undefined, topScorer: parsed.topScorer ?? undefined, topAssist: parsed.topAssist ?? undefined, bestKeeper: parsed.bestKeeper ?? undefined };
+    return { matches: parsed.matches, topTeam: parsed.topTeam ?? undefined, bottomTeam: parsed.bottomTeam ?? undefined, topScorer: parsed.topScorer ?? undefined, topAssist: parsed.topAssist ?? undefined, bestKeeper: parsed.bestKeeper ?? undefined, worstKeeper: parsed.worstKeeper ?? undefined };
   }
 }

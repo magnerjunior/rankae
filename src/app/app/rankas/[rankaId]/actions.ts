@@ -49,6 +49,40 @@ export interface TeamSwapMutationResult {
   revision?: number;
 }
 
+export async function manageMatchPlayerAction(
+  rankaId: string,
+  sessionId: string,
+  matchId: string,
+  squadId: string,
+  outgoingPlayerId: string,
+  sessionRevision: number,
+  matchRevision: number,
+  formData: FormData,
+) {
+  const parsed = z.object({
+    incomingPlayerId: optionalUuid,
+    markLeft: z.boolean(),
+  }).safeParse({
+    incomingPlayerId: formData.get("incomingPlayerId"),
+    markLeft: formData.get("markLeft") === "on",
+  });
+  if (!parsed.success || (!parsed.data.incomingPlayerId && !parsed.data.markLeft)) {
+    finish(rankaId, "jogo", false, "troca");
+  }
+  const { error } = await rpc("manage_match_player", {
+    p_session_id: sessionId,
+    p_match_id: matchId,
+    p_target_squad_id: squadId,
+    p_outgoing_player_id: outgoingPlayerId,
+    p_incoming_player_id: parsed.data.incomingPlayerId ?? null,
+    p_mark_left: parsed.data.markLeft,
+    p_expected_session_revision: sessionRevision,
+    p_expected_match_revision: matchRevision,
+    p_idempotency_key: idempotencyKey(formData),
+  });
+  finish(rankaId, "jogo", !error, error ? "conflito" : parsed.data.markLeft ? "saida" : "troca");
+}
+
 function readClockResult(data: unknown): ClockMutationResult | null {
   const parsed = z.object({
     state: z.enum(["draft", "ready", "live", "paused", "regulation_ended", "overtime_live", "overtime_paused", "tie_break", "completed", "cancelled", "manual_review"]),
@@ -109,7 +143,8 @@ async function rpc(name: string, args: Record<string, unknown>) {
 }
 
 export async function startRankaAction(rankaId: string) {
-  const { error } = await rpc("start_ranka_session", { p_ranka_id: rankaId });
+  const scheduledOn = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const { error } = await rpc("start_ranka_session", { p_ranka_id: rankaId, p_scheduled_on: scheduledOn });
   if (error && error.code !== "PGRST202") finish(rankaId, "inicio", false, "iniciar");
   revalidatePath(`/app/rankas/${rankaId}`);
   redirect(`/app/rankas/${rankaId}/chegada`);
