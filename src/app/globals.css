@@ -379,6 +379,7 @@ body { overscroll-behavior-y: auto; }
 .app-main { padding-top: 0; }
 .topbar { min-height: 66px; display: grid; grid-template-columns: 46px minmax(0,1fr) 46px; align-items: center; gap: 10px; }
 .brand-compact { width: 42px; }
+.topbar-brand { justify-self: end; }
 .topbar-title { min-width: 0; text-align: center; }
 .topbar-title strong, .topbar-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-title span { margin-top: 2px; color: var(--muted); font-size: .75rem; }
@@ -458,6 +459,8 @@ body { overscroll-behavior-y: auto; }
   .quick-arrival-confirm { width: 44px; }
   .quick-metrics .metric { padding: 12px 9px; }
   .quick-metrics .metric span { font-size: .72rem; }
+  .bottom-nav { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); min-height: 64px; }
+  .bottom-link { min-width: 0; padding-inline: 2px; font-size: .65rem; }
 }
 @supports not (backdrop-filter: blur(12px)) {
   .glass-panel, .menu-trigger, .button-secondary, .quick-arrival-form { background: white; }

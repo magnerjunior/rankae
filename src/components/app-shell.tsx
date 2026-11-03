@@ -22,9 +22,9 @@ export function AppShell({ active, children, rankaId = "demo", title = "Ranka do
   return <div className="app-shell">
     <div className="app-main">
       <header className="topbar glass-bar">
-        <Link className="brand brand-compact" href="/app" aria-label="Meus rankas"><span className="brand-mark">R</span></Link>
-        <div className="topbar-title"><strong>{title}</strong><span>{rankaSections.find((section) => section.key === active)?.label}</span></div>
         <button className="menu-trigger" type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" aria-expanded={menuOpen}><span /><span /><span /></button>
+        <div className="topbar-title"><strong>{title}</strong><span>{rankaSections.find((section) => section.key === active)?.label}</span></div>
+        <Link className="brand brand-compact topbar-brand" href="/app" aria-label="Meus rankas"><span className="brand-mark">R</span></Link>
       </header>
       <main className="page">{children}</main>
       <BottomNav active={active} rankaId={rankaId} />
