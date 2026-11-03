@@ -1,19 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LiveTimer } from "@/components/live-timer";
+import { computeClockElapsed } from "@/domain/ranka/rules";
 import type { MatchState } from "@/domain/ranka/types";
+import type { ClockMutationResult } from "@/app/app/rankas/[rankaId]/actions";
 
-type ClockAction = (formData: FormData) => Promise<void>;
+type ClockAction = (formData: FormData) => Promise<ClockMutationResult>;
+type Command = "start" | "pause" | "resume" | "reset" | "finish_regulation" | "finish_overtime";
 
-interface OptimisticMatchClockProps {
-  matchId: string;
-  revision: number;
+interface ClockView {
   state: MatchState;
   startedAtServer?: string;
   elapsedMsBeforeStart: number;
   durationLimitMs: number;
   serverNow: string;
+  revision: number;
+}
+
+interface OptimisticMatchClockProps extends ClockView {
+  matchId: string;
   startAction: ClockAction;
   pauseAction: ClockAction;
   resumeAction: ClockAction;
@@ -22,56 +29,74 @@ interface OptimisticMatchClockProps {
   finishOvertimeAction: ClockAction;
 }
 
-function running(state: MatchState) {
-  return state === "live" || state === "overtime_live";
+function running(state: MatchState) { return state === "live" || state === "overtime_live"; }
+
+function currentElapsed(clock: ClockView) {
+  const offset = Date.parse(clock.serverNow) - Date.now();
+  return computeClockElapsed({ state: clock.state, startedAtServer: clock.startedAtServer, elapsedMsBeforeStart: clock.elapsedMsBeforeStart, durationLimitMs: clock.durationLimitMs, asOfServer: clock.serverNow }, new Date(Date.now() + offset).toISOString());
+}
+
+function optimisticTransition(clock: ClockView, command: Command): ClockView {
+  const now = new Date().toISOString();
+  const elapsed = currentElapsed(clock);
+  if (command === "start") return { ...clock, state: "live", startedAtServer: now, serverNow: now };
+  if (command === "resume") return { ...clock, state: clock.state === "overtime_paused" ? "overtime_live" : "live", startedAtServer: now, serverNow: now };
+  if (command === "pause") return { ...clock, state: clock.state === "overtime_live" ? "overtime_paused" : "paused", elapsedMsBeforeStart: elapsed, startedAtServer: undefined, serverNow: now };
+  if (command === "reset") return { ...clock, state: "ready", elapsedMsBeforeStart: 0, startedAtServer: undefined, serverNow: now };
+  if (command === "finish_regulation") return { ...clock, state: "regulation_ended", elapsedMsBeforeStart: elapsed, startedAtServer: undefined, serverNow: now };
+  return { ...clock, state: "tie_break", elapsedMsBeforeStart: elapsed, startedAtServer: undefined, serverNow: now };
 }
 
 export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
-  const [pending, startTransition] = useTransition();
-  const [clock, setClock] = useState({
-    state: props.state,
-    startedAtServer: props.startedAtServer,
-    elapsedMsBeforeStart: props.elapsedMsBeforeStart,
-    durationLimitMs: props.durationLimitMs,
-    serverNow: props.serverNow,
-  });
+  const router = useRouter();
+  const [clock, setClock] = useState<ClockView>({ state: props.state, startedAtServer: props.startedAtServer, elapsedMsBeforeStart: props.elapsedMsBeforeStart, durationLimitMs: props.durationLimitMs, serverNow: props.serverNow, revision: props.revision });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const busyRef = useRef(false);
   const storageKey = useMemo(() => `rankae:clock:${props.matchId}`, [props.matchId]);
 
-  useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify({ ...clock, revision: props.revision, savedAt: Date.now() }));
-  }, [clock, props.revision, storageKey]);
-
-  function elapsedNow() {
-    if (!running(clock.state) || !clock.startedAtServer) return clock.elapsedMsBeforeStart;
-    const serverOffset = Date.parse(clock.serverNow) - Date.now();
-    return clock.elapsedMsBeforeStart + Math.max(0, Date.now() + serverOffset - Date.parse(clock.startedAtServer));
-  }
-
-  function run(command: "start" | "pause" | "resume" | "reset" | "finish_regulation" | "finish_overtime", action: ClockAction) {
-    const now = new Date().toISOString();
-    setClock((current) => {
-      if (command === "start") return { ...current, state: "live", startedAtServer: now, serverNow: now };
-      if (command === "resume") return { ...current, state: current.state === "overtime_paused" ? "overtime_live" : "live", startedAtServer: now, serverNow: now };
-      if (command === "pause") return { ...current, state: current.state === "overtime_live" ? "overtime_paused" : "paused", elapsedMsBeforeStart: elapsedNow(), startedAtServer: undefined, serverNow: now };
-      if (command === "reset") return { ...current, state: "ready", elapsedMsBeforeStart: 0, startedAtServer: undefined, serverNow: now };
-      if (command === "finish_regulation") return { ...current, state: "regulation_ended", elapsedMsBeforeStart: elapsedNow(), startedAtServer: undefined, serverNow: now };
-      return { ...current, state: "tie_break", elapsedMsBeforeStart: elapsedNow(), startedAtServer: undefined, serverNow: now };
-    });
+  async function run(command: Command, action: ClockAction) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    const before = clock;
+    const optimistic = optimisticTransition(before, command);
+    setClock(optimistic);
+    setBusy(true);
+    setError("");
+    localStorage.setItem(storageKey, JSON.stringify({ ...optimistic, savedAt: Date.now() }));
     const data = new FormData();
     data.set("idempotencyKey", crypto.randomUUID());
-    startTransition(() => void action(data));
+    data.set("expectedRevision", String(before.revision));
+    try {
+      const result = await action(data);
+      if (result.status !== "success" || !result.state || result.elapsedMsBeforeStart === undefined || !result.serverNow || result.revision === undefined || result.durationLimitMs === undefined) {
+        setClock(before);
+        setError(result.message ?? "Não foi possível atualizar o relógio.");
+        return;
+      }
+      const confirmed: ClockView = { state: result.state, startedAtServer: result.startedAtServer, elapsedMsBeforeStart: result.elapsedMsBeforeStart, durationLimitMs: result.durationLimitMs, serverNow: result.serverNow, revision: result.revision };
+      setClock(confirmed);
+      localStorage.setItem(storageKey, JSON.stringify({ ...confirmed, savedAt: Date.now() }));
+      if (command === "finish_regulation" || command === "finish_overtime") router.refresh();
+    } catch {
+      setClock(before);
+      setError("Sem conexão. O relógio continuou no estado anterior.");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   }
 
   return <>
     <div className="timer-bar"><LiveTimer {...clock} /></div>
-    <div className="score-actions optimistic-clock-actions">
-      {clock.state === "ready" && <button className="button button-primary" type="button" onClick={() => run("start", props.startAction)}>Iniciar cronômetro</button>}
-      {running(clock.state) && <button className="button button-secondary" type="button" onClick={() => run("pause", props.pauseAction)}>Pausar</button>}
-      {(clock.state === "paused" || clock.state === "overtime_paused") && <button className="button button-primary" type="button" onClick={() => run("resume", props.resumeAction)}>Retomar</button>}
-      {!['completed','cancelled'].includes(clock.state) && <button className="button button-danger" type="button" onClick={() => run("reset", props.resetAction)}>Reiniciar</button>}
-      {(clock.state === "live" || clock.state === "paused") && <button className="button button-secondary" type="button" onClick={() => run("finish_regulation", props.finishRegulationAction)}>Encerrar tempo</button>}
-      {(clock.state === "overtime_live" || clock.state === "overtime_paused") && <button className="button button-secondary" type="button" onClick={() => run("finish_overtime", props.finishOvertimeAction)}>Encerrar prorrogação</button>}
-      <span className={`clock-save-state ${pending ? "syncing" : "saved"}`}>{pending ? "salvando…" : "salvo"}</span>
+    <div className="score-actions optimistic-clock-actions" aria-busy={busy}>
+      {clock.state === "ready" && <button className="button button-primary" disabled={busy} type="button" onClick={() => run("start", props.startAction)}>Iniciar cronômetro</button>}
+      {running(clock.state) && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("pause", props.pauseAction)}>Pausar</button>}
+      {(clock.state === "paused" || clock.state === "overtime_paused") && <button className="button button-primary" disabled={busy} type="button" onClick={() => run("resume", props.resumeAction)}>Retomar</button>}
+      {!['completed','cancelled'].includes(clock.state) && <button className="button button-danger" disabled={busy} type="button" onClick={() => run("reset", props.resetAction)}>Reiniciar</button>}
+      {(clock.state === "live" || clock.state === "paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_regulation", props.finishRegulationAction)}>Encerrar tempo</button>}
+      {(clock.state === "overtime_live" || clock.state === "overtime_paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_overtime", props.finishOvertimeAction)}>Encerrar prorrogação</button>}
     </div>
+    {error && <div className="flash-toast error" role="alert">{error}</div>}
   </>;
 }

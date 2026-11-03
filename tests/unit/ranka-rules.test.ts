@@ -166,6 +166,13 @@ describe("motor puro do ranka", () => {
     expect(computeClockElapsed({ state: "paused", elapsedMsBeforeStart: 45_000, durationLimitMs: 600_000, asOfServer: "2026-11-03T12:00:30.000Z" }, "2026-11-03T12:03:00.000Z")).toBe(45_000);
   });
 
+  it("congela exatamente o mesmo tempo ao pausar, sem saltar minutos", () => {
+    const elapsedAtPause = computeClockElapsed({ state: "live", startedAtServer: "2026-11-03T12:00:00.000Z", elapsedMsBeforeStart: 0, durationLimitMs: 420_000, asOfServer: "2026-11-03T12:00:00.000Z" }, "2026-11-03T12:03:17.000Z");
+    expect(elapsedAtPause).toBe(197_000);
+    expect(computeClockElapsed({ state: "paused", elapsedMsBeforeStart: elapsedAtPause, durationLimitMs: 420_000, asOfServer: "2026-11-03T12:03:17.000Z" }, "2026-11-03T12:09:45.000Z")).toBe(197_000);
+    expect(420_000 - elapsedAtPause).toBe(223_000);
+  });
+
   it("projeta placar por eventos ativos e preserva void no histórico", () => {
     const score = projectScore([
       { id: "e1", type: "goal", side: "yellow", goalKind: "normal", occurrenceMs: 1_000, status: "active" },

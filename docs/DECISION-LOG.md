@@ -212,3 +212,9 @@ Seletores de goleiro mostram apenas goleiros presentes; gandulas mostram somente
 Chegada, formação de times e partida passam a ser etapas do mesmo hub `Jogo`, mantendo rotas antigas apenas por compatibilidade. A escala de apoio sugere e salva automaticamente os goleiros e os dois primeiros jogadores do próximo time como gandulas; qualquer seletor pode ser trocado diretamente. A barra persistente da partida usa o horário autoritativo já carregado e não depende de novas consultas por segundo.
 
 Por decisão explícita do proprietário, um portal habilitado exibe automaticamente o nome esportivo de todos os jogadores ativos, removendo a confirmação individual repetitiva. Pedidos de privacidade continuam capazes de ocultar ou anonimizar registros pelos fluxos administrativos existentes.
+
+## 2026-11-03 — integridade do cronômetro e encerramento do dia
+
+O relógio deixa de depender da revisão carregada ao abrir a página. Cada comando envia a revisão mais recente mantida no cliente, recebe de volta o snapshot autoritativo do PostgreSQL e reconcilia estado, horário inicial, tempo acumulado e revisão sem redirecionar a página. Em conflito de revisão, o servidor lê o estado atual e repete somente uma transição ainda necessária. Pausar congela o tempo calculado pelo relógio do banco; testes cobrem explicitamente a ausência de salto após 3min17s.
+
+Ao finalizar uma partida, a rotação transacional já cria a próxima em estado de pré-jogo. A ação fica em uma barra destacada logo após o placar. Quando a última partida estiver apenas preparada e nenhuma estiver em andamento, o organizador pode encerrar o ranka do dia; a partida vazia é cancelada, a sessão é concluída e os resultados preservados abrem em Estatísticas.

@@ -32,6 +32,26 @@ export interface ArrivalMutationResult {
   arrivals?: ArrivalItem[];
 }
 
+export interface ClockMutationResult {
+  status: "success" | "error";
+  message?: string;
+  state?: "draft" | "ready" | "live" | "paused" | "regulation_ended" | "overtime_live" | "overtime_paused" | "tie_break" | "completed" | "cancelled" | "manual_review";
+  startedAtServer?: string;
+  elapsedMsBeforeStart?: number;
+  durationLimitMs?: number;
+  revision?: number;
+  serverNow?: string;
+}
+
+function readClockResult(data: unknown): ClockMutationResult | null {
+  const parsed = z.object({
+    state: z.enum(["draft", "ready", "live", "paused", "regulation_ended", "overtime_live", "overtime_paused", "tie_break", "completed", "cancelled", "manual_review"]),
+    started_at_server: z.string().nullish(), elapsed_ms_before_start: z.coerce.number().nonnegative(), duration_limit_ms: z.coerce.number().nonnegative(), revision: z.coerce.number().int().positive(), server_now: z.string(),
+  }).safeParse(data);
+  if (!parsed.success) return null;
+  return { status: "success", state: parsed.data.state, startedAtServer: parsed.data.started_at_server ?? undefined, elapsedMsBeforeStart: parsed.data.elapsed_ms_before_start, durationLimitMs: parsed.data.duration_limit_ms, revision: parsed.data.revision, serverNow: parsed.data.server_now };
+}
+
 const arrivalInputSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   role: z.enum(["line", "keeper"]),
@@ -298,11 +318,37 @@ export async function confirmOfficialsAction(rankaId: string, matchId: string, e
   finish(rankaId, "jogo", !error, error ? "conflito" : "escala");
 }
 
-export async function clockAction(rankaId: string, matchId: string, expectedRevision: number, command: string, formData: FormData) {
+export async function clockAction(rankaId: string, matchId: string, command: string, formData: FormData): Promise<ClockMutationResult> {
   const parsed = z.enum(["start", "pause", "resume", "reset", "finish_regulation", "start_overtime", "finish_overtime"]).safeParse(command);
-  if (!parsed.success) finish(rankaId, "jogo", false, "comando");
-  const { error } = await rpc("transition_match_clock", { p_match_id: matchId, p_command: parsed.data, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  finish(rankaId, "jogo", !error, error ? "conflito" : parsed.data);
+  const revision = z.coerce.number().int().positive().safeParse(formData.get("expectedRevision"));
+  if (!parsed.success || !revision.success) return { status: "error", message: "Não foi possível atualizar o relógio." };
+  const desiredStates: Record<typeof parsed.data, string[]> = { start: ["live"], pause: ["paused", "overtime_paused"], resume: ["live", "overtime_live"], reset: ["ready"], finish_regulation: ["regulation_ended"], start_overtime: ["overtime_live"], finish_overtime: ["tie_break"] };
+  let result = await rpc("transition_match_clock", { p_match_id: matchId, p_command: parsed.data, p_expected_revision: revision.data, p_idempotency_key: idempotencyKey(formData) });
+  if (result.error?.code === "40001") {
+    const current = await rpc("get_match_clock_snapshot", { p_match_id: matchId });
+    const currentClock = readClockResult(current.data);
+    if (currentClock?.state && desiredStates[parsed.data].includes(currentClock.state)) return currentClock;
+    if (currentClock?.revision) result = await rpc("transition_match_clock", { p_match_id: matchId, p_command: parsed.data, p_expected_revision: currentClock.revision, p_idempotency_key: randomUUID() });
+  }
+  if (result.error) return { status: "error", message: "O relógio não foi alterado. Tente novamente." };
+  const clock = readClockResult(result.data);
+  if (!clock) return { status: "error", message: "Não foi possível confirmar o horário." };
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return clock;
+}
+
+export async function clockNavigationAction(rankaId: string, matchId: string, command: string, formData: FormData): Promise<void> {
+  const result = await clockAction(rankaId, matchId, command, formData);
+  if (result.status === "error") finish(rankaId, "jogo", false, "relogio");
+  revalidatePath(`/app/rankas/${rankaId}`);
+  redirect(`/app/rankas/${rankaId}/jogo?etapa=partida`);
+}
+
+export async function finishRankaSessionAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
+  const { error } = await rpc("finish_ranka_session", { p_session_id: sessionId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  if (error) finish(rankaId, "jogo", false, "encerrar_ranka");
+  revalidatePath(`/app/rankas/${rankaId}`);
+  redirect(`/app/rankas/${rankaId}/estatisticas?period=last&sucesso=ranka_encerrado`);
 }
 
 export async function recordEventAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {

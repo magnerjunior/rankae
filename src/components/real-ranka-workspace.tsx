@@ -6,6 +6,7 @@ import { GameStatusBar } from "@/components/game-status-bar";
 import { GoalDialog } from "@/components/goal-dialog";
 import { ArrivalManager } from "@/components/arrival-manager";
 import { EmptyState } from "@/components/feedback";
+import { FlashNotice } from "@/components/flash-notice";
 import { OptimisticMatchClock } from "@/components/optimistic-match-clock";
 import { PlayerCreateForm } from "@/components/player-create-form";
 import { SupportAssignments } from "@/components/support-assignments";
@@ -25,10 +26,12 @@ import {
   addFastArrivalAction,
   bulkAddArrivalsAction,
   clockAction,
+  clockNavigationAction,
   completeMatchAction,
   confirmOfficialsAction,
   createPlayerAction,
   generateSquadsAction,
+  finishRankaSessionAction,
   prepareMatchAction,
   recordEventAction,
   resolveTieAction,
@@ -67,18 +70,8 @@ function Heading({
   );
 }
 function Notice({ success, error }: { success?: string; error?: string }) {
-  if (success)
-    return (
-      <div className="notice" role="status">
-        Pronto.
-      </div>
-    );
-  if (error)
-    return (
-      <div className="notice notice-warning" role="alert">
-        Não deu certo. Atualize a tela e tente novamente.
-      </div>
-    );
+  if (success) return <FlashNotice kind="success" message="Alteração salva." />;
+  if (error) return <FlashNotice kind="error" message="Não foi possível concluir. Tente novamente." />;
   return null;
 }
 function PlayerOptions({
@@ -304,9 +297,9 @@ function Arrival({
   return (
     <>
       <Heading
-        eyebrow="Rápido e na ordem"
+        eyebrow=""
         title="Chegada"
-        description="Adicione um nome ou cole a lista inteira."
+        description=""
       />
       <Notice success={success} error={error} />
       <ArrivalManager
@@ -369,9 +362,9 @@ function Teams({
   return (
     <>
       <Heading
-        eyebrow="Montagem rápida"
+        eyebrow=""
         title="Times"
-        description="Confira os times antes de colocar o cronômetro para rodar."
+        description=""
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
@@ -379,9 +372,6 @@ function Teams({
         <div className="panel-head">
           <div>
             <h2 className="panel-title display">Formar times</h2>
-            <small className="muted">
-              Confira a quantidade e escolha como dividir.
-            </small>
           </div>
           <span className="badge">
             {snapshot.hasPersistedSquads ? "PRONTO" : "PRÉVIA"}
@@ -564,7 +554,7 @@ function MatchConsole({
         <Heading
           eyebrow="Próximo jogo"
           title="Pré-jogo"
-          description="Confira os times e coloque a bola para rolar."
+          description=""
           sessionId={snapshot.sessionId}
         />
         <Notice success={success} error={error} />
@@ -654,7 +644,9 @@ function MatchConsole({
     (event) => event.type === "marker",
   );
   const clock = (command: string) =>
-    clockAction.bind(null, snapshot.id, match.id, match.revision, command);
+    clockAction.bind(null, snapshot.id, match.id, command);
+  const clockForm = (command: string) =>
+    clockNavigationAction.bind(null, snapshot.id, match.id, command);
   const canRecord = [
     "live",
     "paused",
@@ -674,12 +666,13 @@ function MatchConsole({
       <Heading
         eyebrow={`Jogo ${match.ordinal}`}
         title="Jogo ao vivo"
-        description="Placar, tempo e gols em uma única tela."
+        description=""
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
       <section className="scoreboard">
         <OptimisticMatchClock
+          key={`${match.id}:${match.revision}`}
           matchId={match.id}
           revision={match.revision}
           state={match.state}
@@ -752,6 +745,29 @@ function MatchConsole({
           A condição configurada de gols/diferença foi alcançada. Revise o
           último evento e confirme o encerramento do tempo normal.
         </div>
+      )}
+
+      {match.state === "regulation_ended" && score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0 && (
+        <section className="next-match-bar overtime-choice">
+          <span><strong>O jogo terminou empatado</strong><small>Jogue a prorrogação ou defina manualmente quem continua.</small></span>
+          <form action={clockForm("start_overtime")}><Key /><input type="hidden" name="expectedRevision" value={match.revision} /><button className="button button-secondary">Prorrogação de {snapshot.rules.overtimeDurationMs / 60000} min</button></form>
+        </section>
+      )}
+      {match.state === "tie_break" && score.yellow === score.red && (
+        <section className="next-match-bar overtime-choice">
+          <span><strong>Defina o desempate</strong><small>Registre o ímpar ou par, pênaltis ou uma decisão manual.</small></span>
+          <TieForm snapshot={snapshot} />
+        </section>
+      )}
+      {["regulation_ended", "tie_break"].includes(match.state) && (
+        <section className="next-match-bar next-match-primary">
+          <span><strong>Partida encerrada</strong><small>Salva o resultado, aplica a rotação e abre o próximo jogo.</small></span>
+          <form className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
+            <Key />
+            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">{match.state === "tie_break" ? "Usar desempate registrado" : "Quem continua?"}</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
+            <button className="button button-primary">Finalizar e próximo jogo</button>
+          </form>
+        </section>
       )}
 
       {match.state === "ready" && (
@@ -1019,58 +1035,6 @@ function MatchConsole({
         </section>
       </div>
 
-      {match.state === "regulation_ended" && score.yellow === score.red && (
-        <section className="panel decision-panel">
-          <h2 className="panel-title display">Empate: decisão necessária</h2>
-          <p className="muted">
-            A regra vigente é <strong>{snapshot.rules.tiePolicy}</strong>. A
-            mesa confirma a próxima etapa.
-          </p>
-          <div className="cluster">
-            {snapshot.rules.overtimeDurationMs > 0 && (
-              <form action={clock("start_overtime")}>
-                <Key />
-                <button className="button button-primary">
-                  Prorrogação de {snapshot.rules.overtimeDurationMs / 60000} min
-                </button>
-              </form>
-            )}
-            <TieForm snapshot={snapshot} />
-          </div>
-        </section>
-      )}
-      {["regulation_ended", "tie_break"].includes(match.state) && (
-        <section className="panel decision-panel">
-          <h2 className="panel-title display">Finalizar jogo</h2>
-          <form
-            className="stack"
-            action={completeMatchAction.bind(
-              null,
-              snapshot.id,
-              match.id,
-              match.revision,
-            )}
-          >
-            <Key />
-            <label className="field">
-              Resultado
-              <select className="select" name="resultOverride">
-                <option value="">Usar o placar</option>
-                <option value="yellow">Amarelo venceu</option>
-                <option value="red">Vermelho venceu</option>
-                <option value="both_out">Os dois times saem</option>
-              </select>
-            </label>
-            <label className="field">
-              Observação
-              <input className="input" name="reason" placeholder="Opcional" />
-            </label>
-            <button className="button button-primary">
-              Confirmar e preparar o próximo
-            </button>
-          </form>
-        </section>
-      )}
       {editableMarkers.length > 0 && (
         <section className="panel marker-edit-panel">
           <details className="event-details">
@@ -1103,6 +1067,14 @@ function MatchConsole({
               </label>
               <button className="button button-secondary">Salvar rótulo</button>
             </form>
+          </details>
+        </section>
+      )}
+      {match.state === "ready" && (
+        <section className="end-ranka-zone">
+          <details>
+            <summary>Encerrar o ranka de hoje</summary>
+            <div><p>Use somente quando não haverá outra partida. Os resultados e eventos já registrados serão preservados.</p><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><button className="button button-danger">Confirmar encerramento do ranka</button></form></div>
           </details>
         </section>
       )}
