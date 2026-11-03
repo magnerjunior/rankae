@@ -1,7 +1,7 @@
 # RANKAÊ — Pacote de especificação para Codex
 
 **Produto:** SaaS multi-peladas, mobile-first, gestão presencial de futebol amador.
-**Estado:** Fase 2 implementada localmente. A operação presencial completa possui domínio, UI e migração versionada; a migração remota e o smoke com a conta real precisam ser concluídos antes do encerramento da fase.
+**Estado:** Fase 2 concluída localmente e aplicada ao projeto Supabase. A operação presencial completa possui domínio, UI, migração versionada, RLS e validação transacional remota com 19/19 asserções aprovadas.
 
 ## Executar a Fase 1
 
@@ -22,13 +22,15 @@ Abra `http://localhost:3000/entrar`. Para validar a entrega, execute `npm run li
 4. Aplique `supabase/migrations/` em ordem via Supabase CLI ou SQL Editor em ambiente de desenvolvimento/staging.
 5. Execute `npx supabase test db` em uma máquina com Docker para validar o isolamento multi-tenant.
 
-No projeto de desenvolvimento atual, as migrações foram aplicadas pelo SQL Editor. Antes de adotar o fluxo de migrações pela CLI nesse mesmo projeto, reconcilie o histórico remoto com `supabase migration repair` para as versões já aplicadas; não reaplique essas migrações.
+No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicadas pelo SQL Editor e posteriormente reconciliadas no histórico oficial da CLI. A migração da Fase 2 foi aplicada com `supabase db push`; as três versões locais e remotas estão alinhadas.
 
 Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo só existe em desenvolvimento e exige opt-in explícito.
 
 ## Operar a Fase 2
 
 Após aplicar as migrações em ordem, um organizador autenticado pode executar o ciclo em **Chegada → Times → Partida → Contribuições**. O relógio é derivado do horário do servidor, eventos são idempotentes e revisões otimistas impedem que dois mesários sobrescrevam alterações concorrentes. O canal privado `session:<uuid>` usa autorização RLS e apenas sinaliza clientes autorizados para refazer o snapshot.
+
+Para testar a instalação atual, execute `npm run dev` e abra `http://127.0.0.1:3000/entrar`. Depois do login, o ranka existente fica disponível em `/app/rankas/4cef25dc-6a62-4efa-892f-2769161aa951`.
 
 ## Como começar
 1. Extraia esta pasta em um diretório novo e abra **a pasta-raiz** no Codex.

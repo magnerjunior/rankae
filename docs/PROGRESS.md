@@ -86,8 +86,8 @@ npm run build
 ### Pendências operacionais
 
 - [ ] Executar `supabase test db`; Docker não está instalado neste ambiente.
-- [ ] Criar manualmente a primeira conta real de organizador e confirmar o e-mail conforme a política de Auth do projeto.
-- [ ] Reconciliar o histórico de migrações antes do primeiro uso da Supabase CLI no projeto remoto, pois a aplicação inicial ocorreu pelo SQL Editor.
+- [x] Primeira conta real de organizador criada e confirmada pelo responsável.
+- [x] Histórico remoto reconciliado pela CLI para `20261102000100` e `20261102000200`.
 
 ### Gates finais da Fase 1.5
 
@@ -126,11 +126,15 @@ Resultados reais de 2026-11-03:
 - `npm test`: 1 arquivo, 23 testes unitários aprovados.
 - `npm run build`: build de produção aprovado.
 - `npm audit --omit=dev`: zero vulnerabilidades em produção.
-- Teste SQL `phase2_operations_test.sql`: escrito com 19 asserções; execução local bloqueada pela ausência de Docker.
+- Teste SQL `phase2_operations_test.sql`: 19 asserções; execução local via runner bloqueada pela ausência de Docker, mas execução remota direta aprovada em transação com `rollback`.
 
-### Pendente para encerrar a fase
+### Validação remota e encerramento
 
-- [ ] Aplicar `20261103000100_phase2_live_operations.sql` no projeto remoto.
-- [ ] Executar o teste transacional remoto de operação e concorrência.
-- [ ] Validar o ciclo real com a conta do organizador e criar a organização solicitada.
-- [ ] Smoke responsivo e Realtime com dois clientes autenticados.
+- [x] Migrações locais e remotas alinhadas: `20261102000100`, `20261102000200` e `20261103000100`.
+- [x] `20261103000100_phase2_live_operations.sql` aplicada ao projeto remoto.
+- [x] Oito novas tabelas operacionais confirmadas no esquema remoto.
+- [x] Teste transacional remoto de operação e concorrência aprovado: 19/19; dados removidos por `rollback`.
+- [x] Ranka existente validado sem duplicação: proprietário da organização, proprietário do ranka e sessão inicial íntegros.
+- [x] `supabase db lint --remote`: nenhum erro de esquema.
+- [x] Security Advisor: zero erros; avisos de RPCs `security definer` são intencionais e protegidos por autorização interna. A proteção de senhas vazadas continua desativada como configuração operacional do Auth.
+- [ ] Smoke manual de Realtime com dois navegadores autenticados; não bloqueia a integridade transacional validada, mas deve ser repetido antes de disponibilização pública.

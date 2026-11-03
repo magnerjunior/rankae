@@ -1,4 +1,6 @@
 begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path = public, extensions;
 select plan(19);
 
 insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -52,5 +54,9 @@ select lives_ok($$select public.batch_mark_contributions('4c000000-0000-0000-000
 ], 'paid', null, 3, '40000000-0000-0000-0000-000000000008')$$, 'marks five contributions in one transaction');
 select results_eq($$select count(*)::bigint from public.contribution_records where session_id = '4c000000-0000-0000-0000-000000000001' and status = 'paid' and amount_cents = 500$$, array[5::bigint], 'batch preserves the amount snapshot per player');
 
-select * from finish();
+select case
+  when count(*) = 0 then 'ok 19/19'
+  else 'failed: ' || string_agg(result, E'\n')
+end as phase2_test_summary
+from finish() as result;
 rollback;

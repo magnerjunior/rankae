@@ -83,3 +83,13 @@ Nome, apelido e aliases normalizados geram alerta de possível duplicata. O banc
 ### Regra de encerramento revisável
 
 Tempo, total de gols e diferença são configuráveis. Ao atingir meta de placar a interface pede revisão do último evento antes do encerramento manual, evitando rodar times durante uma correção. Saída dupla só é aceita quando existem dois times completos na espera.
+
+### Aplicação remota e validação final
+
+As versões `20261102000100` e `20261102000200`, aplicadas originalmente pelo SQL Editor, foram registradas no histórico remoto pelo fluxo oficial `supabase migration repair`. Em seguida, `20261103000100_phase2_live_operations.sql` foi aplicada com `supabase db push`. O histórico local e remoto ficou alinhado nas três versões.
+
+O teste `phase2_operations_test.sql` passou a carregar pgTAP dentro da própria transação quando a extensão não estiver instalada. A execução remota aprovou 19/19 asserções e terminou com `rollback`; nenhuma identidade ou dado de teste persistiu. `supabase db lint --remote` não encontrou erros de esquema.
+
+O ranka existente foi preservado e validado sem recriação: há um proprietário ativo da organização, o mesmo membro é proprietário do ranka e existe uma sessão inicial em `check_in`. O nome exibido no projeto Supabase é apenas metadado do projeto e não foi alterado.
+
+O Security Advisor mantém avisos para RPCs `security definer` executáveis por `authenticated`; isso é intencional para os comandos transacionais expostos, que usam autorização interna, `search_path` controlado, idempotência e revisão otimista. A proteção de senhas vazadas permanece como ajuste operacional do Auth, fora do escopo da migração da Fase 2.
