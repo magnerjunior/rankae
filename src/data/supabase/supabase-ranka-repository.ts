@@ -5,7 +5,7 @@ import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, Sessio
 
 interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
 interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
-interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
+interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; membership_status: "regular" | "guest"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
 interface SquadRow { id: string; squad_number: number; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
 interface MatchRow {
@@ -25,7 +25,7 @@ function readRules(value: Record<string, unknown>): SessionRules {
   const squadSize = Number(value.squadSize ?? 6);
   const maxLinePlayers = Number(value.maxLinePlayers ?? 24);
   const maxKeepers = Number(value.maxKeepers ?? 3);
-  const regulationDurationMs = Number(value.regulationDurationMs ?? 600_000);
+  const regulationDurationMs = Number(value.regulationDurationMs ?? 420_000);
   const overtimeDurationMs = Number(value.overtimeDurationMs ?? 180_000);
   const targetGoals = Number(value.targetGoals ?? 0);
   const targetGoalDifference = Number(value.targetGoalDifference ?? 0);
@@ -36,7 +36,7 @@ function readRules(value: Record<string, unknown>): SessionRules {
     squadSize: Number.isInteger(squadSize) && squadSize >= 2 ? squadSize : 6,
     maxLinePlayers: Number.isInteger(maxLinePlayers) && maxLinePlayers >= 2 ? maxLinePlayers : 24,
     maxKeepers: Number.isInteger(maxKeepers) && maxKeepers >= 0 ? maxKeepers : 3,
-    regulationDurationMs: Number.isInteger(regulationDurationMs) ? regulationDurationMs : 600_000,
+    regulationDurationMs: Number.isInteger(regulationDurationMs) ? regulationDurationMs : 420_000,
     overtimeDurationMs: Number.isInteger(overtimeDurationMs) ? overtimeDurationMs : 180_000,
     targetGoals: Number.isInteger(targetGoals) && targetGoals >= 0 ? targetGoals : 0,
     targetGoalDifference: Number.isInteger(targetGoalDifference) && targetGoalDifference >= 0 ? targetGoalDifference : 0,
@@ -67,7 +67,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     const typedRanka = ranka as RankaRow;
     const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
       this.client.from("sessions").select("id,scheduled_on,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
-      this.client.from("players").select("id,full_name,nickname,role_preference,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
+      this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);
     if (playersError) throw queryFailure("Não foi possível carregar os jogadores", playersError.code);
@@ -89,6 +89,7 @@ export class SupabaseRankaRepository implements RankaRepository {
       id: row.id, fullName: row.full_name,
       aliases: [row.nickname, ...(row.player_aliases ?? []).map((alias) => alias.alias)].filter((value): value is string => Boolean(value)),
       role: row.role_preference === "keeper" ? "keeper" : "line",
+      membership: row.membership_status ?? "regular",
       publicVisible: row.public_visible,
       publicDisplayName: row.public_display_name ?? undefined,
     }));

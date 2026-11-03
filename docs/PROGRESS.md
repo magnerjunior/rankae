@@ -249,3 +249,17 @@ Resultados reais de 2026-11-03:
 - [x] Nove versões locais/remotas permanecem alinhadas; o ajuste utiliza a RPC transacional já publicada.
 - [x] `npm run lint`, `npm run typecheck`, 36 testes unitários e `npm run build` aprovados.
 - [x] `supabase db lint --remote`: sem erro novo; um aviso preexistente em `accept_legal_document`.
+
+## Fluxo de pré-jogo e partida — 2026-11-03
+
+- [x] Botão de iniciar fixo no topo da chegada e direcionado à revisão dos times.
+- [x] Times conferidos antes da preparação; cronômetro não inicia automaticamente.
+- [x] Controles de relógio com resposta visual imediata e persistência autoritativa em segundo plano.
+- [x] Padrão 7 minutos + 3 de prorrogação + ímpar ou par após novo empate, mantendo configuração editável.
+- [x] Portal público sem placar ao vivo, Broadcast ou polling; somente histórico e estatísticas.
+- [x] Goleiros restritos aos perfis de goleiro e gandulas restritos à linha em espera.
+- [x] Elencos compactos na partida com indicadores derivados de gols e assistências.
+- [x] Marco rápido, rótulo opcional, edição auditável e cartão com cor/tempo fora.
+- [x] Classificação interna de jogadores fixos e visitantes.
+- [x] Migração `20261103000800_match_flow_defaults.sql` preparada para produção.
+- [x] `npm run lint`, `npm run typecheck`, 36 testes e `npm run build` aprovados.

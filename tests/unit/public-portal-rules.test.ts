@@ -25,7 +25,7 @@ describe("public portal rules", () => {
     expect(parsePortalPeriod("day", "03/11/2026")).toEqual({ period: "last" });
   });
 
-  it("builds a manual live result without private fields", () => {
+  it("does not share an in-progress match from the public statistics portal", () => {
     const text = buildShareSummary({
       ...base,
       liveMatch: {
@@ -33,15 +33,16 @@ describe("public portal rules", () => {
         state: "live",
         clockPhase: "regulation",
         elapsedMsBeforeStart: 0,
-        durationLimitMs: 600_000,
+        durationLimitMs: 420_000,
         yellow: { number: 1, score: 2, players: ["Nando"] },
         red: { number: 2, score: 1, players: ["Beto"] },
         ballBoys: [],
         keepers: {},
       },
     });
-    expect(text).toContain("Amarelo T1 2 x 1 Vermelho T2");
-    expect(text).toContain("Próximos: T3");
+    expect(text).toContain("Ainda não há partida publicada");
+    expect(text).not.toContain("Amarelo T1");
+    expect(text).not.toContain("Próximos");
     expect(text).not.toContain("contribui");
   });
 });

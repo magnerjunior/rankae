@@ -184,3 +184,25 @@ A migração `20261103000700_arrival_speed_tools.sql` foi aplicada ao projeto de
 ### Goleiros fora da fila de linha
 
 Goleiros aparecem sempre em um bloco próprio no topo e recebem a identificação `GK`, sem consumir a numeração `01–24` da fila de jogadores de linha. A reordenação visual é restrita ao próprio grupo, pois a prioridade operacional de goleiros não é a mesma regra de formação sequencial dos times de linha. A operação transacional já publicada continua persistindo a posição absoluta e preserva a ordem relativa do outro grupo.
+
+## 2026-11-03 — pré-jogo explícito e operação imediata
+
+### Iniciar não significa disparar o relógio
+
+O botão fixo da chegada forma os times e abre a revisão. Depois da conferência, o organizador prepara a partida em estado `ready`; somente **Iniciar cronômetro** faz a transição para `live`. Isso preserva a máquina de estados documentada e evita perder segundos enquanto goleiros e gandulas ainda são definidos.
+
+### Relógio otimista com autoridade no servidor
+
+Iniciar, pausar, retomar, reiniciar e encerrar atualizam a apresentação imediatamente. O comando continua sendo enviado com idempotency key e revisão otimista; a resposta autoritativa substitui o estado visual na navegação. Um snapshot local isolado por partida auxilia a continuidade visual, mas nunca concede permissão nem substitui o relógio persistido.
+
+### Defaults validados em campo
+
+Novos rankas e sessões usam 7 minutos de tempo normal, 3 de prorrogação e, persistindo o empate, ímpar ou par como primeira opção. Sessões antigas ainda no default técnico de 10 minutos são migradas somente quando não existe auditoria de alteração manual das regras. Configurações escolhidas pelo organizador são preservadas.
+
+### Portal público histórico
+
+O portal do espectador deixa de abrir Broadcast, polling e cronômetro. Ele apresenta resultados concluídos e estatísticas por período. A operação ao vivo permanece somente no painel autenticado do organizador, reduzindo consultas recorrentes sem enfraquecer a integridade dos eventos.
+
+### Escala e eventos
+
+Seletores de goleiro mostram apenas goleiros presentes; gandulas mostram somente jogadores de linha em espera. A partida mantém elencos compactos sempre visíveis, com contadores de gol e assistência derivados dos eventos ativos. Marcos podem ser criados em um toque, rotulados e editados com histórico; cartões são registrados como marcos estruturados com jogador, cor e minutos fora. Jogadores podem ser classificados como fixos ou visitantes por RPC auditada.

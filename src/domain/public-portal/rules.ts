@@ -13,15 +13,6 @@ export function parsePortalPeriod(value: string | undefined, specificDate?: stri
 
 export function buildShareSummary(snapshot: PublicRankaSnapshot): string {
   const header = `Rankaê · ${snapshot.rankaName}`;
-  const match = snapshot.liveMatch;
-  if (match) {
-    return [
-      header,
-      `Jogo ${match.ordinal}: Amarelo T${match.yellow.number} ${match.yellow.score} x ${match.red.score} Vermelho T${match.red.number}`,
-      snapshot.nextSquads.length ? `Próximos: ${snapshot.nextSquads.map((squad) => `T${squad.number}`).join(" e ")}` : "Sem próximo time confirmado",
-      `Atualizado em ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(snapshot.asOfServer))}`,
-    ].join("\n");
-  }
   const latest = snapshot.results[0];
   if (latest) {
     return [header, `Resultado: Amarelo T${latest.yellowSquadNumber} ${latest.yellowScore} x ${latest.redScore} Vermelho T${latest.redSquadNumber}`, snapshot.periodLabel].join("\n");

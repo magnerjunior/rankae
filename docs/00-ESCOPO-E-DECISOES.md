@@ -18,7 +18,7 @@
 
 ## Premissas parametrizadas — validar em campo (não bloquear desenvolvimento)
 - Default: **6 jogadores de linha por time**, goleiros em slots separados.
-- Default: 10 minutos de tempo normal, prorrogação de 3 minutos quando houver; alternâncias por configuração.
+- Default validado em campo: **7 minutos** de tempo normal e **3 minutos** de prorrogação; persistindo o empate, decisão por ímpar ou par. Tudo permanece configurável por ranka.
 - Default: 4 times ideais / 24 jogadores de linha; sessões podem ter menos ou mais.
 - Default: perdedor sai, vencedor permanece. Caso de empate depende de quantidade de equipes completas na espera e configuração.
 - Default: contribuição R$ 5,00 apenas como exemplo, campo editável.

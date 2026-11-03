@@ -229,36 +229,19 @@ export async function removeArrivalAction(sessionId: string, input: { playerId: 
 export async function startGameFromArrivalAction(rankaId: string, sessionId: string, squadSize: number, hasPersistedSquads: boolean, input: { expectedRevision: number }) {
   const parsedRevision = z.number().int().positive().safeParse(input.expectedRevision);
   if (!parsedRevision.success) finish(rankaId, "chegada", false, "revisao");
-  let revision = parsedRevision.data;
   if (!hasPersistedSquads) {
     const generated = await rpc("generate_session_squads", {
       p_session_id: sessionId,
       p_squad_size: squadSize,
       p_method: "sequential",
       p_seed: null,
-      p_expected_revision: revision,
+      p_expected_revision: parsedRevision.data,
       p_idempotency_key: randomUUID(),
     });
     if (generated.error) finish(rankaId, "chegada", false, "times");
-    revision = readArrivalResult(generated.data).revision ?? revision + 1;
   }
-  const prepared = await rpc("prepare_next_match", {
-    p_session_id: sessionId,
-    p_expected_revision: revision,
-    p_idempotency_key: randomUUID(),
-  });
-  if (prepared.error || !prepared.data || typeof prepared.data !== "object") finish(rankaId, "chegada", false, "jogo");
-  const match = prepared.data as { id?: unknown; revision?: unknown };
-  if (typeof match.id !== "string" || typeof match.revision !== "number") finish(rankaId, "chegada", false, "jogo");
-  const started = await rpc("transition_match_clock", {
-    p_match_id: match.id,
-    p_command: "start",
-    p_expected_revision: match.revision,
-    p_idempotency_key: randomUUID(),
-  });
-  if (started.error) finish(rankaId, "partida", false, "iniciar");
   revalidatePath(`/app/rankas/${rankaId}`);
-  redirect(`/app/rankas/${rankaId}/partida`);
+  redirect(`/app/rankas/${rankaId}/times`);
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {
@@ -266,6 +249,13 @@ export async function createPlayerAction(rankaId: string, orgId: string, formDat
   if (!parsed.success) finish(rankaId, "jogadores", false, "dados");
   const { error } = await rpc("create_player_with_aliases_confirmed", { p_org_id: orgId, p_full_name: parsed.data.fullName, p_nickname: parsed.data.nickname ?? null, p_role: parsed.data.role, p_aliases: parsed.data.aliases?.split(",").map((alias) => alias.trim()).filter(Boolean) ?? [], p_confirm_possible_duplicate: formData.get("confirmPossibleDuplicate") === "on" });
   finish(rankaId, "jogadores", !error, error ? "salvar" : "jogador");
+}
+
+export async function setPlayerMembershipAction(rankaId: string, playerId: string, formData: FormData) {
+  const membership = z.enum(["regular", "guest"]).safeParse(formData.get("membership"));
+  if (!membership.success) finish(rankaId, "jogadores", false, "vinculo");
+  const { error } = await rpc("set_player_membership", { p_player_id: playerId, p_membership: membership.data, p_idempotency_key: idempotencyKey(formData) });
+  finish(rankaId, "jogadores", !error, error ? "vinculo" : "vinculo");
 }
 
 export async function checkInPlayerAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
@@ -316,9 +306,21 @@ export async function clockAction(rankaId: string, matchId: string, expectedRevi
 }
 
 export async function recordEventAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
-  const parsed = z.object({ eventType: z.enum(["goal", "penalty_attempt", "marker"]), side: z.preprocess((value) => value || undefined, z.enum(["yellow", "red"]).optional()), scorerPlayerId: optionalUuid, assistPlayerId: optionalUuid, keeperPlayerId: optionalUuid, goalKind: z.preprocess((value) => value || undefined, z.enum(["normal", "penalty", "own_goal"]).optional()), penaltyOutcome: z.preprocess((value) => value || undefined, z.enum(["converted", "missed", "saved"]).optional()), label: z.string().trim().max(80).optional() }).safeParse({ eventType: formData.get("eventType"), side: formData.get("side"), scorerPlayerId: formData.get("scorerPlayerId"), assistPlayerId: formData.get("assistPlayerId"), keeperPlayerId: formData.get("keeperPlayerId"), goalKind: formData.get("goalKind"), penaltyOutcome: formData.get("penaltyOutcome"), label: formData.get("label") || undefined });
+  const parsed = z.object({ eventType: z.enum(["goal", "penalty_attempt", "marker"]), side: z.preprocess((value) => value || undefined, z.enum(["yellow", "red"]).optional()), scorerPlayerId: optionalUuid, assistPlayerId: optionalUuid, keeperPlayerId: optionalUuid, goalKind: z.preprocess((value) => value || undefined, z.enum(["normal", "penalty", "own_goal"]).optional()), penaltyOutcome: z.preprocess((value) => value || undefined, z.enum(["converted", "missed", "saved"]).optional()), label: z.string().trim().max(80).optional(), markerKind: z.enum(["note", "card"]).default("note"), cardColor: z.enum(["yellow", "red", "blue"]).optional(), cardMinutes: z.coerce.number().int().min(0).max(30).optional(), cardPlayerId: optionalUuid }).safeParse({ eventType: formData.get("eventType"), side: formData.get("side"), scorerPlayerId: formData.get("scorerPlayerId"), assistPlayerId: formData.get("assistPlayerId"), keeperPlayerId: formData.get("keeperPlayerId"), goalKind: formData.get("goalKind"), penaltyOutcome: formData.get("penaltyOutcome"), label: formData.get("label") || undefined, markerKind: formData.get("markerKind") || "note", cardColor: formData.get("cardColor") || undefined, cardMinutes: formData.get("cardMinutes") || undefined, cardPlayerId: formData.get("cardPlayerId") });
   if (!parsed.success) finish(rankaId, "partida", false, "evento");
-  const { error } = await rpc("record_match_event", { p_match_id: matchId, p_event_type: parsed.data.eventType, p_side: parsed.data.side ?? null, p_scorer_player_id: parsed.data.scorerPlayerId ?? null, p_assist_player_id: parsed.data.assistPlayerId ?? null, p_keeper_player_id: parsed.data.keeperPlayerId ?? null, p_goal_kind: parsed.data.goalKind ?? null, p_penalty_outcome: parsed.data.penaltyOutcome ?? null, p_label: parsed.data.label ?? null, p_metadata: {}, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const cardPlayer = parsed.data.cardPlayerId && parsed.data.markerKind === "card" ? parsed.data.cardPlayerId : undefined;
+  let cardPlayerName: string | undefined;
+  if (cardPlayer) {
+    const supabase = await createClient();
+    const { data } = await supabase.from("players").select("full_name").eq("id", cardPlayer).maybeSingle();
+    cardPlayerName = typeof data?.full_name === "string" ? data.full_name : undefined;
+  }
+  const colorLabel = parsed.data.cardColor === "red" ? "vermelho" : parsed.data.cardColor === "blue" ? "azul" : "amarelo";
+  const markerLabel = parsed.data.markerKind === "card"
+    ? `Cartão ${colorLabel}${cardPlayerName ? ` · ${cardPlayerName}` : ""}${parsed.data.cardMinutes ? ` · ${parsed.data.cardMinutes} min fora` : ""}`
+    : parsed.data.label || "Marco";
+  const metadata = parsed.data.markerKind === "card" ? { kind: "card", color: parsed.data.cardColor, durationMinutes: parsed.data.cardMinutes, playerId: cardPlayer } : { kind: "note" };
+  const { error } = await rpc("record_match_event", { p_match_id: matchId, p_event_type: parsed.data.eventType, p_side: parsed.data.side ?? null, p_scorer_player_id: cardPlayer ?? parsed.data.scorerPlayerId ?? null, p_assist_player_id: parsed.data.assistPlayerId ?? null, p_keeper_player_id: parsed.data.keeperPlayerId ?? null, p_goal_kind: parsed.data.goalKind ?? null, p_penalty_outcome: parsed.data.penaltyOutcome ?? null, p_label: parsed.data.eventType === "marker" ? markerLabel.slice(0, 80) : parsed.data.label ?? null, p_metadata: metadata, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "partida", !error, error ? "conflito" : "evento");
 }
 
@@ -327,6 +329,13 @@ export async function voidEventAction(rankaId: string, eventId: string, expected
   if (!reason.success) finish(rankaId, "partida", false, "motivo");
   const { error } = await rpc("void_match_event", { p_event_id: eventId, p_reason: reason.data, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "partida", !error, error ? "conflito" : "correcao");
+}
+
+export async function updateMarkerAction(rankaId: string, expectedRevision: number, formData: FormData) {
+  const parsed = z.object({ eventId: uuid, label: z.string().trim().min(1).max(80) }).safeParse({ eventId: formData.get("eventId"), label: formData.get("label") });
+  if (!parsed.success) finish(rankaId, "partida", false, "rotulo");
+  const { error } = await rpc("update_match_marker", { p_event_id: parsed.data.eventId, p_label: parsed.data.label, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  finish(rankaId, "partida", !error, error ? "conflito" : "marco");
 }
 
 export async function resolveTieAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {

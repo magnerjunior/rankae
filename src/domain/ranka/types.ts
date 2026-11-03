@@ -12,6 +12,7 @@ export interface Player {
   fullName: string;
   aliases: string[];
   role: PlayerRole;
+  membership?: "regular" | "guest";
   publicVisible?: boolean;
   publicDisplayName?: string;
 }
