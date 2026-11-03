@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { RankaWorkspace } from "@/components/ranka-workspace";
 import { RealRankaWorkspace } from "@/components/real-ranka-workspace";
-import { SupabaseRankaRepository } from "@/data/supabase/supabase-ranka-repository";
+import { RankaNotFoundError, SupabaseRankaRepository } from "@/data/supabase/supabase-ranka-repository";
 import { PublicPortalRepository } from "@/data/supabase/public-portal-repository";
 import { parsePortalPeriod } from "@/domain/public-portal/rules";
 import { isRankaSection } from "@/lib/navigation";
@@ -20,8 +20,10 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   await requireUserId();
   const client = await createClient();
   const repository = new SupabaseRankaRepository(client);
-  const snapshot = await repository.getSnapshot(rankaId).catch(() => null);
-  if (!snapshot) notFound();
+  const snapshot = await repository.getSnapshot(rankaId).catch((error: unknown) => {
+    if (error instanceof RankaNotFoundError) notFound();
+    throw error;
+  });
   const { sucesso, erro, period: periodValue, date } = await searchParams;
   const period = parsePortalPeriod(periodValue, date);
   const statsSnapshot = active === "estatisticas" && snapshot.portal

@@ -137,7 +137,7 @@ Resultados reais de 2026-11-03:
 - [x] Ranka existente validado sem duplicação: proprietário da organização, proprietário do ranka e sessão inicial íntegros.
 - [x] `supabase db lint --remote`: nenhum erro de esquema.
 - [x] Security Advisor: zero erros; avisos de RPCs `security definer` são intencionais e protegidos por autorização interna. A proteção de senhas vazadas continua desativada como configuração operacional do Auth.
-- [ ] Smoke manual de Realtime com dois navegadores autenticados; não bloqueia a integridade transacional validada, mas deve ser repetido antes de disponibilização pública.
+- [x] Smoke manual de Realtime com dois clientes autenticados em abas independentes: ambos chegaram ao estado `Ao vivo` após a autenticação do canal privado.
 
 ## Fase 3 — portal, estatísticas e compartilhamento
 
@@ -213,3 +213,13 @@ Resultados reais de 2026-11-03:
 - [ ] Ensaio real de restauração aguarda staging isolado e política de backup/PITR confirmada.
 - [ ] Primeiro superadmin aguarda conta identificada, MFA configurado e bootstrap pelo administrador do banco.
 - [ ] Minutas aguardam revisão jurídica e designação do controlador/canal de privacidade antes de publicação.
+
+## Correção operacional — 2026-11-03
+
+- [x] Abertura do ranka real corrigida: embed de aliases desambiguado pela FK explícita, eliminando o falso 404 `PGRST201`.
+- [x] Falhas de consulta não são mais convertidas em “não encontrado”; somente ausência real ou falta de autorização usa 404.
+- [x] Página 404 própria e página de recuperação de falha temporária implementadas.
+- [x] Ranka `Ranka Enganos` aberto com a sessão do dia, RLS ativa e fluxo Jogadores → Chegada → Times → Partida navegável.
+- [x] Estado vazio orienta o primeiro uso e não oferece geração de times antes de existir presença confirmada.
+- [x] Produção Vercel recebeu as quatro variáveis públicas necessárias; domínio canônico e callbacks de produção/local foram autorizados no Supabase Auth.
+- [x] Cadastro público de organizadores e confirmação por e-mail verificados como ativos no Supabase; recuperação e redefinição de senha implementadas.

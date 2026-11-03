@@ -141,3 +141,15 @@ O único alvo Rankaê conhecido pela CLI está marcado como produção. Além di
 ### Aplicação remota pelo SQL Editor e reconciliação
 
 Após o usuário habilitar explicitamente o controle do Chrome, a migração versionada foi carregada diretamente do commit publicado e aplicada no SQL Editor autenticado do projeto correto. Como a CLI permaneceu sem privilégio, o histórico `supabase_migrations.schema_migrations` foi reconciliado no mesmo projeto com a versão, o nome e o SQL integral aplicado. A consulta final confirmou `20261103000500`, health `ok` e os módulos legal/privacidade. O pgTAP remoto aprovou 20/20 dentro de transação com rollback.
+
+## 2026-11-03 — Identidade visual oficial
+
+Os arquivos fornecidos em `logomarca/` passaram a ser a fonte da marca no produto. O ícone transparente e a escrita oficial substituem a marca textual nos cabeçalhos autenticados e públicos; a composição completa aparece na apresentação pública. O ícone com fundo branco atende favicon e instalação PWA, enquanto a composição PNG é usada nas prévias sociais. Os nomes publicados em `public/` não têm espaços ou acentos para manter URLs estáveis.
+
+## 2026-11-03 — Recuperação do workspace real e páginas de estado
+
+O 404 ao abrir um ranka autorizado não era ausência de dados: o PostgREST retornava `PGRST201` porque `players` e `player_aliases` têm duas chaves estrangeiras válidas e o embed não indicava a relação. A consulta agora seleciona explicitamente `player_aliases_player_id_fkey`. Somente ausência real ou falta de autorização vira 404; falhas operacionais seguem para uma página recuperável, sem expor detalhes do banco. Uma página 404 própria, coerente com a marca, oferece retorno aos rankas e à página inicial.
+
+## 2026-11-03 — Publicação e ciclo de acesso do organizador
+
+O domínio canônico da primeira publicação é `https://rankae.vercel.app`. O GitHub permanece como fonte e a Vercel publica a branch principal; não existe aplicação Heroku configurada no repositório. Cadastro exige confirmação por e-mail quando o Auth assim estiver configurado. O callback aceita somente destinos internos conhecidos, reporta confirmação inválida e também conclui recuperação de senha. A solicitação de recuperação usa resposta não enumerável e a nova senha exige sessão verificada e mínimo de oito caracteres.

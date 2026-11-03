@@ -1,6 +1,44 @@
 import Link from "next/link";
+import Image from "next/image";
 import { LegalFooter } from "@/components/legal-document";
 
 export default function HomePage() {
-  return <main className="marketing-page"><header className="marketing-header"><span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span><Link className="button button-secondary" href="/entrar">Área do organizador</Link></header><section className="marketing-hero"><div><span className="eyebrow">A pelada no ritmo do jogo</span><h1 className="display">Chegada, times e placar. Sem papel na mesa.</h1><p>O organizador conduz a sessão. A torcida acompanha somente a projeção esportiva autorizada, ao vivo e no celular.</p><div className="cluster"><Link className="button button-primary" href="/entrar">Organizar um ranka</Link><a className="button button-quiet" href="#como-funciona">Como funciona</a></div></div><div className="marketing-score" aria-label="Exemplo visual de placar"><span>AMARELO</span><strong>2 × 1</strong><span>VERMELHO</span><small>08:42 · TEMPO NORMAL</small></div></section><section className="marketing-features" id="como-funciona"><article><span className="eyebrow">01 · Quadra</span><h2 className="display">Operação rápida</h2><p>Chegada, formação, rodízio e contribuição em poucos toques.</p></article><article><span className="eyebrow">02 · Ao vivo</span><h2 className="display">Fonte autoritativa</h2><p>Relógio do servidor, eventos auditáveis e correções sem apagar histórico.</p></article><article><span className="eyebrow">03 · Grupo</span><h2 className="display">Compartilhe o resultado</h2><p>Portal de leitura com privacidade configurável e envio manual para o WhatsApp.</p></article></section><LegalFooter /></main>;
+  return (
+    <main className="marketing-page">
+      <header className="marketing-header">
+        <span className="brand">
+          <span className="brand-mark">R</span>
+          <span className="brand-name">Rankaê</span>
+        </span>
+        <Link className="button button-secondary" href="/entrar">Área do organizador</Link>
+      </header>
+
+      <section className="marketing-hero">
+        <div>
+          <Image className="marketing-lockup" src="/rankae-logo-completa.svg" width={220} height={110} alt="" aria-hidden="true" priority />
+          <span className="eyebrow">A pelada no ritmo do jogo</span>
+          <h1 className="display">Chegada, times e placar. Sem papel na mesa.</h1>
+          <p>O organizador conduz a sessão. A torcida acompanha somente a projeção esportiva autorizada, ao vivo e no celular.</p>
+          <div className="cluster">
+            <Link className="button button-primary" href="/entrar">Organizar um ranka</Link>
+            <a className="button button-quiet" href="#como-funciona">Como funciona</a>
+          </div>
+        </div>
+        <div className="marketing-score" aria-label="Exemplo visual de placar">
+          <span>AMARELO</span>
+          <strong>2 × 1</strong>
+          <span>VERMELHO</span>
+          <small>08:42 · TEMPO NORMAL</small>
+        </div>
+      </section>
+
+      <section className="marketing-features" id="como-funciona">
+        <article><span className="eyebrow">01 · Quadra</span><h2 className="display">Operação rápida</h2><p>Chegada, formação, rodízio e contribuição em poucos toques.</p></article>
+        <article><span className="eyebrow">02 · Ao vivo</span><h2 className="display">Fonte autoritativa</h2><p>Relógio do servidor, eventos auditáveis e correções sem apagar histórico.</p></article>
+        <article><span className="eyebrow">03 · Grupo</span><h2 className="display">Compartilhe o resultado</h2><p>Portal de leitura com privacidade configurável e envio manual para o WhatsApp.</p></article>
+      </section>
+
+      <LegalFooter />
+    </main>
+  );
 }

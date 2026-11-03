@@ -38,18 +38,31 @@ function readRules(value: Record<string, unknown>): SessionRules {
   };
 }
 
+export class RankaNotFoundError extends Error {
+  constructor() {
+    super("Ranka não encontrado ou não autorizado.");
+    this.name = "RankaNotFoundError";
+  }
+}
+
+function queryFailure(context: string, code?: string): Error {
+  return new Error(`${context}${code ? ` (${code})` : ""}`);
+}
+
 export class SupabaseRankaRepository implements RankaRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async getSnapshot(rankaId: string): Promise<RankaSnapshot> {
-    const { data: ranka, error: rankaError } = await this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).single();
-    if (rankaError || !ranka) throw new Error("Ranka não encontrado ou não autorizado.");
+    const { data: ranka, error: rankaError } = await this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).maybeSingle();
+    if (rankaError) throw queryFailure("Não foi possível consultar o ranka", rankaError.code);
+    if (!ranka) throw new RankaNotFoundError();
     const typedRanka = ranka as RankaRow;
     const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
       this.client.from("sessions").select("id,scheduled_on,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
-      this.client.from("players").select("id,full_name,nickname,role_preference,public_visible,public_display_name,player_aliases(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
+      this.client.from("players").select("id,full_name,nickname,role_preference,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
-    if (sessionError || playersError) throw new Error("Não foi possível carregar a sessão autorizada.");
+    if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);
+    if (playersError) throw queryFailure("Não foi possível carregar os jogadores", playersError.code);
     const session = (sessions?.[0] ?? null) as SessionRow | null;
     if (!session) throw new Error("Este ranka ainda não possui sessão.");
 
@@ -59,8 +72,10 @@ export class SupabaseRankaRepository implements RankaRepository {
       this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1),
       this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id),
     ]);
-    if (attendanceResult.error) throw new Error("Não foi possível carregar a chegada.");
-    if (squadsResult.error || matchResult.error || contributionsResult.error) throw new Error("Não foi possível carregar a operação da sessão.");
+    if (attendanceResult.error) throw queryFailure("Não foi possível carregar a chegada", attendanceResult.error.code);
+    if (squadsResult.error) throw queryFailure("Não foi possível carregar os times", squadsResult.error.code);
+    if (matchResult.error) throw queryFailure("Não foi possível carregar as partidas", matchResult.error.code);
+    if (contributionsResult.error) throw queryFailure("Não foi possível carregar as contribuições", contributionsResult.error.code);
 
     const players: Player[] = ((playerRows ?? []) as PlayerRow[]).map((row) => ({
       id: row.id, fullName: row.full_name,

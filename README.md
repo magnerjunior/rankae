@@ -26,6 +26,12 @@ No projeto de desenvolvimento atual, as duas migrações iniciais foram aplicada
 
 Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo só existe em desenvolvimento e exige opt-in explícito.
 
+## Publicação atual
+
+Produção: `https://rankae.vercel.app`. A branch `main` do GitHub é a fonte da publicação automática na Vercel; não há aplicativo Heroku configurado.
+
+Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_ENABLE_DEMO=false` e `NEXT_PUBLIC_APP_URL=https://rankae.vercel.app`. No Supabase Auth, use `https://rankae.vercel.app` como Site URL e autorize `/auth/callback` no domínio de produção e nos endereços locais usados no desenvolvimento. O cadastro de organizadores exige confirmação de e-mail; recuperação de senha também retorna pelo callback autorizado.
+
 ## Operar a Fase 2
 
 Após aplicar as migrações em ordem, um organizador autenticado pode executar o ciclo em **Chegada → Times → Partida → Contribuições**. O relógio é derivado do horário do servidor, eventos são idempotentes e revisões otimistas impedem que dois mesários sobrescrevam alterações concorrentes. O canal privado `session:<uuid>` usa autorização RLS e apenas sinaliza clientes autorizados para refazer o snapshot.

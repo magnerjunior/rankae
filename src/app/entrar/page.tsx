@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/login-form";
 import { hasSupabaseConfig, isDemoEnabled } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string; mensagem?: string }> }) {
   const configured = hasSupabaseConfig();
   const demoEnabled = isDemoEnabled();
 
@@ -14,6 +14,13 @@ export default async function LoginPage() {
     if (data?.claims?.sub) redirect("/app");
   }
 
+  const { erro, mensagem } = await searchParams;
+  const initialMessage = erro === "confirmacao"
+    ? "O link não pôde ser confirmado. Solicite um novo acesso ou tente novamente."
+    : mensagem === "senha_atualizada"
+      ? "Senha atualizada. Entre com a nova senha."
+      : undefined;
+
   return (
     <main className="login-page">
       <header className="login-head"><span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span></header>
@@ -22,7 +29,7 @@ export default async function LoginPage() {
         <div className="login-card">
           <span className={`badge ${configured ? "badge-green" : "badge-red"}`}>{configured ? "AMBIENTE CONECTADO" : "CONFIGURAÇÃO PENDENTE"}</span>
           <h2 className="display" style={{fontSize: "2rem", marginBottom: 8}}>Acesso do organizador</h2>
-          {configured ? <LoginForm /> : <div className="notice notice-warning">Adicione a URL e a publishable key do Supabase no arquivo <code>.env.local</code>. Nenhuma chave privada é necessária.</div>}
+          {configured ? <LoginForm initialMessage={initialMessage} /> : <div className="notice notice-warning">Adicione a URL e a publishable key do Supabase no arquivo <code>.env.local</code>. Nenhuma chave privada é necessária.</div>}
           {demoEnabled && <Link className="button button-secondary" style={{width: "100%", marginTop: 12}} href="/app/rankas/demo">Abrir demonstração local</Link>}
         </div>
       </section>

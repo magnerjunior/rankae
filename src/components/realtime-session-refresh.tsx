@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 export function RealtimeSessionRefresh({ sessionId }: { sessionId: string }) {
@@ -11,20 +12,42 @@ export function RealtimeSessionRefresh({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     const supabase = createClient();
-    void supabase.realtime.setAuth();
+    let channel: RealtimeChannel | undefined;
+    let disposed = false;
+    const connectionTimeout = window.setTimeout(() => {
+      if (!disposed) setStatus("offline");
+    }, 8_000);
     const refresh = () => {
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => router.refresh(), 120);
     };
-    const channel = supabase
-      .channel(`session:${sessionId}`, { config: { private: true } })
-      .on("broadcast", { event: "INSERT" }, refresh)
-      .on("broadcast", { event: "UPDATE" }, refresh)
-      .on("broadcast", { event: "DELETE" }, refresh)
-      .subscribe((next) => setStatus(next === "SUBSCRIBED" ? "connected" : next === "CHANNEL_ERROR" || next === "TIMED_OUT" ? "offline" : "connecting"));
+
+    async function connect() {
+      await supabase.realtime.setAuth();
+      if (disposed) return;
+      channel = supabase
+        .channel(`session:${sessionId}`, { config: { private: true } })
+        .on("broadcast", { event: "INSERT" }, refresh)
+        .on("broadcast", { event: "UPDATE" }, refresh)
+        .on("broadcast", { event: "DELETE" }, refresh)
+        .subscribe((next) => {
+          if (next === "SUBSCRIBED") {
+            window.clearTimeout(connectionTimeout);
+            setStatus("connected");
+          } else if (next === "CHANNEL_ERROR" || next === "TIMED_OUT" || next === "CLOSED") {
+            setStatus("offline");
+          } else {
+            setStatus("connecting");
+          }
+        });
+    }
+
+    void connect().catch(() => setStatus("offline"));
     return () => {
+      disposed = true;
+      window.clearTimeout(connectionTimeout);
       if (timer.current) clearTimeout(timer.current);
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [router, sessionId]);
 

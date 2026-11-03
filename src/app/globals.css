@@ -8,6 +8,8 @@
   --brand-700: #126b49;
   --brand-600: #167a52;
   --brand-100: #e4f3e9;
+  --brand-accent: #52df04;
+  --brand-ink: #121b17;
   --ink: #14251d;
   --muted: #64736a;
   --border: #dae5dc;
@@ -64,9 +66,9 @@ button { cursor: pointer; }
 .sidebar { display: none; }
 .app-main { min-width: 0; padding: 0 16px 104px; }
 .topbar { position: sticky; top: 0; z-index: 20; margin: 0 -16px 18px; padding: 12px 16px; border-bottom: 1px solid rgba(218,229,220,.85); background: rgba(248,250,248,.9); backdrop-filter: blur(14px); }
-.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--brand-900); }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px 10px 5px 10px; background: var(--brand-900); color: white; font-family: "Barlow Condensed", sans-serif; font-size: 1.15rem; font-weight: 800; transform: rotate(-2deg); }
-.brand-name { font-family: "Barlow Condensed", sans-serif; font-size: 1.65rem; font-weight: 800; letter-spacing: .03em; }
+.brand { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; color: var(--brand-ink); }
+.brand-mark { width: 34px; height: 34px; flex: 0 0 auto; display: block; overflow: hidden; background: url("/rankae-icon-transparent.svg") center / contain no-repeat; color: transparent; font-size: 0; }
+.brand-name { width: 102px; height: 25px; flex: 0 0 auto; display: block; overflow: hidden; background: url("/rankae-wordmark.svg") center / contain no-repeat; color: transparent; font-size: 0; }
 .demo-ribbon { display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff7d8; color: #5d4b05; border-bottom: 1px solid #efdda0; padding: 7px 14px; font-size: .78rem; font-weight: 600; text-align: center; }
 .page { max-width: 1160px; margin: 0 auto; }
 .page-heading { display: grid; gap: 7px; margin: 20px 0 24px; }
@@ -179,6 +181,8 @@ button { cursor: pointer; }
 .login-copy p { max-width: 580px; color: var(--muted); font-size: 1.1rem; line-height: 1.55; }
 .login-card { max-width: 440px; padding: 24px; border: 1px solid rgba(205,220,209,.9); border-radius: 20px; background: rgba(255,255,255,.8); backdrop-filter: blur(14px); box-shadow: var(--shadow); }
 .login-card .button { width: 100%; margin-top: 18px; }
+.login-options { display: grid; gap: 2px; }
+.login-options .button { margin-top: 4px; }
 .login-foot { padding: 18px 20px; color: var(--muted); font-size: .8rem; text-align: center; }
 
 @supports not (backdrop-filter: blur(14px)) {
@@ -269,6 +273,7 @@ button { cursor: pointer; }
 .marketing-page { min-height: 100dvh; background: radial-gradient(circle at 82% 6%, #dceee2 0, transparent 31%), var(--bg); }
 .marketing-header { width: min(1160px, 100%); min-height: 78px; margin: 0 auto; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; }
 .marketing-hero { width: min(1160px, 100%); margin: 0 auto; padding: 54px 20px 76px; display: grid; gap: 36px; align-items: center; }
+.marketing-lockup { width: min(220px, 58vw); height: auto; display: block; margin: -24px 0 -8px; }
 .marketing-hero h1 { max-width: 780px; margin: 10px 0 20px; color: var(--brand-900); font-size: clamp(3.8rem, 13vw, 8.6rem); line-height: .76; }
 .marketing-hero p { max-width: 610px; color: var(--muted); font-size: 1.1rem; line-height: 1.55; }
 .marketing-score { min-height: 290px; display: grid; place-items: center; align-content: center; gap: 8px; border: 1px solid rgba(218,229,220,.9); border-radius: 24px; color: white; background: var(--brand-900); box-shadow: 0 28px 70px rgba(11,61,46,.18); transform: rotate(1deg); }
@@ -303,6 +308,17 @@ button { cursor: pointer; }
 .legal-footer { padding: 24px 20px 36px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--border); color: var(--muted); font-size: .82rem; }
 .legal-footer nav { display: flex; gap: 16px; flex-wrap: wrap; color: var(--brand-700); font-weight: 600; }
 .marketing-page > .legal-footer { width: min(1160px, calc(100% - 40px)); }
+
+@media (max-width: 420px) {
+  .marketing-header { padding-inline: 16px; }
+  .marketing-header .brand { gap: 6px; }
+  .marketing-header .brand-mark { width: 30px; height: 30px; }
+  .marketing-header .brand-name { width: 88px; height: 22px; }
+  .marketing-header .button { min-height: 40px; padding-inline: 11px; font-size: .82rem; }
+  .marketing-hero > * { min-width: 0; }
+  .marketing-hero h1 { font-size: clamp(3.1rem, 15vw, 3.8rem); overflow-wrap: anywhere; }
+  .status-actions .button { width: 100%; }
+}
 .trust-page { padding: 32px 20px 80px; }
 .trust-page > .between { flex-wrap: wrap; }
 .legal-acceptance h2 { margin-bottom: 8px; color: var(--brand-900); }
@@ -327,6 +343,14 @@ button { cursor: pointer; }
 .incident-resolution { display: flex; gap: 8px; align-items: center; }
 .sidebar-trust-links { display: flex; gap: 12px; color: var(--brand-700); font-weight: 600; }
 .portal-footer a, .login-foot a { color: var(--brand-700); font-weight: 600; }
+
+.status-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 72% 18%, var(--brand-100), transparent 32%), var(--bg); }
+.status-card { width: min(620px, 100%); padding: clamp(28px, 7vw, 56px); border: 1px solid var(--border); border-radius: 24px; background: rgba(255,255,255,.92); box-shadow: var(--shadow); }
+.status-brand { margin-bottom: clamp(36px, 8vw, 64px); }
+.status-code { margin: 0; color: var(--brand-accent); font-size: clamp(5.5rem, 24vw, 10rem); line-height: .72; letter-spacing: -.03em; }
+.status-card h1 { max-width: 520px; margin: 10px 0 16px; color: var(--brand-900); font-size: clamp(2.8rem, 10vw, 4.8rem); line-height: .82; }
+.status-card > p:not(.status-code) { max-width: 500px; margin: 0; color: var(--muted); line-height: 1.55; }
+.status-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
 
 @media (min-width: 760px) {
   .mfa-enrollment { grid-template-columns: 220px minmax(0,1fr); }

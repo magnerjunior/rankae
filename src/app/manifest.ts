@@ -8,9 +8,12 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: "#f8faf8",
-    theme_color: "#0b3d2e",
+    theme_color: "#121b17",
     lang: "pt-BR",
-    icons: [{ src: "/rankae-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" }],
+    icons: [
+      { src: "/rankae-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      { src: "/rankae-icon-transparent.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+    ],
   };
 }
 
