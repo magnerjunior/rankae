@@ -69,6 +69,14 @@ export interface RankaSnapshot {
   };
 }
 
+export interface SessionSummary {
+  matches: number;
+  topTeam?: { number: number; wins: number; players: string[] };
+  topScorer?: { name: string; total: number };
+  topAssist?: { name: string; total: number };
+  bestKeeper?: { name: string; conceded: number; matches: number };
+}
+
 export interface RankaRepository {
   getSnapshot(rankaId: string): Promise<RankaSnapshot>;
   saveAttendance(input: {

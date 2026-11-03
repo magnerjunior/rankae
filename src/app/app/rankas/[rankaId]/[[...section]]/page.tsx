@@ -29,5 +29,6 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   const statsSnapshot = active === "estatisticas" && snapshot.portal
     ? await new PublicPortalRepository(client).getSnapshot({ slug: snapshot.portal.slug, period: period.period, date: period.date }).catch(() => null)
     : null;
-  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} statsDate={period.date} gameStage={etapa} />;
+  const sessionSummary = active === "estatisticas" && snapshot.sessionId ? await repository.getSessionSummary(snapshot.sessionId).catch(() => undefined) : undefined;
+  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} />;
 }

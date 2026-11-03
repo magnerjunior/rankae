@@ -1,7 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { groupSquads } from "@/domain/ranka/rules";
 import type { Attendance, MatchEvent, Player, Squad } from "@/domain/ranka/types";
-import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, SessionRules } from "@/data/ports/ranka-repository";
+import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, SessionRules, SessionSummary } from "@/data/ports/ranka-repository";
+
+const sessionSummarySchema = z.object({
+  matches: z.coerce.number().int().nonnegative(),
+  topTeam: z.object({ number: z.coerce.number().int(), wins: z.coerce.number().int(), players: z.array(z.string()) }).nullish(),
+  topScorer: z.object({ name: z.string(), total: z.coerce.number().int() }).nullish(),
+  topAssist: z.object({ name: z.string(), total: z.coerce.number().int() }).nullish(),
+  bestKeeper: z.object({ name: z.string(), conceded: z.coerce.number().int(), matches: z.coerce.number().int() }).nullish(),
+});
 
 interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
 interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
@@ -135,5 +144,12 @@ export class SupabaseRankaRepository implements RankaRepository {
 
   async saveAttendance(): Promise<RankaSnapshot> {
     throw new Error("Escritas usam RPC transacional; não há gravação direta de presença.");
+  }
+
+  async getSessionSummary(sessionId: string): Promise<SessionSummary> {
+    const { data, error } = await this.client.rpc("get_session_summary", { p_session_id: sessionId });
+    if (error) throw new Error("Não foi possível carregar o resumo do ranka.");
+    const parsed = sessionSummarySchema.parse(data);
+    return { matches: parsed.matches, topTeam: parsed.topTeam ?? undefined, topScorer: parsed.topScorer ?? undefined, topAssist: parsed.topAssist ?? undefined, bestKeeper: parsed.bestKeeper ?? undefined };
   }
 }

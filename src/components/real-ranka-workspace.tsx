@@ -19,7 +19,7 @@ import {
 } from "@/domain/ranka/rules";
 import type { MatchEvent, Player } from "@/domain/ranka/types";
 import type { PublicRankaSnapshot } from "@/domain/public-portal/types";
-import type { RankaSnapshot } from "@/data/ports/ranka-repository";
+import type { RankaSnapshot, SessionSummary } from "@/data/ports/ranka-repository";
 import type { RankaSection } from "@/lib/navigation";
 import {
   batchContributionsAction,
@@ -1476,10 +1476,12 @@ function Rules({
 function Stats({
   snapshot,
   publicSnapshot,
+  sessionSummary,
   date,
 }: {
   snapshot: RankaSnapshot;
   publicSnapshot?: PublicRankaSnapshot;
+  sessionSummary?: SessionSummary;
   date?: string;
 }) {
   return (
@@ -1490,6 +1492,7 @@ function Stats({
         description="Acompanhe o desempenho do ranka."
         sessionId={snapshot.sessionId}
       />
+      {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de hoje</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Time com mais vitórias</span><strong>{sessionSummary.topTeam ? `T${sessionSummary.topTeam.number} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) sofrido(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
       {publicSnapshot ? (
         <>
           <nav className="period-tabs">
@@ -1623,6 +1626,7 @@ export function RealRankaWorkspace({
   success,
   error,
   publicSnapshot,
+  sessionSummary,
   statsDate,
   gameStage,
 }: {
@@ -1631,6 +1635,7 @@ export function RealRankaWorkspace({
   success?: string;
   error?: string;
   publicSnapshot?: PublicRankaSnapshot;
+  sessionSummary?: SessionSummary;
   statsDate?: string;
   gameStage?: string;
 }) {
@@ -1659,6 +1664,7 @@ export function RealRankaWorkspace({
       <Stats
         snapshot={snapshot}
         publicSnapshot={publicSnapshot}
+        sessionSummary={sessionSummary}
         date={statsDate}
       />
     );
