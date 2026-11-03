@@ -249,6 +249,18 @@ Resultados reais de 2026-11-03:
 - [ ] Migrações `20261103001500` e `20261103001600` preparadas, mas não aplicadas, conforme combinado: o proprietário fará o envio ao Supabase.
 - [ ] Teste remoto com 2–3 organizadores permanece bloqueado até as duas migrations serem aplicadas.
 
+## Plano operacional em três fases — Fase 3
+
+- [x] Playwright configurado para Chromium desktop e viewport Pixel 5.
+- [x] Nove cenários locais aprovados; três variações intencionalmente ignoradas (autenticação sem staging e cenário móvel no projeto desktop).
+- [x] Cobertura: página pública, login, rota protegida, PWA/offline, menu móvel, overflow e gol/correção durante perda de rede.
+- [x] Teste autenticado somente leitura preparado, sem credenciais pessoais ou mutações em produção.
+- [x] pgTAP de operação ampliado de 19 para 24 asserções, cobrindo troca, saída, replay idempotente e conflito de organizador desatualizado.
+- [x] pgTAP de observabilidade ampliado de 20 para 22 asserções, incluindo rotação.
+- [x] `npm audit --omit=dev`: zero vulnerabilidades de produção.
+- [ ] pgTAP ampliado não executado: Docker/Postgres local não está instalado e as migrations `015/016` ainda não foram aplicadas em staging.
+- [ ] Teste autenticado, celular físico, staging, carga, restauração, alerta externo, revisão jurídica e bootstrap MFA permanecem pendentes; detalhes em `docs/ops/VALIDACAO-FASE-3.md`.
+
 ## Ajuste de campo — 2026-11-03
 - [x] Até três rankas por proprietário, com criação pela tela inicial.
 - [x] Botão “Iniciar ranka” levando diretamente à chegada.

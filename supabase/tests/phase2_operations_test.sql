@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(19);
+select plan(24);
 
 insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 values ('41000000-0000-0000-0000-000000000001', 'phase2-owner@example.test', crypt('test-password', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
@@ -54,8 +54,35 @@ select lives_ok($$select public.batch_mark_contributions('4c000000-0000-0000-000
 ], 'paid', null, 3, '40000000-0000-0000-0000-000000000008')$$, 'marks five contributions in one transaction');
 select results_eq($$select count(*)::bigint from public.contribution_records where session_id = '4c000000-0000-0000-0000-000000000001' and status = 'paid' and amount_cents = 500$$, array[5::bigint], 'batch preserves the amount snapshot per player');
 
+select lives_ok($$select public.manage_match_player(
+  '4c000000-0000-0000-0000-000000000001',
+  (select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  (select yellow_squad_id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  '42000000-0000-0000-0000-000000000001',
+  '42000000-0000-0000-0000-000000000013',
+  true, 4, 5, '40000000-0000-0000-0000-000000000009'
+)$$, 'organizer replaces a field player and marks permanent departure atomically');
+select results_eq($$select status::text from public.attendance where session_id = '4c000000-0000-0000-0000-000000000001' and player_id = '42000000-0000-0000-0000-000000000001'$$, array['left'::text], 'departure removes player from the rest of the day');
+select results_eq($$select count(*)::bigint from public.squad_members where squad_id = (select yellow_squad_id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001') and player_id = '42000000-0000-0000-0000-000000000013' and removed_at is null$$, array[1::bigint], 'waiting replacement enters the field squad exactly once');
+select lives_ok($$select public.manage_match_player(
+  '4c000000-0000-0000-0000-000000000001',
+  (select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  (select yellow_squad_id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  '42000000-0000-0000-0000-000000000001',
+  '42000000-0000-0000-0000-000000000013',
+  true, 4, 5, '40000000-0000-0000-0000-000000000009'
+)$$, 'same replacement idempotency key is safe to replay');
+select throws_ok($$select public.manage_match_player(
+  '4c000000-0000-0000-0000-000000000001',
+  (select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  (select red_squad_id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'),
+  '42000000-0000-0000-0000-000000000007',
+  '42000000-0000-0000-0000-000000000014',
+  false, 4, 5, '40000000-0000-0000-0000-000000000010'
+)$$, '40001', null, 'stale organizer cannot overwrite a newer field substitution');
+
 select case
-  when count(*) = 0 then 'ok 19/19'
+  when count(*) = 0 then 'ok 24/24'
   else 'failed: ' || string_agg(result, E'\n')
 end as phase2_test_summary
 from finish() as result;

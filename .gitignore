@@ -7,3 +7,5 @@ npm-debug.log*
 *.tsbuildinfo
 supabase/.temp/
 artifacts/
+playwright-report/
+test-results/

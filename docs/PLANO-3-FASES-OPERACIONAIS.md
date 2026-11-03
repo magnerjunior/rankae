@@ -25,9 +25,12 @@ Prioridade imediata. O organizador deve conseguir operar uma sessão inteira e e
 
 ## Fase 3 — validação de lançamento
 
-- Teste automatizado de navegador do fluxo completo.
-- Testes SQL de concorrência e isolamento após todas as novas migrações.
-- Teste em celular real, teclado aberto, perda de conexão e retorno do aplicativo.
-- Staging com seed fictícia; carga de 100/1.000 VUs após aprovação de quota/custo.
-- Ensaio de backup/restauração e alertas externos.
-- Revisão jurídica, canal LGPD e bootstrap do superadmin com MFA.
+- [x] Teste automatizado de navegador para superfícies públicas, rota protegida, demo operacional, PWA e viewport móvel.
+- [x] Suíte autenticada somente leitura preparada para staging fictício.
+- [x] Testes SQL de concorrência, idempotência, troca/saída e isolamento ampliados após as novas migrations.
+- [ ] Executar pgTAP após aplicar as migrations; Docker/Postgres local indisponível.
+- [x] Simular viewport móvel e perda/retorno da rede no navegador.
+- [ ] Testar celular real, teclado virtual, instalação PWA e retorno após bloqueio da tela.
+- [ ] Criar staging com seed fictícia; executar carga de 100/1.000 VUs somente após aprovação de quota/custo.
+- [ ] Ensaiar backup/restauração e configurar/testar alertas externos.
+- [ ] Obter revisão jurídica, definir canal LGPD e fazer bootstrap controlado do superadmin com MFA.

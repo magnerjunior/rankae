@@ -14,6 +14,8 @@ npm run dev
 
 Abra `http://localhost:3000/entrar`. Para validar a entrega, execute `npm run lint`, `npm run typecheck`, `npm test` e `npm run build`.
 
+Os testes de navegador usam Playwright. Instale o Chromium uma vez com `npx playwright install chromium` e execute `npm run test:e2e`. A suíte padrão usa somente a demonstração local; a leitura autenticada exige credenciais fictícias de staging conforme `tests/e2e/README.md`.
+
 ## Configurar a Fase 1.5
 
 1. Copie `.env.example` para `.env.local`.

@@ -246,3 +246,9 @@ O canal privado `session:<uuid>` passa a acompanhar a área autenticada durante 
 O placar recebe a projeção do gol no mesmo toque. A mesma idempotency key acompanha a primeira tentativa e uma única reconciliação de revisão concorrente; uma rejeição desfaz o ponto local. Contribuições usam a mesma estratégia de projeção e rollback. Cartões, marcos, pênaltis, preparação e rotação deixam de usar redirecionamentos completos, mantendo validação, auditoria e versionamento no servidor.
 
 A observabilidade passa a medir também formação, preparação, rotação, contribuições e encerramento. Nenhum payload pessoal é incluído nas amostras. As migrations `015` e `016` permanecem apenas preparadas por decisão do proprietário e devem ser aplicadas em ordem antes de publicar este lote.
+
+## 2026-11-03 — validação local sem usar produção como staging
+
+Playwright passa a validar a aplicação local em Chromium desktop e viewport móvel. O adaptador demo é ativado somente no servidor de desenvolvimento iniciado pela suíte. O cenário autenticado é somente leitura e permanece ignorado sem credenciais fictícias de staging; credenciais pessoais e dados de produção não são aceitos como substitutos para um ambiente de teste.
+
+As suítes pgTAP foram ampliadas para as migrations `015/016`, mas não são marcadas como aprovadas porque Docker/Postgres local não está instalado e as migrations ainda não foram aplicadas em staging. Teste físico, carga, restauração, alertas externos, revisão jurídica e bootstrap MFA continuam gates humanos/externos explícitos, não simulações de sucesso.
