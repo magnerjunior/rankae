@@ -1,4 +1,4 @@
-# Progresso — Fases 1, 1.5, 2 e 3
+# Progresso — Fases 1, 1.5, 2, 3 e 4
 
 Atualizado em 2026-11-03.
 
@@ -178,3 +178,36 @@ Resultados reais de 2026-11-03:
 - A proteção de senhas vazadas do Supabase Auth permanece desativada como ajuste operacional anterior, fora do escopo do portal.
 - O Broadcast público depende da opção de canais públicos do projeto; o polling de 15 segundos mantém atualização eventual se WebSocket estiver indisponível.
 - Teste de carga 100/1000 VUs, observabilidade e minutas legais pertencem exclusivamente à Fase 4.
+
+## Fase 4 — confiança, segurança e operação
+
+### Implementado localmente
+
+- [x] Minutas versionadas de Termos, Privacidade, Cookies e Direitos em pt-BR, sempre identificadas como pendentes de revisão jurídica.
+- [x] Documentos legais no banco com estados `draft`, `legal_review`, `published` e `retired`; publicação exige revisor, revisão e vigência.
+- [x] Aceites idempotentes por usuário/documento/versão e bloqueio automático quando existir documento obrigatório publicado e pendente.
+- [x] Central autenticada para acesso, correção, retirada pública e exclusão/anonimização, vinculada ao tenant e opcionalmente ao perfil.
+- [x] Superadmin SaaS separado de papéis da organização, sem autopromoção, com AAL2/TOTP obrigatório e trilha de acesso privilegiado.
+- [x] Dashboard global somente agregado; não exibe PIN, token, contribuição, e-mail ou nome de participante.
+- [x] `/api/health`, métricas das RPCs críticas, p50/p95/p99, taxa 5xx e incidentes internos com volume mínimo, duas janelas e deduplicação.
+- [x] Índices adicionais para auditoria, eventos ativos e visibilidade pública; headers de hardening e `no-store` no painel.
+- [x] Runbooks de incidente, backup/restauração, superadmin e relatório técnico.
+- [x] Scripts k6 para HTTP, Realtime e até três editores com travas obrigatórias de staging e custo.
+
+### Validação local
+
+- `npm run lint`: passou, zero erros e zero avisos.
+- `npm run typecheck`: passou.
+- `npm test -- --run`: 3 arquivos, 32 testes unitários aprovados.
+- `npm run build`: build de produção aprovado; 16 rotas/páginas geradas.
+- `git diff --check`: aprovado; apenas avisos esperados de conversão LF/CRLF no Windows.
+- Teste pgTAP `phase4_trust_observability_test.sql`: 20 asserções escrito; execução local bloqueada porque Docker/Postgres local não está disponível.
+
+### Bloqueios e evidências
+
+- [ ] Migração `20261103000500_phase4_trust_observability.sql` ainda não aplicada ao projeto remoto. A CLI identifica o alvo como produção e retorna HTTP 403 para a role atual; o navegador integrado está desabilitado nas configurações do Work.
+- [ ] Testes 100/1000 VUs não executados: não existe staging autorizado com seed fictícia nem aprovação de quotas/custos. Não há capacidade, p95/p99 ou custo verificados a declarar.
+- [ ] Alerta externo por e-mail/webhook aguarda canal autorizado; o incidente interno no banco e dashboard está implementado.
+- [ ] Ensaio real de restauração aguarda staging isolado e política de backup/PITR confirmada.
+- [ ] Primeiro superadmin aguarda conta identificada, MFA configurado e bootstrap pelo administrador do banco.
+- [ ] Minutas aguardam revisão jurídica e designação do controlador/canal de privacidade antes de publicação.

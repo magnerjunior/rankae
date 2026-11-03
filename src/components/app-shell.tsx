@@ -35,7 +35,7 @@ export function AppShell({ active, children, rankaId = "demo", title = "Ranka do
         <nav className="sidebar-nav" aria-label="Seções do ranka">
           {rankaSections.map((item) => <Link key={item.key} href={sectionHref(item.key, rankaId)} className={`sidebar-link ${active === item.key ? "active" : ""}`} aria-current={active === item.key ? "page" : undefined}>{item.label}</Link>)}
         </nav>
-        <div className="sidebar-foot"><span className={`badge ${demo ? "badge-demo" : "badge-green"}`}>{demo ? "DEMO LOCAL" : "CONECTADO"}</span><p style={{marginBottom: 0}}>{demo ? "Dados fictícios. Alterações não persistem ao recarregar." : "Dados privados protegidos por autenticação e RLS."}</p></div>
+        <div className="sidebar-foot"><span className={`badge ${demo ? "badge-demo" : "badge-green"}`}>{demo ? "DEMO LOCAL" : "CONECTADO"}</span><p>{demo ? "Dados fictícios. Alterações não persistem ao recarregar." : "Dados privados protegidos por autenticação e RLS."}</p>{!demo && <div className="sidebar-trust-links"><Link href="/app/privacidade">Privacidade</Link><Link href="/app/legal">Documentos</Link></div>}</div>
       </aside>
       <div className="app-main">
         <div className="demo-ribbon"><span aria-hidden="true">●</span> {demo ? "Modo demonstração — sem persistência ou autenticação real" : "Ambiente conectado — acesso de organizador verificado"}</div>

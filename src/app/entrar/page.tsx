@@ -26,7 +26,7 @@ export default async function LoginPage() {
           {demoEnabled && <Link className="button button-secondary" style={{width: "100%", marginTop: 12}} href="/app/rankas/demo">Abrir demonstração local</Link>}
         </div>
       </section>
-      <footer className="login-foot">Rankaê · Acesso protegido por Supabase Auth e RLS</footer>
+      <footer className="login-foot">Rankaê · Acesso protegido por Supabase Auth e RLS · <Link href="/legal/privacidade">Privacidade</Link> · <Link href="/legal/termos">Termos</Link></footer>
     </main>
   );
 }

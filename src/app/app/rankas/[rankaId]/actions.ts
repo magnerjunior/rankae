@@ -23,7 +23,17 @@ function finish(rankaId: string, section: string, ok: boolean, code: string): ne
 async function rpc(name: string, args: Record<string, unknown>) {
   await requireUserId();
   const supabase = await createClient();
-  return supabase.rpc(name, args);
+  const startedAt = performance.now();
+  const result = await supabase.rpc(name, args);
+  if (name === "record_match_event" || name === "transition_match_clock") {
+    const statusCode = result.error ? result.error.code === "40001" ? 409 : 500 : 200;
+    await supabase.rpc("record_authenticated_route_outcome", {
+      p_route_key: name,
+      p_duration_ms: Math.round(performance.now() - startedAt),
+      p_status_code: statusCode,
+    });
+  }
+  return result;
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {

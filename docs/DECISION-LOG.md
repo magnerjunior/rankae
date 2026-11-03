@@ -115,3 +115,25 @@ Rankings consideram apenas partidas concluídas, eventos ativos e jogadores com 
 ### Migrações incrementais e validação
 
 `20261103000200` criou o portal; `20261103000300` corrigiu uma ambiguidade detectada pelo teste de rate limit; `20261103000400` ajustou a volatilidade declarada do snapshot. A suíte remota aprovou 19/19 casos com rollback. O lint remoto terminou sem erros ou avisos de esquema.
+
+## 2026-11-03 — Fase 4
+
+### Minuta não gera aceite
+
+Os textos em `/legal/*` são editoriais, versionados e exibem aviso de revisão. A tabela de documentos exige revisor, data de revisão e vigência para o estado `published`. Somente documentos publicados podem aparecer como aceite obrigatório; assim, uma minuta técnica não vira contrato por acidente.
+
+### Superadmin separado e reforçado
+
+O papel global não deriva de proprietário de organização e não pode ser concedido pelo frontend. O bootstrap é uma ação do administrador do banco. Mesmo ativo, o usuário precisa de sessão Supabase `aal2` por TOTP. O dashboard retorna contagens, métricas e incidentes agregados, e cada leitura privilegiada grava ator, motivo e resultado.
+
+### Telemetria mínima sem dados pessoais
+
+As amostras guardam somente chave de rota, duração, status e horário. O snapshot público é medido dentro do banco. Gol e relógio registram o resultado em uma segunda RPC autenticada para que falhas da transação original não apaguem a própria métrica. Nenhuma amostra inclui tenant, jogador, placar, contribuição, token ou payload da operação.
+
+### Alertas internos antes de integração externa
+
+p95 acima de 1 segundo exige pelo menos 50 amostras em duas janelas consecutivas de 5 minutos; acima de 2 segundos é crítico. 5xx acima de 1% abre incidente. O banco deduplica alertas recentes e o painel permite resolução auditada. E-mail/webhook não foi inventado sem canal autorizado.
+
+### Carga recusada em produção
+
+O único alvo Rankaê conhecido pela CLI está marcado como produção. Além disso, a role atual passou a receber 403 e o projeto não aparece entre os projetos acessíveis. Por isso não se usou outro projeto, não se executou 100/1000 VUs e não se alegou capacidade. Os scripts exigem `TARGET_ENV=staging`; 1000 VUs também exige `ACK_COSTS=approved`.

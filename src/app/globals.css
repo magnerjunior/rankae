@@ -288,3 +288,47 @@ button { cursor: pointer; }
   .marketing-hero { grid-template-columns: minmax(0,1.45fr) minmax(300px,.55fr); }
   .marketing-features { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* Fase 4 · confiança, operação e documentos revisáveis */
+.legal-page { min-height: 100dvh; background: var(--bg); }
+.legal-header, .legal-document, .legal-footer { width: min(860px, 100%); margin-inline: auto; }
+.legal-header { min-height: 82px; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.legal-document { padding: 34px 20px 60px; }
+.legal-document h1 { max-width: 700px; margin: 10px 0 4px; color: var(--brand-900); font-size: clamp(3.2rem, 12vw, 6.5rem); line-height: .82; }
+.legal-version { margin: 0 0 24px; color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .08em; }
+.legal-summary { max-width: 700px; margin: 30px 0; color: var(--muted); font-size: 1.15rem; line-height: 1.55; }
+.legal-document section { padding: 24px 0; border-top: 1px solid var(--border); }
+.legal-document section h2 { margin: 0 0 12px; color: var(--brand-900); font-family: "Barlow Condensed", sans-serif; font-size: 1.8rem; }
+.legal-document section p { margin: 10px 0; line-height: 1.65; }
+.legal-footer { padding: 24px 20px 36px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--border); color: var(--muted); font-size: .82rem; }
+.legal-footer nav { display: flex; gap: 16px; flex-wrap: wrap; color: var(--brand-700); font-weight: 600; }
+.marketing-page > .legal-footer { width: min(1160px, calc(100% - 40px)); }
+.trust-page { padding: 32px 20px 80px; }
+.trust-page > .between { flex-wrap: wrap; }
+.legal-acceptance h2 { margin-bottom: 8px; color: var(--brand-900); }
+.legal-body-preview { max-height: 240px; overflow-y: auto; padding: 14px; border: 1px solid var(--border); border-radius: 12px; white-space: pre-wrap; background: var(--surface-alt); }
+.legal-acceptance form { display: grid; gap: 14px; }
+.text-area { min-height: 130px; resize: vertical; }
+.request-list, .incident-list { display: grid; }
+.request-row, .incident-row { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.request-row:last-child, .incident-row:last-child { border-bottom: 0; }
+.request-row small, .incident-row small { display: block; margin-top: 3px; color: var(--muted); }
+.request-row p { margin-bottom: 0; line-height: 1.5; }
+.request-resolution { display: grid; gap: 9px; margin-top: 14px; padding: 12px; border-radius: 12px; background: var(--surface-alt); }
+.request-resolution textarea { min-height: 86px; resize: vertical; }
+.mfa-panel { max-width: 660px; }
+.mfa-panel h2 { margin: 8px 0; color: var(--brand-900); font-size: 2.2rem; }
+.mfa-enrollment { display: grid; gap: 18px; align-items: center; }
+.mfa-enrollment img { max-width: 100%; height: auto; padding: 10px; border: 1px solid var(--border); border-radius: 16px; background: white; }
+.mfa-enrollment code { display: block; max-width: 100%; margin: 10px 0; padding: 10px; overflow-wrap: anywhere; border-radius: 8px; background: var(--surface-alt); color: var(--brand-900); }
+.admin-section { margin-top: 20px; }
+.incident-row { display: grid; gap: 14px; }
+.incident-row h3 { margin: 8px 0 0; }
+.incident-resolution { display: flex; gap: 8px; align-items: center; }
+.sidebar-trust-links { display: flex; gap: 12px; color: var(--brand-700); font-weight: 600; }
+.portal-footer a, .login-foot a { color: var(--brand-700); font-weight: 600; }
+
+@media (min-width: 760px) {
+  .mfa-enrollment { grid-template-columns: 220px minmax(0,1fr); }
+  .incident-row { grid-template-columns: minmax(0,1fr) minmax(300px,.75fr); align-items: center; }
+}

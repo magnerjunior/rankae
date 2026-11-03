@@ -1,7 +1,7 @@
 # RANKAÊ — Pacote de especificação para Codex
 
 **Produto:** SaaS multi-peladas, mobile-first, gestão presencial de futebol amador.
-**Estado:** Fase 3 concluída localmente e aplicada ao projeto Supabase. O produto possui operação presencial, portal público/restrito, estatísticas por período, compartilhamento manual e PWA, com validações transacionais remotas das fases 2 e 3 aprovadas em 19/19 asserções cada.
+**Estado:** Fase 4 implementada localmente. O produto possui operação presencial, portal público/restrito, estatísticas, PWA, minutas legais revisáveis, protocolos de privacidade, superadmin com MFA e observabilidade. A migração da Fase 4 aguarda restauração do acesso ao projeto Supabase; os testes de carga aguardam staging e aprovação de quota/custo.
 
 ## Executar a Fase 1
 
@@ -40,6 +40,16 @@ Para testar a instalação atual, execute `npm run dev` e abra `http://127.0.0.1
 4. Compartilhe manualmente o link. O portal `/r/[slug]` mostra somente placar, times, apoio, resultados e estatísticas autorizadas.
 
 O portal protegido usa sessão temporária `httpOnly`, rate limit por recurso/visitante e respostas genéricas. PIN de quatro dígitos e link compartilhado são barreiras leves, não garantia de sigilo. Respostas protegidas usam `private, no-store`; o service worker não armazena documentos do portal.
+
+## Operar a Fase 4
+
+- Minutas públicas ficam em `/legal/termos`, `/legal/privacidade`, `/legal/cookies` e `/legal/direitos`, sempre marcadas como pendentes de revisão jurídica.
+- Documentos só exigem aceite depois de inseridos no banco como `published`, com revisor, data de revisão e vigência.
+- Organizadores registram pedidos em `/app/privacidade`. O painel `/app/admin` exige papel global criado fora da aplicação e sessão MFA `aal2`.
+- `/api/health` valida a conexão com o banco após a migração `20261103000500`.
+- Os scripts em `tests/load/` recusam produção. Cem e mil VUs não foram executados porque não existe staging autorizado nem aprovação de quota/custo.
+
+Antes do lançamento comercial: revisão jurídica, designação de canal LGPD, aplicação/validação da migração, bootstrap controlado do primeiro superadmin, destino externo de alertas, ensaio de restauração e carga em staging.
 
 ## Como começar
 1. Extraia esta pasta em um diretório novo e abra **a pasta-raiz** no Codex.
