@@ -12,6 +12,7 @@ import { PlayerCreateForm } from "@/components/player-create-form";
 import { SupportAssignments } from "@/components/support-assignments";
 import { PortalSettingsForm } from "@/components/portal-settings-form";
 import { TeamRoster } from "@/components/ranka-workspace";
+import { TeamEditor } from "@/components/team-editor";
 import {
   projectScore,
   suggestOfficials,
@@ -46,6 +47,7 @@ import {
   renameArrivalAction,
   removeArrivalAction,
   startGameFromArrivalAction,
+  swapSquadPlayersAction,
 } from "@/app/app/rankas/[rankaId]/actions";
 
 function Key() {
@@ -106,7 +108,7 @@ function Dashboard({ snapshot }: { snapshot: RankaSnapshot }) {
   ).length;
   const launch = snapshot.sessionId ? (
     <Link
-      className="start-ranka-button"
+      className="start-ranka-button compact"
       href={`/app/rankas/${snapshot.id}/jogo`}
     >
       <span>
@@ -426,16 +428,25 @@ function Teams({
         )}
       </section>
       {snapshot.squads.length ? (
-        <div className="squad-grid">
-          {snapshot.squads.map((squad, index) => (
-            <TeamRoster
-              key={squad.id}
-              squad={squad}
-              players={snapshot.players}
-              side={index === 0 ? "yellow" : index === 1 ? "red" : undefined}
-            />
-          ))}
-        </div>
+        !snapshot.activeMatch ? (
+          <TeamEditor
+            initialSquads={snapshot.squads}
+            players={snapshot.players}
+            initialRevision={snapshot.revision}
+            action={swapSquadPlayersAction.bind(null, snapshot.id, snapshot.sessionId!)}
+          />
+        ) : (
+          <div className="squad-grid">
+            {snapshot.squads.map((squad, index) => (
+              <TeamRoster
+                key={squad.id}
+                squad={squad}
+                players={snapshot.players}
+                side={index === 0 ? "yellow" : index === 1 ? "red" : undefined}
+              />
+            ))}
+          </div>
+        )
       ) : (
         <section className="panel">
           <EmptyState
@@ -670,6 +681,28 @@ function MatchConsole({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
+      {match.state === "regulation_ended" && score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0 && (
+        <section className="next-match-bar overtime-choice">
+          <span><strong>O jogo terminou empatado</strong><small>Jogue a prorrogação ou defina manualmente quem continua.</small></span>
+          <form action={clockForm("start_overtime")}><Key /><input type="hidden" name="expectedRevision" value={match.revision} /><button className="button button-secondary">Prorrogação de {snapshot.rules.overtimeDurationMs / 60000} min</button></form>
+        </section>
+      )}
+      {match.state === "tie_break" && score.yellow === score.red && (
+        <section className="next-match-bar overtime-choice">
+          <span><strong>Defina o desempate</strong><small>Registre o ímpar ou par, pênaltis ou uma decisão manual.</small></span>
+          <TieForm snapshot={snapshot} />
+        </section>
+      )}
+      {["regulation_ended", "tie_break"].includes(match.state) && (
+        <section className="next-match-bar next-match-primary">
+          <span><strong>Partida encerrada</strong><small>Salva o resultado, aplica a rotação e abre o próximo jogo.</small></span>
+          <form className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
+            <Key />
+            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">{match.state === "tie_break" ? "Usar desempate registrado" : "Quem continua?"}</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
+            <button className="button button-primary">Finalizar e próximo jogo</button>
+          </form>
+        </section>
+      )}
       <section className="scoreboard">
         <OptimisticMatchClock
           key={`${match.id}:${match.revision}`}
@@ -745,29 +778,6 @@ function MatchConsole({
           A condição configurada de gols/diferença foi alcançada. Revise o
           último evento e confirme o encerramento do tempo normal.
         </div>
-      )}
-
-      {match.state === "regulation_ended" && score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0 && (
-        <section className="next-match-bar overtime-choice">
-          <span><strong>O jogo terminou empatado</strong><small>Jogue a prorrogação ou defina manualmente quem continua.</small></span>
-          <form action={clockForm("start_overtime")}><Key /><input type="hidden" name="expectedRevision" value={match.revision} /><button className="button button-secondary">Prorrogação de {snapshot.rules.overtimeDurationMs / 60000} min</button></form>
-        </section>
-      )}
-      {match.state === "tie_break" && score.yellow === score.red && (
-        <section className="next-match-bar overtime-choice">
-          <span><strong>Defina o desempate</strong><small>Registre o ímpar ou par, pênaltis ou uma decisão manual.</small></span>
-          <TieForm snapshot={snapshot} />
-        </section>
-      )}
-      {["regulation_ended", "tie_break"].includes(match.state) && (
-        <section className="next-match-bar next-match-primary">
-          <span><strong>Partida encerrada</strong><small>Salva o resultado, aplica a rotação e abre o próximo jogo.</small></span>
-          <form className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
-            <Key />
-            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">{match.state === "tie_break" ? "Usar desempate registrado" : "Quem continua?"}</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
-            <button className="button button-primary">Finalizar e próximo jogo</button>
-          </form>
-        </section>
       )}
 
       {match.state === "ready" && (
@@ -1669,8 +1679,11 @@ export function RealRankaWorkspace({
       />
     );
   const score = snapshot.activeMatch ? projectScore(snapshot.activeMatch.events) : undefined;
-  const status = snapshot.activeMatch
-    ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} state={snapshot.activeMatch.state} score={`${score?.yellow ?? 0} × ${score?.red ?? 0}`} startedAt={snapshot.activeMatch.startedAtServer} elapsedMs={snapshot.activeMatch.elapsedMsBeforeStart} label={`Jogo ${snapshot.activeMatch.ordinal}`} />
+  const isMatchScreen = active === "partida" || (active === "jogo" && (gameStage === "partida" || (!gameStage && Boolean(snapshot.activeMatch))));
+  const yellowTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.yellowSquadId)?.number : undefined;
+  const redTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.redSquadId)?.number : undefined;
+  const status = isMatchScreen ? undefined : snapshot.activeMatch
+    ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} state={snapshot.activeMatch.state} score={`${score?.yellow ?? 0} × ${score?.red ?? 0}`} startedAt={snapshot.activeMatch.startedAtServer} elapsedMs={snapshot.activeMatch.elapsedMsBeforeStart} label={`Jogo ${snapshot.activeMatch.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} />
     : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
   return (
     <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status}>

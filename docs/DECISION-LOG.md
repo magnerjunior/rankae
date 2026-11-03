@@ -218,3 +218,9 @@ Por decisão explícita do proprietário, um portal habilitado exibe automaticam
 O relógio deixa de depender da revisão carregada ao abrir a página. Cada comando envia a revisão mais recente mantida no cliente, recebe de volta o snapshot autoritativo do PostgreSQL e reconcilia estado, horário inicial, tempo acumulado e revisão sem redirecionar a página. Em conflito de revisão, o servidor lê o estado atual e repete somente uma transição ainda necessária. Pausar congela o tempo calculado pelo relógio do banco; testes cobrem explicitamente a ausência de salto após 3min17s.
 
 Ao finalizar uma partida, a rotação transacional já cria a próxima em estado de pré-jogo. A ação fica em uma barra destacada logo após o placar. Quando a última partida estiver apenas preparada e nenhuma estiver em andamento, o organizador pode encerrar o ranka do dia; a partida vazia é cancelada, a sessão é concluída e os resultados preservados abrem em Estatísticas.
+
+## 2026-11-03 — navegação compacta e ajuste manual dos times
+
+O aviso global da partida aparece somente fora da tela do jogo e identifica os dois times pelas etiquetas coloridas T1/T2, placar e relógio. O hub de etapas permanece no topo do conteúdo, mas deixa de acompanhar a rolagem. A ação de finalizar e abrir o próximo jogo antecede o placar e passa a acompanhar apenas o trecho operacional necessário.
+
+A formação permite trocar dois jogadores de times diferentes por toque ou arraste, com resposta otimista no aparelho. A confirmação usa RPC transacional, permissão de organizador, idempotência, revisão otimista e auditoria; em conflito a interface desfaz a alteração. Para preservar escala e eventos, a troca é aceita somente antes de uma partida ser preparada.

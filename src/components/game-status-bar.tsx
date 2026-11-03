@@ -10,6 +10,8 @@ export function GameStatusBar({
   startedAt,
   elapsedMs,
   label,
+  yellowTeam,
+  redTeam,
 }: {
   href: string;
   state?: string;
@@ -17,6 +19,8 @@ export function GameStatusBar({
   startedAt?: string;
   elapsedMs: number;
   label: string;
+  yellowTeam?: number;
+  redTeam?: number;
 }) {
   const [now, setNow] = useState(() => Date.now());
   const running = state === "live" || state === "overtime_live";
@@ -33,10 +37,16 @@ export function GameStatusBar({
   const clock = `${String(Math.floor(total / 60000)).padStart(2, "0")}:${String(Math.floor(total / 1000) % 60).padStart(2, "0")}`;
   return (
     <Link className={`game-status-bar ${running ? "live" : ""}`} href={href}>
-      <span>
+      <span className="game-status-title">
         <i />
         {label}
       </span>
+      {yellowTeam && redTeam && (
+        <span className="game-status-teams" aria-label={`Time ${yellowTeam} contra time ${redTeam}`}>
+          <span className="status-team yellow">T{yellowTeam}</span>
+          <span className="status-team red">T{redTeam}</span>
+        </span>
+      )}
       {score && <strong>{score}</strong>}
       <b>{clock}</b>
       <em>Continuar</em>

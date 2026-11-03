@@ -15,6 +15,7 @@ import {
   rotateKeeperOnLoss,
   summarizeContributions,
   suggestOfficials,
+  swapPlayersBetweenSquads,
   validateOfficialAssignments,
 } from "@/domain/ranka/rules";
 import type { Attendance, Player, TiePolicy } from "@/domain/ranka/types";
@@ -43,6 +44,18 @@ const policy: TiePolicy = {
 };
 
 describe("motor puro do ranka", () => {
+  it("troca jogadores entre times sem alterar as demais posições", () => {
+    const result = swapPlayersBetweenSquads(
+      [
+        { id: "t1", number: 1, playerIds: ["p1", "p2"], complete: true, deficit: 0 },
+        { id: "t2", number: 2, playerIds: ["p3", "p4"], complete: true, deficit: 0 },
+      ],
+      { squadId: "t1", playerId: "p2" },
+      { squadId: "t2", playerId: "p3" },
+    );
+    expect(result.map((squad) => squad.playerIds)).toEqual([["p1", "p3"], ["p2", "p4"]]);
+  });
+
   it("ordena somente presentes por índice e desempata por id", () => {
     const result = orderEligibleAttendance([
       { id: "b", playerId: "p2", arrivalIndex: 1, status: "present" },

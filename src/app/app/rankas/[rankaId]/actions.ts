@@ -43,6 +43,12 @@ export interface ClockMutationResult {
   serverNow?: string;
 }
 
+export interface TeamSwapMutationResult {
+  status: "success" | "error";
+  message: string;
+  revision?: number;
+}
+
 function readClockResult(data: unknown): ClockMutationResult | null {
   const parsed = z.object({
     state: z.enum(["draft", "ready", "live", "paused", "regulation_ended", "overtime_live", "overtime_paused", "tie_break", "completed", "cancelled", "manual_review"]),
@@ -304,6 +310,43 @@ export async function substitutePlayerAction(rankaId: string, sessionId: string,
   if (!parsed.success) finish(rankaId, "jogo", false, "dados");
   const { error } = await rpc("substitute_squad_member", { p_session_id: sessionId, p_target_squad_id: parsed.data.targetSquadId, p_outgoing_player_id: parsed.data.outgoingPlayerId, p_incoming_player_id: parsed.data.incomingPlayerId, p_reason: parsed.data.reason, p_override_priority: parsed.data.override, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "jogo", !error, error ? "conflito" : "substituicao");
+}
+
+export async function swapSquadPlayersAction(rankaId: string, sessionId: string, formData: FormData): Promise<TeamSwapMutationResult> {
+  const parsed = z.object({
+    firstSquadId: uuid,
+    firstPlayerId: uuid,
+    secondSquadId: uuid,
+    secondPlayerId: uuid,
+    expectedRevision: z.coerce.number().int().positive(),
+  }).safeParse({
+    firstSquadId: formData.get("firstSquadId"),
+    firstPlayerId: formData.get("firstPlayerId"),
+    secondSquadId: formData.get("secondSquadId"),
+    secondPlayerId: formData.get("secondPlayerId"),
+    expectedRevision: formData.get("expectedRevision"),
+  });
+  if (!parsed.success) return { status: "error", message: "Não foi possível identificar os jogadores." };
+  const { data, error } = await rpc("swap_squad_players", {
+    p_session_id: sessionId,
+    p_first_squad_id: parsed.data.firstSquadId,
+    p_first_player_id: parsed.data.firstPlayerId,
+    p_second_squad_id: parsed.data.secondSquadId,
+    p_second_player_id: parsed.data.secondPlayerId,
+    p_expected_revision: parsed.data.expectedRevision,
+    p_idempotency_key: idempotencyKey(formData),
+  });
+  if (error) {
+    const message = error.code === "40001"
+      ? "Os times mudaram em outro aparelho. Atualize e tente novamente."
+      : error.code === "55000"
+        ? "Volte à formação dos times antes de preparar a partida."
+        : "Não foi possível trocar agora. Tente novamente.";
+    return { status: "error", message };
+  }
+  const result = z.object({ session_revision: z.coerce.number().int().positive() }).safeParse(data);
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return { status: "success", message: "Times atualizados.", revision: result.success ? result.data.session_revision : undefined };
 }
 
 export async function prepareMatchAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {

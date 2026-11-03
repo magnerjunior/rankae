@@ -285,3 +285,25 @@ export function calculateContributionShare(input: {
   if (input.presentCount <= 0) return 0;
   return Math.max(0, Math.round(input.totalCents / input.presentCount));
 }
+
+export function swapPlayersBetweenSquads(
+  squads: Squad[],
+  first: { squadId: string; playerId: string },
+  second: { squadId: string; playerId: string },
+): Squad[] {
+  if (first.squadId === second.squadId) return squads;
+  const firstSquad = squads.find((squad) => squad.id === first.squadId);
+  const secondSquad = squads.find((squad) => squad.id === second.squadId);
+  if (!firstSquad?.playerIds.includes(first.playerId) || !secondSquad?.playerIds.includes(second.playerId)) {
+    throw new Error("Jogador não pertence ao time informado.");
+  }
+  return squads.map((squad) => {
+    if (squad.id === first.squadId) {
+      return { ...squad, playerIds: squad.playerIds.map((id) => id === first.playerId ? second.playerId : id) };
+    }
+    if (squad.id === second.squadId) {
+      return { ...squad, playerIds: squad.playerIds.map((id) => id === second.playerId ? first.playerId : id) };
+    }
+    return squad;
+  });
+}
