@@ -1489,7 +1489,7 @@ function Stats({
       <Heading
         eyebrow=""
         title="Estatísticas"
-        description="Acompanhe o desempenho do ranka."
+        description=""
         sessionId={snapshot.sessionId}
       />
       {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de hoje</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Time com mais vitórias</span><strong>{sessionSummary.topTeam ? `T${sessionSummary.topTeam.number} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) sofrido(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
@@ -1556,8 +1556,8 @@ function Stats({
                 ))
               ) : (
                 <EmptyState
-                  title="Sem nomes públicos"
-                  description="Autorize nomes esportivos nas configurações ou registre autoria nos eventos."
+                  title="Ainda sem estatísticas"
+                  description="Elas aparecem após a primeira partida concluída."
                 />
               )}
             </section>
@@ -1587,7 +1587,7 @@ function Stats({
               ) : (
                 <EmptyState
                   title="Sem partidas concluídas"
-                  description="O ranking será derivado quando houver resultados auditados."
+                  description="As partidas concluídas aparecem aqui."
                 />
               )}
             </section>
