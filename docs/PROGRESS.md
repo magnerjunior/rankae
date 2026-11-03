@@ -1,6 +1,6 @@
-# Progresso — Fase 1
+# Progresso — Fases 1 e 1.5
 
-Atualizado em 2026-11-02.
+Atualizado em 2026-11-03.
 
 ## Entregue
 
@@ -72,10 +72,32 @@ npm run build
 - [x] Teste pgTAP com duas organizações, outsider e usuário anônimo.
 - [x] Demo restrito a flag explícita de desenvolvimento.
 
-### Pendente de acesso/infraestrutura
+### Validado no projeto remoto
 
-- [ ] Autenticar no dashboard/CLI do Supabase sem compartilhar credenciais.
-- [ ] Aplicar a migração no projeto `cxxzdjbinmzqifspkklo`.
-- [ ] Obter a publishable key pelo painel e configurar `.env.local` de forma segura.
+- [x] Dashboard Supabase acessado pela sessão autenticada do responsável, sem compartilhar credenciais.
+- [x] Migração inicial aplicada ao projeto de desenvolvimento `cxxzdjbinmzqifspkklo` pelo SQL Editor.
+- [x] Migração de hardening aplicada para impedir execução direta de `rls_auto_enable()` por `public`, `anon` e `authenticated`.
+- [x] Publishable key configurada apenas em `.env.local`, arquivo ignorado pelo Git; nenhuma chave secreta foi usada.
+- [x] Oito tabelas privadas verificadas com RLS habilitada.
+- [x] Teste transacional remoto com duas organizações: leitura e escrita cruzadas bloqueadas, acesso anônimo bloqueado e dados de teste removidos por `rollback`.
+- [x] Endpoint de saúde do Auth respondeu normalmente e consulta REST anônima a dados privados foi recusada.
+- [x] Security Advisor: zero erros; três avisos intencionais para RPCs `security definer` destinadas a usuários autenticados e protegidas por autorização interna.
+
+### Pendências operacionais
+
 - [ ] Executar `supabase test db`; Docker não está instalado neste ambiente.
-- [ ] Validar login, isolamento e escrita contra o projeto remoto.
+- [ ] Criar manualmente a primeira conta real de organizador e confirmar o e-mail conforme a política de Auth do projeto.
+- [ ] Reconciliar o histórico de migrações antes do primeiro uso da Supabase CLI no projeto remoto, pois a aplicação inicial ocorreu pelo SQL Editor.
+
+### Gates finais da Fase 1.5
+
+Resultados reais de 2026-11-03:
+
+- `npm run lint`: passou, zero erros e zero avisos.
+- `npm run typecheck`: passou.
+- `npm test`: 1 arquivo, 18 testes unitários aprovados.
+- `npm run build`: build de produção aprovado; 7 páginas geradas e Proxy compilado.
+- `npm audit --omit=dev`: zero vulnerabilidades em dependências de produção.
+- Smoke HTTP: `/entrar` respondeu 200 e `/app` redirecionou visitante sem sessão para `/entrar`.
+- Smoke visual conectado: formulário de login/cadastro e selo `AMBIENTE CONECTADO` renderizados; console do navegador sem erros.
+- Banco remoto: 8/8 tabelas privadas com RLS; isolamento transacional aprovado; Security Advisor com 0 erros e 3 avisos intencionais documentados.

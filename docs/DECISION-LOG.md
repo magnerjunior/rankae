@@ -42,4 +42,18 @@ O adaptador demonstrativo permanece somente para desenvolvimento com `NEXT_PUBLI
 
 ### Teste local do banco
 
-O ambiente atual não possui Docker, portanto o pgTAP de isolamento foi escrito mas não executado localmente. A aplicação da migração e a execução remota dependem de autenticação segura no projeto Supabase fornecido.
+O ambiente atual não possui Docker, portanto o pgTAP de isolamento foi escrito mas não executado localmente. A cobertura equivalente foi executada remotamente em uma transação com `rollback`, sem persistir os dados de teste.
+
+### Aplicação remota e histórico de migrações
+
+As migrações `20261102000100` e `20261102000200` da Fase 1.5 foram aplicadas pelo SQL Editor na sessão autenticada do responsável. O projeto ainda não possuía `supabase_migrations.schema_migrations`, portanto não foi criado nem alterado manualmente o histórico interno da CLI. Antes de usar `supabase db push` nesse projeto, ambas as versões devem ser marcadas como aplicadas pelo fluxo oficial de `supabase migration repair`.
+
+### Hardening da função automática de RLS
+
+O Security Advisor identificou que a função de plataforma `public.rls_auto_enable()` podia ser executada diretamente por `public`, `anon` e `authenticated`. Foi adicionada a migração `20261102000200_harden_platform_helpers.sql`, que revoga esses privilégios sem desativar o event trigger. Após a aplicação, somente `postgres` e `service_role` mantêm execução e os dois avisos correspondentes desapareceram.
+
+Os três avisos restantes do Security Advisor são aceitos nesta fase: `create_ranka_workspace`, `create_player_with_aliases` e `check_in_player` são a API transacional intencional para organizadores autenticados. Todas usam `security definer` com `search_path` vazio, grants explícitos e validação de identidade/permissão dentro da função.
+
+### Validação remota de isolamento
+
+Como o Docker local está indisponível, foi executado no projeto remoto um teste equivalente dentro de uma transação: duas organizações e identidades distintas foram criadas, o proprietário enxergou apenas seu tenant, leitura/escrita cruzadas e acesso anônimo foram bloqueados, e o teste terminou com `rollback`. Nenhum dado demonstrativo persistiu no projeto.

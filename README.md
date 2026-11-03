@@ -1,7 +1,7 @@
 # RANKAÊ — Pacote de especificação para Codex
 
 **Produto:** SaaS multi-peladas, mobile-first, gestão presencial de futebol amador.
-**Estado:** Fase 1.5 em integração. A aplicação possui Auth SSR, contratos Supabase, migrações/RLS e rotas persistentes; o ambiente remoto precisa receber a migração e a publishable key.
+**Estado:** Fase 1.5 implementada e validada no projeto Supabase de desenvolvimento. A aplicação possui Auth SSR, persistência real, migrações, RLS e isolamento multi-tenant; a criação da primeira conta de organizador permanece como passo manual do responsável pelo projeto.
 
 ## Executar a Fase 1
 
@@ -19,8 +19,10 @@ Abra `http://localhost:3000/entrar`. Para validar a entrega, execute `npm run li
 1. Copie `.env.example` para `.env.local`.
 2. Preencha somente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` com os valores públicos do projeto.
 3. Mantenha `NEXT_PUBLIC_ENABLE_DEMO=false` para usar rotas reais.
-4. Aplique `supabase/migrations/` via Supabase CLI ou SQL Editor em ambiente de desenvolvimento/staging.
+4. Aplique `supabase/migrations/` em ordem via Supabase CLI ou SQL Editor em ambiente de desenvolvimento/staging.
 5. Execute `npx supabase test db` em uma máquina com Docker para validar o isolamento multi-tenant.
+
+No projeto de desenvolvimento atual, as migrações foram aplicadas pelo SQL Editor. Antes de adotar o fluxo de migrações pela CLI nesse mesmo projeto, reconcilie o histórico remoto com `supabase migration repair` para as versões já aplicadas; não reaplique essas migrações.
 
 Nunca use `service_role`, secret key ou senha do banco no frontend. O modo demo só existe em desenvolvimento e exige opt-in explícito.
 
