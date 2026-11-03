@@ -1,4 +1,47 @@
-import type { Attendance, Player, Squad } from "@/domain/ranka/types";
+import type {
+  Attendance,
+  ContributionRecord,
+  FieldSide,
+  MatchEvent,
+  MatchState,
+  Player,
+  Squad,
+} from "@/domain/ranka/types";
+
+export interface SessionRules {
+  squadSize: number;
+  regulationDurationMs: number;
+  overtimeDurationMs: number;
+  targetGoals: number;
+  targetGoalDifference: number;
+  tiePolicy: "overtime" | "both_out" | "penalties" | "odd_even" | "manual";
+}
+
+export interface MatchAssignment {
+  id: string;
+  playerId: string;
+  squadId?: string;
+  side?: FieldSide;
+  role: "line" | "keeper" | "borrowed_keeper" | "ball_boy";
+}
+
+export interface LiveMatch {
+  id: string;
+  ordinal: number;
+  yellowSquadId: string;
+  redSquadId: string;
+  state: MatchState;
+  clockPhase: "regulation" | "overtime";
+  startedAtServer?: string;
+  elapsedMsBeforeStart: number;
+  durationLimitMs: number;
+  regulationDurationMs: number;
+  overtimeDurationMs: number;
+  revision: number;
+  serverNow: string;
+  assignments: MatchAssignment[];
+  events: MatchEvent[];
+}
 
 export interface RankaSnapshot {
   id: string;
@@ -9,6 +52,11 @@ export interface RankaSnapshot {
   players: Player[];
   attendance: Attendance[];
   squads: Squad[];
+  hasPersistedSquads: boolean;
+  rules: SessionRules;
+  contributionAmountCents: number;
+  contributions: ContributionRecord[];
+  activeMatch?: LiveMatch;
   revision: number;
 }
 

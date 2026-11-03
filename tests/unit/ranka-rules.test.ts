@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   assignKeepersToSquads,
+  computeClockElapsed,
   evaluateTiePolicy,
   findReplacement,
+  findPlayerMatches,
+  findPotentialDuplicates,
   groupSquads,
   orderEligibleAttendance,
+  projectScore,
   rotateSquads,
   rotateKeeperOnLoss,
+  summarizeContributions,
   suggestOfficials,
+  validateOfficialAssignments,
 } from "@/domain/ranka/rules";
 import type { Attendance, Player, TiePolicy } from "@/domain/ranka/types";
 
@@ -143,5 +149,40 @@ describe("motor puro do ranka", () => {
 
   it("sugere o primeiro substituto elegível fora dos escalados", () => {
     expect(findReplacement(attendance(5), ["p1", "p2", "p3"])).toBe("p4");
+  });
+
+  it("busca por nome sem acento e por alias sem duplicar perfil", () => {
+    const catalog = [{ id: "m1", fullName: "Mágnêr Júnior", aliases: ["Junior", "Magner"], role: "line" as const }];
+    expect(findPlayerMatches(catalog, "magner").map((player) => player.id)).toEqual(["m1"]);
+    expect(findPlayerMatches(catalog, "junior").map((player) => player.id)).toEqual(["m1"]);
+    expect(findPotentialDuplicates(catalog, "Outro", ["Mágnêr"]).map((player) => player.id)).toEqual(["m1"]);
+  });
+
+  it("deriva o relógio do horário autoritativo sem depender de ticks persistidos", () => {
+    expect(computeClockElapsed({ state: "live", startedAtServer: "2026-11-03T12:00:00.000Z", elapsedMsBeforeStart: 15_000, durationLimitMs: 600_000, asOfServer: "2026-11-03T12:00:00.000Z" }, "2026-11-03T12:00:30.000Z")).toBe(45_000);
+    expect(computeClockElapsed({ state: "paused", elapsedMsBeforeStart: 45_000, durationLimitMs: 600_000, asOfServer: "2026-11-03T12:00:30.000Z" }, "2026-11-03T12:03:00.000Z")).toBe(45_000);
+  });
+
+  it("projeta placar por eventos ativos e preserva void no histórico", () => {
+    const score = projectScore([
+      { id: "e1", type: "goal", side: "yellow", goalKind: "normal", occurrenceMs: 1_000, status: "active" },
+      { id: "e2", type: "goal", side: "red", goalKind: "own_goal", occurrenceMs: 2_000, status: "void" },
+      { id: "e3", type: "penalty_attempt", side: "red", penaltyOutcome: "converted", occurrenceMs: 3_000, status: "active" },
+      { id: "e4", type: "penalty_attempt", side: "yellow", penaltyOutcome: "saved", occurrenceMs: 4_000, status: "active" },
+    ]);
+    expect(score).toEqual({ yellow: 1, red: 1, convertedPenalties: 1, missedPenalties: 1, savedPenalties: 1 });
+  });
+
+  it("impede que goleiro e gandula sejam a mesma pessoa", () => {
+    expect(validateOfficialAssignments({ yellowKeeperId: "p1", redKeeperId: "p2", ballBoyIds: ["p2"] })).toHaveLength(1);
+    expect(validateOfficialAssignments({ yellowKeeperId: "p1", redKeeperId: "p2", ballBoyIds: ["p3", "p4"] })).toEqual([]);
+  });
+
+  it("resume contribuições sem reprecificar isentos ou recebidos", () => {
+    expect(summarizeContributions([
+      { playerId: "p1", amountCents: 500, status: "paid" },
+      { playerId: "p2", amountCents: 500, status: "pending" },
+      { playerId: "p3", amountCents: 500, status: "waived" },
+    ])).toEqual({ paid: 1, pending: 1, waived: 1, expectedCents: 1_000, receivedCents: 500 });
   });
 });

@@ -1,12 +1,40 @@
 import type {
   Attendance,
+  ContributionRecord,
+  MatchClockSnapshot,
+  MatchEvent,
   OfficialSuggestion,
   Player,
   RotationResult,
+  ScoreProjection,
   Squad,
   TieAction,
   TiePolicy,
 } from "./types";
+
+export function normalizePlayerSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function findPlayerMatches(players: Player[], query: string): Player[] {
+  const normalized = normalizePlayerSearch(query);
+  if (!normalized) return [];
+  return players.filter((player) =>
+    [player.fullName, ...player.aliases].some((value) => normalizePlayerSearch(value).includes(normalized)),
+  );
+}
+
+export function findPotentialDuplicates(players: Player[], fullName: string, aliases: string[] = []): Player[] {
+  const candidates = new Set([fullName, ...aliases].map(normalizePlayerSearch).filter(Boolean));
+  return players.filter((player) =>
+    [player.fullName, ...player.aliases].some((value) => candidates.has(normalizePlayerSearch(value))),
+  );
+}
 
 export function orderEligibleAttendance(attendance: Attendance[]): Attendance[] {
   return attendance
@@ -188,4 +216,57 @@ export function findReplacement(
 ): string | undefined {
   const excluded = new Set(excludedPlayerIds);
   return orderEligibleAttendance(attendance).find((entry) => !excluded.has(entry.playerId))?.playerId;
+}
+
+export function computeClockElapsed(snapshot: MatchClockSnapshot, nowIso: string): number {
+  const running = snapshot.state === "live" || snapshot.state === "overtime_live";
+  if (!running || !snapshot.startedAtServer) return Math.max(0, snapshot.elapsedMsBeforeStart);
+  const startedAt = Date.parse(snapshot.startedAtServer);
+  const now = Date.parse(nowIso);
+  if (!Number.isFinite(startedAt) || !Number.isFinite(now)) throw new Error("Snapshot de relógio inválido.");
+  return Math.max(0, snapshot.elapsedMsBeforeStart + now - startedAt);
+}
+
+export function projectScore(events: MatchEvent[]): ScoreProjection {
+  return events.reduce<ScoreProjection>((score, event) => {
+    if (event.status !== "active") return score;
+    if (event.type === "goal" && event.side) score[event.side] += 1;
+    if (event.type === "penalty_attempt") {
+      if (event.penaltyOutcome === "converted") {
+        score.convertedPenalties += 1;
+        if (event.side) score[event.side] += 1;
+      }
+      if (event.penaltyOutcome === "missed") score.missedPenalties += 1;
+      if (event.penaltyOutcome === "saved") {
+        score.savedPenalties += 1;
+        score.missedPenalties += 1;
+      }
+    }
+    return score;
+  }, { yellow: 0, red: 0, convertedPenalties: 0, missedPenalties: 0, savedPenalties: 0 });
+}
+
+export function validateOfficialAssignments(input: {
+  yellowKeeperId?: string;
+  redKeeperId?: string;
+  ballBoyIds: string[];
+}): string[] {
+  const assignments = [input.yellowKeeperId, input.redKeeperId, ...input.ballBoyIds].filter(
+    (value): value is string => Boolean(value),
+  );
+  return assignments.length === new Set(assignments).size
+    ? []
+    : ["Um participante não pode ocupar duas funções simultaneamente."];
+}
+
+export function summarizeContributions(records: ContributionRecord[]) {
+  return records.reduce(
+    (summary, record) => {
+      summary[record.status] += 1;
+      summary.expectedCents += record.status === "waived" ? 0 : record.amountCents;
+      summary.receivedCents += record.status === "paid" ? record.amountCents : 0;
+      return summary;
+    },
+    { paid: 0, pending: 0, waived: 0, expectedCents: 0, receivedCents: 0 },
+  );
 }

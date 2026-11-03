@@ -57,3 +57,29 @@ Os três avisos restantes do Security Advisor são aceitos nesta fase: `create_r
 ### Validação remota de isolamento
 
 Como o Docker local está indisponível, foi executado no projeto remoto um teste equivalente dentro de uma transação: duas organizações e identidades distintas foram criadas, o proprietário enxergou apenas seu tenant, leitura/escrita cruzadas e acesso anônimo foram bloqueados, e o teste terminou com `rollback`. Nenhum dado demonstrativo persistiu no projeto.
+
+## 2026-11-03 — Fase 2
+
+### Banco como fonte autoritativa da operação
+
+Formação, substituições, escala de apoio, relógio, eventos, correções, desempate, rotação e contribuições são comandos transacionais `security definer` com `search_path` vazio, autorização interna, idempotency key e compare-and-swap por `revision`. As tabelas operacionais só concedem `select` ao papel autenticado; mutações passam pelas RPCs.
+
+### Relógio sem ticks persistidos
+
+O banco persiste `started_at_server` e `elapsed_ms_before_start`. A UI calcula apenas a apresentação usando a diferença entre relógio sincronizado e início autoritativo. Pausa, retomada, reset, encerramento do tempo normal e prorrogação são transições auditadas; navegar entre telas não altera o relógio.
+
+### Eventos como fonte do placar
+
+O placar é derivado de eventos ativos. Correção faz soft void com motivo e operador, sem apagar histórico. Pênalti defendido conta uma defesa e uma cobrança não convertida em uma única ocorrência; a mesma idempotency key não cria um segundo gol.
+
+### Realtime privado como sinal de invalidação
+
+Foi adotado Broadcast privado no tópico `session:<uuid>`, conforme a documentação vigente do Supabase. A política em `realtime.messages` autoriza somente membros que podem operar a sessão. O payload não vira fonte de verdade: ao receber INSERT/UPDATE/DELETE, o cliente refaz o snapshot autorizado, inclusive após reconexão.
+
+### Deduplicação confirmada, sem auto-merge
+
+Nome, apelido e aliases normalizados geram alerta de possível duplicata. O banco bloqueia a criação até o organizador confirmar que se trata de outra pessoa. Perfis nunca são mesclados automaticamente.
+
+### Regra de encerramento revisável
+
+Tempo, total de gols e diferença são configuráveis. Ao atingir meta de placar a interface pede revisão do último evento antes do encerramento manual, evitando rodar times durante uma correção. Saída dupla só é aceita quando existem dois times completos na espera.

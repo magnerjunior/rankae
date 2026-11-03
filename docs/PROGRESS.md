@@ -1,4 +1,4 @@
-# Progresso — Fases 1 e 1.5
+# Progresso — Fases 1, 1.5 e 2
 
 Atualizado em 2026-11-03.
 
@@ -101,3 +101,36 @@ Resultados reais de 2026-11-03:
 - Smoke HTTP: `/entrar` respondeu 200 e `/app` redirecionou visitante sem sessão para `/entrar`.
 - Smoke visual conectado: formulário de login/cadastro e selo `AMBIENTE CONECTADO` renderizados; console do navegador sem erros.
 - Banco remoto: 8/8 tabelas privadas com RLS; isolamento transacional aprovado; Security Advisor com 0 erros e 3 avisos intencionais documentados.
+
+## Fase 2 — operação presencial completa
+
+### Implementado localmente
+
+- [x] Autocomplete por nome/apelido/alias e alerta confirmado de possíveis duplicatas.
+- [x] Status de presença sem apagar índice histórico; formação persistente sequencial ou sorteada por blocos.
+- [x] Times T1–T5+, substituição auditada com motivo/override e identidade separada da cor em campo.
+- [x] Sugestões puras para 0/1/2/3/4 goleiros e gandulas; confirmação sem dupla ocupação.
+- [x] Pré-jogo, escalações, partida ativa e rotação transacional mantendo a vaga amarela/vermelha.
+- [x] Cronômetro autoritativo iniciar/pausar/retomar/resetar, tempo normal e prorrogação.
+- [x] Gol normal/pênalti/gol contra com autor e assistência opcionais; cobrança convertida/perdida/defendida e marcos.
+- [x] Correção por soft void, projeção de placar derivada, idempotência e conflito de revisão entre mesários.
+- [x] Desempate por pênaltis, ímpar ou par, manual ou ambos saem; saída dupla exige duas esperas completas.
+- [x] Contribuições em lote com valor individual preservado, pago/pendente/isento e totais.
+- [x] Broadcast privado autorizado por sessão e refetch de snapshot após mudança/reconexão.
+- [x] RLS deny-by-default nas oito novas tabelas privadas e trilha de auditoria.
+
+### Gates locais de 2026-11-03
+
+- `npm run lint`: passou.
+- `npm run typecheck`: passou.
+- `npm test`: 1 arquivo, 23 testes unitários aprovados.
+- `npm run build`: build de produção aprovado.
+- `npm audit --omit=dev`: zero vulnerabilidades em produção.
+- Teste SQL `phase2_operations_test.sql`: escrito com 19 asserções; execução local bloqueada pela ausência de Docker.
+
+### Pendente para encerrar a fase
+
+- [ ] Aplicar `20261103000100_phase2_live_operations.sql` no projeto remoto.
+- [ ] Executar o teste transacional remoto de operação e concorrência.
+- [ ] Validar o ciclo real com a conta do organizador e criar a organização solicitada.
+- [ ] Smoke responsivo e Realtime com dois clientes autenticados.

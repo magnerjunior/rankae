@@ -59,3 +59,60 @@ export interface RotationResult {
   waitingSquadIds: string[];
   warnings: string[];
 }
+
+export type MatchState =
+  | "draft"
+  | "ready"
+  | "live"
+  | "paused"
+  | "regulation_ended"
+  | "overtime_live"
+  | "overtime_paused"
+  | "tie_break"
+  | "completed"
+  | "cancelled"
+  | "manual_review";
+
+export type ClockPhase = "regulation" | "overtime";
+
+export interface MatchClockSnapshot {
+  state: MatchState;
+  startedAtServer?: string;
+  elapsedMsBeforeStart: number;
+  durationLimitMs: number;
+  asOfServer: string;
+}
+
+export type MatchEventType = "goal" | "penalty_attempt" | "marker" | "tie_resolution";
+export type GoalKind = "normal" | "penalty" | "own_goal";
+export type PenaltyOutcome = "converted" | "missed" | "saved";
+
+export interface MatchEvent {
+  id: string;
+  type: MatchEventType;
+  side?: FieldSide;
+  scorerPlayerId?: string;
+  assistPlayerId?: string;
+  keeperPlayerId?: string;
+  goalKind?: GoalKind;
+  penaltyOutcome?: PenaltyOutcome;
+  occurrenceMs: number;
+  status: "active" | "void";
+  label?: string;
+}
+
+export interface ScoreProjection {
+  yellow: number;
+  red: number;
+  convertedPenalties: number;
+  missedPenalties: number;
+  savedPenalties: number;
+}
+
+export type ContributionStatus = "pending" | "paid" | "waived";
+
+export interface ContributionRecord {
+  playerId: string;
+  amountCents: number;
+  status: ContributionStatus;
+}
