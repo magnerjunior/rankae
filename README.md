@@ -32,6 +32,8 @@ Produção: `https://rankae.vercel.app`. A branch `main` do GitHub é a fonte da
 
 Na Vercel, configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_ENABLE_DEMO=false` e `NEXT_PUBLIC_APP_URL=https://rankae.vercel.app`. No Supabase Auth, use `https://rankae.vercel.app` como Site URL e autorize `/auth/callback` no domínio de produção e nos endereços locais usados no desenvolvimento. O cadastro de organizadores exige confirmação de e-mail; recuperação de senha também retorna pelo callback autorizado.
 
+O fluxo principal de campo começa em **Iniciar ranka** e segue para **Chegada**. Nome + posição cadastram ou reutilizam o jogador e confirmam a presença na mesma ação. O proprietário pode criar até três rankas; limites de linha/goleiros e contribuição em reais ficam em **Configurar ranka**. A migração `20261103000600_fast_court_experience.sql` reforça essas operações de forma transacional no banco; enquanto ela não estiver aplicada, a aplicação mantém compatibilidade com as RPCs anteriores.
+
 ## Operar a Fase 2
 
 Após aplicar as migrações em ordem, um organizador autenticado pode executar o ciclo em **Chegada → Times → Partida → Contribuições**. O relógio é derivado do horário do servidor, eventos são idempotentes e revisões otimistas impedem que dois mesários sobrescrevam alterações concorrentes. O canal privado `session:<uuid>` usa autorização RLS e apenas sinaliza clientes autorizados para refazer o snapshot.

@@ -223,3 +223,14 @@ Resultados reais de 2026-11-03:
 - [x] Estado vazio orienta o primeiro uso e não oferece geração de times antes de existir presença confirmada.
 - [x] Produção Vercel recebeu as quatro variáveis públicas necessárias; domínio canônico e callbacks de produção/local foram autorizados no Supabase Auth.
 - [x] Cadastro público de organizadores e confirmação por e-mail verificados como ativos no Supabase; recuperação e redefinição de senha implementadas.
+
+## Ajuste de campo — 2026-11-03
+- [x] Até três rankas por proprietário, com criação pela tela inicial.
+- [x] Botão “Iniciar ranka” levando diretamente à chegada.
+- [x] Chegada inline com nome, posição, confirmação rápida e remoção por `×`.
+- [x] Limites configuráveis de linha e goleiro.
+- [x] Contribuição exibida em reais, fixa ou dividida pelo total da quadra.
+- [x] Menu operacional recolhido e glass/spring seletivos.
+- [x] Comunicação técnica removida das telas comuns.
+- [x] Compatibilidade temporária com as RPCs anteriores até a nova migração ser aplicada.
+- [ ] Aplicar `20261103000600_fast_court_experience.sql` no projeto remoto; a CLI retornou 403 de privilégio para o login atual.

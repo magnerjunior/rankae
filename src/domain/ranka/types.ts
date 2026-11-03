@@ -21,6 +21,7 @@ export interface Attendance {
   playerId: string;
   arrivalIndex: number;
   status: AttendanceStatus;
+  rolePreference?: PlayerRole;
 }
 
 export interface Squad {

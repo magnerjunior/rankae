@@ -36,7 +36,7 @@ export const demoSnapshot: RankaSnapshot = {
   attendance: demoAttendance,
   squads: groupSquads(demoAttendance, demoPlayers),
   hasPersistedSquads: false,
-  rules: { squadSize: 6, regulationDurationMs: 600_000, overtimeDurationMs: 180_000, targetGoals: 0, targetGoalDifference: 0, tiePolicy: "overtime" },
+  rules: { squadSize: 6, maxLinePlayers: 24, maxKeepers: 3, regulationDurationMs: 600_000, overtimeDurationMs: 180_000, targetGoals: 0, targetGoalDifference: 0, tiePolicy: "overtime", contributionMode: "fixed", totalCostCents: 0 },
   contributionAmountCents: 500,
   contributions: [],
   revision: 1,

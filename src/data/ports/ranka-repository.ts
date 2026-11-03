@@ -10,11 +10,15 @@ import type {
 
 export interface SessionRules {
   squadSize: number;
+  maxLinePlayers: number;
+  maxKeepers: number;
   regulationDurationMs: number;
   overtimeDurationMs: number;
   targetGoals: number;
   targetGoalDifference: number;
   tiePolicy: "overtime" | "both_out" | "penalties" | "odd_even" | "manual";
+  contributionMode: "fixed" | "divide_total";
+  totalCostCents: number;
 }
 
 export interface MatchAssignment {

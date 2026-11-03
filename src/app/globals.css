@@ -356,3 +356,113 @@ button { cursor: pointer; }
   .mfa-enrollment { grid-template-columns: 220px minmax(0,1fr); }
   .incident-row { grid-template-columns: minmax(0,1fr) minmax(300px,.75fr); align-items: center; }
 }
+
+/* Experiência de quadra: navegação recolhida, chegada rápida e vidro seletivo */
+body { overscroll-behavior-y: auto; }
+.button, .menu-trigger, .quick-arrival-confirm, .start-ranka-button, .ranka-card {
+  transition: transform .36s cubic-bezier(.2,.9,.24,1.35), box-shadow .24s ease, background-color .24s ease;
+}
+.button:active, .menu-trigger:active, .quick-arrival-confirm:active, .start-ranka-button:active, .ranka-card:active { transform: scale(.96); }
+.button-primary {
+  background: rgba(11, 82, 56, .92);
+  border-color: rgba(255,255,255,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 8px 22px rgba(11,61,46,.18);
+  backdrop-filter: blur(12px) saturate(135%);
+}
+.button-secondary, .glass-panel, .menu-trigger {
+  background: rgba(255,255,255,.74);
+  border: 1px solid rgba(199,216,204,.82);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 12px 32px rgba(11,61,46,.08);
+  backdrop-filter: blur(16px) saturate(135%);
+}
+.app-shell { display: block; min-height: 100dvh; }
+.app-main { padding-top: 0; }
+.topbar { min-height: 66px; display: grid; grid-template-columns: 46px minmax(0,1fr) 46px; align-items: center; gap: 10px; }
+.brand-compact { width: 42px; }
+.topbar-title { min-width: 0; text-align: center; }
+.topbar-title strong, .topbar-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar-title span { margin-top: 2px; color: var(--muted); font-size: .75rem; }
+.menu-trigger { width: 44px; height: 44px; display: grid; place-content: center; gap: 4px; border-radius: 13px; color: var(--brand-900); }
+.menu-trigger span { width: 20px; height: 2px; display: block; border-radius: 2px; background: currentColor; }
+.menu-backdrop { position: fixed; z-index: 90; inset: 0; display: flex; justify-content: flex-end; padding: 10px; background: rgba(8,28,19,.32); backdrop-filter: blur(4px); }
+.menu-drawer { width: min(88vw, 360px); height: calc(100dvh - 20px); padding: 20px; border-radius: 24px; animation: drawer-spring .46s cubic-bezier(.16,1.18,.3,1); }
+.menu-close { width: 42px; height: 42px; border: 0; border-radius: 12px; background: var(--surface-alt); color: var(--ink); font-size: 1.8rem; line-height: 1; }
+.drawer-nav { display: grid; margin-top: 28px; border-top: 1px solid var(--border); }
+.drawer-nav a { min-height: 52px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 650; }
+.drawer-nav a.active { color: var(--brand-900); }
+.drawer-secondary { display: grid; gap: 14px; margin-top: 24px; color: var(--brand-700); font-weight: 600; }
+@keyframes drawer-spring { from { opacity: 0; transform: translateX(35px) scale(.97); } to { opacity: 1; transform: none; } }
+
+.ranka-picker { padding: 22px 18px 80px; }
+.ranka-picker-head { min-height: 54px; }
+.ranka-grid { display: grid; gap: 14px; }
+.ranka-card { min-height: 180px; display: grid; align-content: space-between; padding: 22px; border-radius: 22px; }
+.ranka-card:hover { transform: translateY(-3px); box-shadow: 0 18px 44px rgba(11,61,46,.13); }
+.ranka-card-number { color: var(--brand-700); font-family: "Barlow Condensed", sans-serif; font-weight: 800; }
+.ranka-card h2 { margin: 24px 0; color: var(--brand-900); font-size: clamp(2rem, 8vw, 3rem); line-height: .9; }
+.ranka-card > span:last-child { display: flex; justify-content: space-between; color: var(--muted); font-weight: 600; }
+.ranka-create { background: rgba(228,243,233,.56); }
+.ranka-create summary { min-height: 136px; display: grid; place-content: center; justify-items: center; gap: 4px; cursor: pointer; list-style: none; }
+.ranka-create summary::-webkit-details-marker { display: none; }
+.ranka-card-plus { color: var(--brand-700); font-size: 2.7rem; line-height: .8; }
+.ranka-create summary small { color: var(--muted); }
+.ranka-create[open] summary { min-height: auto; margin-bottom: 18px; place-content: start; justify-items: start; }
+.account-menu { position: relative; }
+.account-menu summary { list-style: none; }
+.account-menu summary::-webkit-details-marker { display: none; }
+.account-popover { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: 190px; display: grid; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: white; box-shadow: var(--shadow); }
+.account-popover a, .account-popover button { min-height: 42px; display: flex; align-items: center; width: 100%; padding: 8px; border: 0; background: transparent; color: var(--ink); text-align: left; }
+
+.start-ranka-button { width: 100%; min-height: 96px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 20px 24px; border: 1px solid rgba(255,255,255,.25); border-radius: 20px; background: rgba(11,61,46,.94); color: white; box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 18px 40px rgba(11,61,46,.2); font-size: 1.2rem; font-weight: 800; backdrop-filter: blur(14px); }
+.start-ranka-button b { font-size: 2rem; }
+.quick-metrics { grid-template-columns: repeat(3, 1fr); }
+.quick-metrics .metric { min-height: 96px; }
+.quick-metrics .metric strong { font-size: 2rem; }
+
+.arrival-capacity { display: flex; gap: 8px; margin: -8px 0 16px; }
+.arrival-capacity span { padding: 7px 10px; border: 1px solid var(--border); border-radius: 10px; background: white; color: var(--muted); font-size: .82rem; }
+.arrival-capacity b { color: var(--brand-900); }
+.arrival-panel { max-width: 760px; margin-inline: auto; }
+.quick-arrival { margin-bottom: 24px; }
+.quick-arrival-form { display: grid; grid-template-columns: minmax(0,1fr) 98px 52px; gap: 8px; padding: 8px; border: 1px solid rgba(190,211,196,.9); border-radius: 17px; background: rgba(255,255,255,.7); box-shadow: 0 14px 36px rgba(11,61,46,.09); backdrop-filter: blur(14px); }
+.quick-arrival-name, .quick-arrival-role { min-width: 0; height: 48px; border: 0; background: transparent; color: var(--ink); outline: 0; }
+.quick-arrival-name { padding: 0 8px; font-size: 1.05rem; font-weight: 600; }
+.quick-arrival-role { padding: 0 5px; border-left: 1px solid var(--border); }
+.quick-arrival-confirm { width: 48px; height: 48px; border: 0; border-radius: 13px; background: var(--brand-700); color: white; font-size: 1.4rem; font-weight: 800; }
+.quick-arrival-message { min-height: 20px; margin: 7px 4px 0; color: var(--muted); font-size: .82rem; }
+.quick-arrival-message.success { color: var(--brand-700); }
+.quick-arrival-message.error { color: var(--danger); }
+.arrival-list { padding-top: 18px; border-top: 1px solid var(--border); }
+.arrival-remove { width: 42px; height: 42px; border: 0; border-radius: 12px; background: #fff0f0; color: var(--danger); font-size: 1.5rem; }
+.rule-options { display: grid; gap: 4px; margin: 0; padding: 14px; border: 1px solid var(--border); border-radius: 14px; }
+.rule-options legend { padding: 0 6px; font-weight: 700; }
+.mini-number { width: 72px; margin-left: auto; }
+.cost-box { display: grid; gap: 14px; padding: 16px; border-radius: 16px; background: var(--surface-alt); }
+.cost-box h3 { margin: 0; color: var(--brand-900); }
+.two-column-even { display: grid; gap: 12px; }
+.portal-help { margin: 0; font-size: .88rem; }
+
+@media (min-width: 680px) {
+  .ranka-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .two-column-even { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 760px) {
+  .app-shell { display: block; }
+  .app-main { padding: 0 28px 60px; }
+  .topbar { margin-inline: -28px; padding-inline: max(28px, calc((100vw - 1160px)/2)); }
+  .topbar .brand { display: inline-flex; }
+  .sidebar { display: none; }
+}
+@media (max-width: 520px) {
+  .quick-arrival-form { grid-template-columns: minmax(0,1fr) 88px 48px; gap: 4px; padding: 6px; }
+  .quick-arrival-confirm { width: 44px; }
+  .quick-metrics .metric { padding: 12px 9px; }
+  .quick-metrics .metric span { font-size: .72rem; }
+}
+@supports not (backdrop-filter: blur(12px)) {
+  .glass-panel, .menu-trigger, .button-secondary, .quick-arrival-form { background: white; }
+  .button-primary, .start-ranka-button { background: var(--brand-700); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel, .menu-trigger, .button, .quick-arrival-form, .start-ranka-button { backdrop-filter: none; }
+}

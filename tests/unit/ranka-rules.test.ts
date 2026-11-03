@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   assignKeepersToSquads,
+  calculateContributionShare,
+  canAcceptArrival,
   computeClockElapsed,
   evaluateTiePolicy,
   findReplacement,
@@ -184,5 +186,17 @@ describe("motor puro do ranka", () => {
       { playerId: "p2", amountCents: 500, status: "pending" },
       { playerId: "p3", amountCents: 500, status: "waived" },
     ])).toEqual({ paid: 1, pending: 1, waived: 1, expectedCents: 1_000, receivedCents: 500 });
+  });
+
+  it("respeita o limite de chegadas por posição", () => {
+    expect(canAcceptArrival(23, 24)).toBe(true);
+    expect(canAcceptArrival(24, 24)).toBe(false);
+    expect(canAcceptArrival(3, 3)).toBe(false);
+  });
+
+  it("divide o custo total entre presentes e preserva valor fixo", () => {
+    expect(calculateContributionShare({ mode: "fixed", fixedCents: 550, totalCents: 10_000, presentCount: 20 })).toBe(550);
+    expect(calculateContributionShare({ mode: "divide_total", fixedCents: 0, totalCents: 10_000, presentCount: 24 })).toBe(417);
+    expect(calculateContributionShare({ mode: "divide_total", fixedCents: 0, totalCents: 10_000, presentCount: 0 })).toBe(0);
   });
 });

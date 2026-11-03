@@ -6,10 +6,16 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserId } from "@/server/auth";
+import { calculateContributionShare, canAcceptArrival } from "@/domain/ranka/rules";
 
 const uuid = z.string().uuid();
 const optionalUuid = z.preprocess((value) => value || undefined, uuid.optional());
 const playerSchema = z.object({ fullName: z.string().trim().min(2).max(120), nickname: z.string().trim().max(60).optional(), aliases: z.string().max(240).optional(), role: z.enum(["line", "keeper", "either"]) });
+
+export interface ArrivalActionState {
+  status: "idle" | "success" | "error";
+  message?: string;
+}
 
 function idempotencyKey(formData: FormData) {
   return uuid.safeParse(formData.get("idempotencyKey")).data ?? randomUUID();
@@ -34,6 +40,75 @@ async function rpc(name: string, args: Record<string, unknown>) {
     });
   }
   return result;
+}
+
+export async function startRankaAction(rankaId: string) {
+  const { error } = await rpc("start_ranka_session", { p_ranka_id: rankaId });
+  if (error && error.code !== "PGRST202") finish(rankaId, "inicio", false, "iniciar");
+  revalidatePath(`/app/rankas/${rankaId}`);
+  redirect(`/app/rankas/${rankaId}/chegada`);
+}
+
+export async function addArrivalAction(rankaId: string, sessionId: string, expectedRevision: number, _previous: ArrivalActionState, formData: FormData): Promise<ArrivalActionState> {
+  const parsed = z.object({
+    fullName: z.string().trim().min(2).max(120),
+    role: z.enum(["line", "keeper"]),
+  }).safeParse({ fullName: formData.get("fullName"), role: formData.get("role") });
+  if (!parsed.success) return { status: "error", message: "Digite o nome do jogador." };
+  let { error } = await rpc("add_arrival_by_name", {
+    p_session_id: sessionId,
+    p_full_name: parsed.data.fullName,
+    p_role: parsed.data.role,
+    p_expected_revision: expectedRevision,
+    p_idempotency_key: idempotencyKey(formData),
+  });
+  if (error?.code === "PGRST202") {
+    const supabase = await createClient();
+    const { data: session } = await supabase.from("sessions").select("org_id,rules_snapshot").eq("id", sessionId).single();
+    if (!session) return { status: "error", message: "Não foi possível abrir a lista de chegada." };
+    const [{ data: players }, { data: attendance }] = await Promise.all([
+      supabase.from("players").select("id,full_name,role_preference").eq("org_id", session.org_id).eq("status", "active"),
+      supabase.from("attendance").select("player_id,role_preference,status").eq("session_id", sessionId).eq("status", "present"),
+    ]);
+    const rules = (session.rules_snapshot ?? {}) as Record<string, unknown>;
+    const sameRoleCount = (attendance ?? []).filter((entry) => entry.role_preference === parsed.data.role).length;
+    const roleLimit = parsed.data.role === "keeper" ? Number(rules.maxKeepers ?? 3) : Number(rules.maxLinePlayers ?? 24);
+    if (!canAcceptArrival(sameRoleCount, roleLimit)) return { status: "error", message: "O limite dessa posição foi atingido." };
+    const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR").replace(/[^a-z0-9]+/g, " ").trim();
+    const exact = (players ?? []).filter((player) => normalize(player.full_name) === normalize(parsed.data.fullName));
+    if (exact.length > 1) return { status: "error", message: "Há nomes iguais. Digite também o sobrenome." };
+    if (exact[0] && (attendance ?? []).some((entry) => entry.player_id === exact[0].id)) return { status: "success", message: `${parsed.data.fullName} já estava na lista.` };
+    let playerId = exact[0]?.id as string | undefined;
+    if (!playerId) {
+      const created = await supabase.rpc("create_player_with_aliases_confirmed", {
+        p_org_id: session.org_id,
+        p_full_name: parsed.data.fullName,
+        p_nickname: null,
+        p_role: parsed.data.role,
+        p_aliases: [],
+        p_confirm_possible_duplicate: false,
+      });
+      if (created.error || !created.data || typeof created.data !== "object" || !("id" in created.data)) return { status: "error", message: "Use um nome mais completo para evitar duplicidade." };
+      playerId = String(created.data.id);
+    } else if (exact[0].role_preference !== parsed.data.role) {
+      await supabase.from("players").update({ role_preference: parsed.data.role }).eq("id", playerId);
+    }
+    const checked = await rpc("check_in_player", {
+      p_session_id: sessionId,
+      p_player_id: playerId,
+      p_expected_revision: expectedRevision,
+      p_idempotency_key: idempotencyKey(formData),
+    });
+    error = checked.error;
+  }
+  if (error) {
+    if (error.code === "23514") return { status: "error", message: "O limite dessa posição foi atingido." };
+    if (error.code === "23505") return { status: "error", message: "Há nomes iguais. Digite também o sobrenome." };
+    if (error.code === "40001") return { status: "error", message: "A lista mudou. Atualizamos a tela; tente mais uma vez." };
+    return { status: "error", message: "Não foi possível confirmar a chegada agora." };
+  }
+  revalidatePath(`/app/rankas/${rankaId}/chegada`);
+  return { status: "success", message: `${parsed.data.fullName} chegou.` };
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {
@@ -126,10 +201,17 @@ export async function batchContributionsAction(rankaId: string, sessionId: strin
 }
 
 export async function updateRulesAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
-  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), regulationMinutes: z.coerce.number().int().min(1).max(120), overtimeMinutes: z.coerce.number().int().min(0).max(30), targetGoals: z.coerce.number().int().min(0).max(99), targetGoalDifference: z.coerce.number().int().min(0).max(99), tiePolicy: z.enum(["overtime", "both_out", "penalties", "odd_even", "manual"]), contributionAmountCents: z.coerce.number().int().min(0).max(1_000_000) }).safeParse({ squadSize: formData.get("squadSize"), regulationMinutes: formData.get("regulationMinutes"), overtimeMinutes: formData.get("overtimeMinutes"), targetGoals: formData.get("targetGoals"), targetGoalDifference: formData.get("targetGoalDifference"), tiePolicy: formData.get("tiePolicy"), contributionAmountCents: formData.get("contributionAmountCents") });
+  const moneyToCents = (value: FormDataEntryValue | null) => {
+    const normalized = String(value ?? "0").trim().replace(/\./g, "").replace(",", ".");
+    const number = Number(normalized);
+    return Number.isFinite(number) ? Math.round(number * 100) : Number.NaN;
+  };
+  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), maxLinePlayers: z.coerce.number().int().min(2).max(120), maxKeepers: z.coerce.number().int().min(0).max(20), regulationMinutes: z.coerce.number().int().min(1).max(120), overtimeMinutes: z.coerce.number().int().min(0).max(30), targetGoals: z.coerce.number().int().min(0).max(99), targetGoalDifference: z.coerce.number().int().min(0).max(99), tiePolicy: z.enum(["overtime", "both_out", "penalties", "odd_even", "manual"]), contributionMode: z.enum(["fixed", "divide_total"]), contributionAmountCents: z.number().int().min(0).max(1_000_000), totalCostCents: z.number().int().min(0).max(10_000_000) }).safeParse({ squadSize: formData.get("squadSize"), maxLinePlayers: formData.get("maxLinePlayers"), maxKeepers: formData.get("maxKeepers"), regulationMinutes: formData.get("regulationMinutes"), overtimeMinutes: formData.get("overtimeMinutes"), targetGoals: formData.get("enableTargetGoals") === "on" ? formData.get("targetGoals") : 0, targetGoalDifference: formData.get("enableGoalDifference") === "on" ? formData.get("targetGoalDifference") : 0, tiePolicy: formData.get("tiePolicy"), contributionMode: formData.get("contributionMode"), contributionAmountCents: moneyToCents(formData.get("contributionAmount")), totalCostCents: moneyToCents(formData.get("totalCost")) });
   if (!parsed.success) finish(rankaId, "configuracoes", false, "dados");
-  const rules = { squadSize: parsed.data.squadSize, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy };
-  const { error } = await rpc("update_session_rules", { p_session_id: sessionId, p_rules: rules, p_contribution_amount_cents: parsed.data.contributionAmountCents, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const presentCount = Math.max(1, Number(formData.get("presentCount") ?? 1));
+  const contributionAmountCents = calculateContributionShare({ mode: parsed.data.contributionMode, fixedCents: parsed.data.contributionAmountCents, totalCents: parsed.data.totalCostCents, presentCount });
+  const rules = { squadSize: parsed.data.squadSize, maxLinePlayers: parsed.data.maxLinePlayers, maxKeepers: parsed.data.maxKeepers, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy, contributionMode: parsed.data.contributionMode, totalCostCents: parsed.data.totalCostCents };
+  const { error } = await rpc("update_session_rules", { p_session_id: sessionId, p_rules: rules, p_contribution_amount_cents: contributionAmountCents, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "configuracoes", !error, error ? "conflito" : "regras");
 }
 

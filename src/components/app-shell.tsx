@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { rankaSections, type RankaSection } from "@/lib/navigation";
 
@@ -7,42 +10,31 @@ function sectionHref(key: RankaSection, rankaId: string) {
   return key === "inicio" ? `/app/rankas/${rankaId}` : `/app/rankas/${rankaId}/${key}`;
 }
 
-export function RankaHeader({ title = "Ranka do Parque", subtitle = "Sessão demonstrativa" }: { title?: string; subtitle?: string }) {
-  return (
-    <div className="between" style={{width: "100%"}}>
-      <span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span>
-      <div style={{textAlign: "right"}}><strong style={{display: "block"}}>{title}</strong><small className="muted">{subtitle}</small></div>
-    </div>
-  );
-}
-
 export function BottomNav({ active, rankaId }: { active: RankaSection; rankaId: string }) {
-  return (
-    <nav className="bottom-nav" aria-label="Navegação principal">
-      {bottomKeys.map((key, index) => {
-        const item = rankaSections.find((section) => section.key === key)!;
-        return <Link key={key} className={`bottom-link ${active === key ? "active" : ""}`} href={sectionHref(key, rankaId)} aria-current={active === key ? "page" : undefined}><span aria-hidden="true">0{index + 1}</span><span>{item.short}</span></Link>;
-      })}
-    </nav>
-  );
+  return <nav className="bottom-nav" aria-label="Atalhos do ranka">{bottomKeys.map((key) => {
+    const item = rankaSections.find((section) => section.key === key)!;
+    return <Link key={key} className={`bottom-link ${active === key ? "active" : ""}`} href={sectionHref(key, rankaId)} aria-current={active === key ? "page" : undefined}>{item.short}</Link>;
+  })}</nav>;
 }
 
-export function AppShell({ active, children, rankaId = "demo", title = "Ranka do Parque", demo = false }: { active: RankaSection; children: React.ReactNode; rankaId?: string; title?: string; demo?: boolean }) {
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span>
-        <nav className="sidebar-nav" aria-label="Seções do ranka">
-          {rankaSections.map((item) => <Link key={item.key} href={sectionHref(item.key, rankaId)} className={`sidebar-link ${active === item.key ? "active" : ""}`} aria-current={active === item.key ? "page" : undefined}>{item.label}</Link>)}
-        </nav>
-        <div className="sidebar-foot"><span className={`badge ${demo ? "badge-demo" : "badge-green"}`}>{demo ? "DEMO LOCAL" : "CONECTADO"}</span><p>{demo ? "Dados fictícios. Alterações não persistem ao recarregar." : "Dados privados protegidos por autenticação e RLS."}</p>{!demo && <div className="sidebar-trust-links"><Link href="/app/privacidade">Privacidade</Link><Link href="/app/legal">Documentos</Link></div>}</div>
-      </aside>
-      <div className="app-main">
-        <div className="demo-ribbon"><span aria-hidden="true">●</span> {demo ? "Modo demonstração — sem persistência ou autenticação real" : "Ambiente conectado — acesso de organizador verificado"}</div>
-        <header className="topbar"><RankaHeader title={title} subtitle={demo ? "Sessão demonstrativa" : "Supabase · RLS ativo"} /></header>
-        <main className="page">{children}</main>
-        <BottomNav active={active} rankaId={rankaId} />
-      </div>
+export function AppShell({ active, children, rankaId = "demo", title = "Ranka do Parque" }: { active: RankaSection; children: React.ReactNode; rankaId?: string; title?: string; demo?: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return <div className="app-shell">
+    <div className="app-main">
+      <header className="topbar glass-bar">
+        <Link className="brand brand-compact" href="/app" aria-label="Meus rankas"><span className="brand-mark">R</span></Link>
+        <div className="topbar-title"><strong>{title}</strong><span>{rankaSections.find((section) => section.key === active)?.label}</span></div>
+        <button className="menu-trigger" type="button" onClick={() => setMenuOpen(true)} aria-label="Abrir menu" aria-expanded={menuOpen}><span /><span /><span /></button>
+      </header>
+      <main className="page">{children}</main>
+      <BottomNav active={active} rankaId={rankaId} />
     </div>
-  );
+    {menuOpen && <div className="menu-backdrop" role="presentation" onClick={() => setMenuOpen(false)}>
+      <aside className="menu-drawer glass-panel" role="dialog" aria-modal="true" aria-label="Menu do ranka" onClick={(event) => event.stopPropagation()}>
+        <div className="between"><span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span><button className="menu-close" type="button" onClick={() => setMenuOpen(false)} aria-label="Fechar menu">×</button></div>
+        <nav className="drawer-nav">{rankaSections.filter((item) => item.key !== "jogadores").map((item) => <Link key={item.key} href={sectionHref(item.key, rankaId)} className={active === item.key ? "active" : ""} onClick={() => setMenuOpen(false)}>{item.label}<span>→</span></Link>)}</nav>
+        <div className="drawer-secondary"><Link href="/app" onClick={() => setMenuOpen(false)}>Trocar de ranka</Link><Link href="/app/privacidade">Privacidade</Link><Link href="/app/legal">Documentos</Link></div>
+      </aside>
+    </div>}
+  </div>;
 }

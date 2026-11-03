@@ -6,7 +6,7 @@ import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, Sessio
 interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
 interface SessionRow { id: string; scheduled_on: string; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
 interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
-interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; }
+interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
 interface SquadRow { id: string; squad_number: number; squad_members?: { player_id: string; assignment_order: number; removed_at: string | null }[]; }
 interface MatchRow {
   id: string; ordinal: number; yellow_squad_id: string; red_squad_id: string; state: LiveMatch["state"];
@@ -23,18 +23,26 @@ interface ContributionRow { player_id: string; amount_cents: number; status: "pe
 
 function readRules(value: Record<string, unknown>): SessionRules {
   const squadSize = Number(value.squadSize ?? 6);
+  const maxLinePlayers = Number(value.maxLinePlayers ?? 24);
+  const maxKeepers = Number(value.maxKeepers ?? 3);
   const regulationDurationMs = Number(value.regulationDurationMs ?? 600_000);
   const overtimeDurationMs = Number(value.overtimeDurationMs ?? 180_000);
   const targetGoals = Number(value.targetGoals ?? 0);
   const targetGoalDifference = Number(value.targetGoalDifference ?? 0);
   const tiePolicy = value.tiePolicy;
+  const contributionMode = value.contributionMode === "divide_total" ? "divide_total" : "fixed";
+  const totalCostCents = Number(value.totalCostCents ?? 0);
   return {
     squadSize: Number.isInteger(squadSize) && squadSize >= 2 ? squadSize : 6,
+    maxLinePlayers: Number.isInteger(maxLinePlayers) && maxLinePlayers >= 2 ? maxLinePlayers : 24,
+    maxKeepers: Number.isInteger(maxKeepers) && maxKeepers >= 0 ? maxKeepers : 3,
     regulationDurationMs: Number.isInteger(regulationDurationMs) ? regulationDurationMs : 600_000,
     overtimeDurationMs: Number.isInteger(overtimeDurationMs) ? overtimeDurationMs : 180_000,
     targetGoals: Number.isInteger(targetGoals) && targetGoals >= 0 ? targetGoals : 0,
     targetGoalDifference: Number.isInteger(targetGoalDifference) && targetGoalDifference >= 0 ? targetGoalDifference : 0,
     tiePolicy: tiePolicy === "both_out" || tiePolicy === "penalties" || tiePolicy === "odd_even" || tiePolicy === "manual" ? tiePolicy : "overtime",
+    contributionMode,
+    totalCostCents: Number.isInteger(totalCostCents) && totalCostCents >= 0 ? totalCostCents : 0,
   };
 }
 
@@ -67,7 +75,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     if (!session) throw new Error("Este ranka ainda não possui sessão.");
 
     const [attendanceResult, squadsResult, matchResult, contributionsResult] = await Promise.all([
-      this.client.from("attendance").select("id,player_id,arrival_index,status").eq("session_id", session.id).order("arrival_index"),
+      this.client.from("attendance").select("id,player_id,arrival_index,status,role_preference").eq("session_id", session.id).order("arrival_index"),
       this.client.from("squads").select("id,squad_number,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).order("squad_number"),
       this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1),
       this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id),
@@ -84,7 +92,7 @@ export class SupabaseRankaRepository implements RankaRepository {
       publicVisible: row.public_visible,
       publicDisplayName: row.public_display_name ?? undefined,
     }));
-    const attendance: Attendance[] = ((attendanceResult.data ?? []) as AttendanceRow[]).map((row) => ({ id: row.id, playerId: row.player_id, arrivalIndex: row.arrival_index, status: row.status }));
+    const attendance: Attendance[] = ((attendanceResult.data ?? []) as AttendanceRow[]).map((row) => ({ id: row.id, playerId: row.player_id, arrivalIndex: row.arrival_index, status: row.status, rolePreference: row.role_preference === "keeper" ? "keeper" : "line" }));
     const rules = readRules(session.rules_snapshot ?? {});
     const persistedSquads: Squad[] = ((squadsResult.data ?? []) as SquadRow[]).map((row) => {
       const playerIds = (row.squad_members ?? []).filter((member) => !member.removed_at).toSorted((a, b) => a.assignment_order - b.assignment_order).map((member) => member.player_id);

@@ -270,3 +270,18 @@ export function summarizeContributions(records: ContributionRecord[]) {
     { paid: 0, pending: 0, waived: 0, expectedCents: 0, receivedCents: 0 },
   );
 }
+
+export function canAcceptArrival(currentCount: number, limit: number): boolean {
+  return Number.isInteger(currentCount) && Number.isInteger(limit) && currentCount >= 0 && limit >= 0 && currentCount < limit;
+}
+
+export function calculateContributionShare(input: {
+  mode: "fixed" | "divide_total";
+  fixedCents: number;
+  totalCents: number;
+  presentCount: number;
+}): number {
+  if (input.mode === "fixed") return Math.max(0, Math.round(input.fixedCents));
+  if (input.presentCount <= 0) return 0;
+  return Math.max(0, Math.round(input.totalCents / input.presentCount));
+}
