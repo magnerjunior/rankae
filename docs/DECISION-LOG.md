@@ -265,4 +265,6 @@ A migration `20261103001700` foi aplicada no SQL Editor do projeto de produção
 
 A oferta pública deixa de fixar a duração do teste na comunicação visual e na mensagem de contato; a duração continua configurável internamente no plano. A seleção de texto usa verde da identidade. Dois takes licenciados do Pexels se alternam com dissolvência; o segundo só começa a carregar após o primeiro ficar pronto. Preferência por movimento reduzido e economia de dados impedem a reprodução automática.
 
-Os takes da abertura agora mostram partidas de rua com vários jogadores, substituindo o chute que demorava a acontecer e a cena individual. O segundo vídeo começa a carregar assim que o primeiro toca, e a dissolvência só ocorre com pelo menos 2,5 segundos do próximo take em buffer. Se ainda não estiver pronto, o take atual continua em loop; nenhum frame parado é apresentado como transição.
+Os takes da abertura mostram partidas de rua com vários jogadores. O segundo vídeo começa a carregar assim que o primeiro toca, e a dissolvência só ocorre com pelo menos 2,5 segundos do próximo take em buffer. Se ainda não estiver pronto, o take atual continua em loop; nenhum frame parado é apresentado como transição.
+
+O take original do chute de longe também integra a sequência como terceiro vídeo. Ele começa aos 3,2 segundos para mostrar logo a cobrança, mantendo os dois takes coletivos. Cada próximo vídeo é carregado durante o take atual; a sequência volta ao início após o gol.

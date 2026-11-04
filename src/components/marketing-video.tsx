@@ -5,13 +5,15 @@ import { useEffect, useRef, useState } from "react";
 const clips = [
   "https://videos.pexels.com/video-files/39709897/16930050_1920_1080_30fps.mp4",
   "https://videos.pexels.com/video-files/17446487/17446487-hd_1080_1920_60fps.mp4",
+  "https://videos.pexels.com/video-files/35607635/15089925_2304_1080_30fps.mp4",
 ] as const;
+const clipStarts = [0, 0, 3.2] as const;
 
 export function MarketingVideo() {
   const videos = useRef<Array<HTMLVideoElement | null>>([]);
   const [active, setActive] = useState(0);
   const switching = useRef(false);
-  const nextPrepared = useRef(false);
+  const prepared = useRef(new Set<number>());
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -25,7 +27,7 @@ export function MarketingVideo() {
 
   useEffect(() => {
     if (!switching.current) return;
-    const previous = videos.current[1 - active];
+    const previous = videos.current[(active - 1 + clips.length) % clips.length];
     const timeout = window.setTimeout(() => {
       previous?.pause();
       if (previous) previous.currentTime = 0;
@@ -34,18 +36,18 @@ export function MarketingVideo() {
     return () => window.clearTimeout(timeout);
   }, [active]);
 
-  function prepareNext() {
+  function prepareNext(index: number) {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    const next = videos.current[1];
-    if (next && !nextPrepared.current && !connection?.saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      nextPrepared.current = true;
+    const next = videos.current[index];
+    if (next && !prepared.current.has(index) && !connection?.saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      prepared.current.add(index);
       next.load();
     }
   }
 
-  function hasBufferedOpening(video: HTMLVideoElement) {
+  function hasBufferedOpening(video: HTMLVideoElement, start: number) {
     for (let index = 0; index < video.buffered.length; index += 1) {
-      if (video.buffered.start(index) <= 0.1 && video.buffered.end(index) >= Math.min(2.5, video.duration - 0.1)) return true;
+      if (video.buffered.start(index) <= start + 0.1 && video.buffered.end(index) >= Math.min(start + 2.5, video.duration - 0.1)) return true;
     }
     return false;
   }
@@ -53,11 +55,12 @@ export function MarketingVideo() {
   function onProgress(index: number) {
     if (index !== active || switching.current) return;
     const current = videos.current[index];
-    const next = videos.current[1 - index];
-    if (!current || !next || !Number.isFinite(current.duration) || current.duration - current.currentTime > 1.2 || !hasBufferedOpening(next)) return;
+    const nextIndex = (index + 1) % clips.length;
+    const next = videos.current[nextIndex];
+    if (!current || !next || !Number.isFinite(current.duration) || current.duration - current.currentTime > 1.2 || !hasBufferedOpening(next, clipStarts[nextIndex])) return;
     switching.current = true;
-    next.currentTime = 0;
-    void next.play().then(() => setActive(1 - index)).catch(() => { switching.current = false; });
+    next.currentTime = clipStarts[nextIndex];
+    void next.play().then(() => setActive(nextIndex)).catch(() => { switching.current = false; });
   }
 
   return <div className="marketing-video-stage" aria-hidden="true">
@@ -70,9 +73,10 @@ export function MarketingVideo() {
       playsInline
       loop
       preload={index === 0 ? "metadata" : "none"}
-      onPlaying={() => {
-        if (index === 0 && active === 0) prepareNext();
+      onLoadedMetadata={(event) => {
+        if (clipStarts[index] > 0) event.currentTarget.currentTime = clipStarts[index];
       }}
+      onPlaying={() => prepareNext((index + 1) % clips.length)}
       onTimeUpdate={() => onProgress(index)}
     />)}
   </div>;
