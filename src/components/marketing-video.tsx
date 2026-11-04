@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 const clips = [
-  "https://videos.pexels.com/video-files/39709897/16930050_1920_1080_30fps.mp4",
-  "https://videos.pexels.com/video-files/17446487/17446487-hd_1080_1920_60fps.mp4",
   "https://videos.pexels.com/video-files/35607635/15089925_2304_1080_30fps.mp4",
+  "/videos/drible-society.mp4",
+  "/videos/gol-society.mp4",
+  "/videos/pelada-vista-alto.mp4",
 ] as const;
-const clipStarts = [0, 0, 3.2] as const;
+const clipStarts = [3.2, 0, 0, 0] as const;
 
 export function MarketingVideo() {
   const videos = useRef<Array<HTMLVideoElement | null>>([]);
@@ -80,4 +81,16 @@ export function MarketingVideo() {
       onTimeUpdate={() => onProgress(index)}
     />)}
   </div>;
+}
+
+export function FriendsVideo() {
+  const video = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || connection?.saveData) return;
+    void video.current?.play().catch(() => undefined);
+  }, []);
+
+  return <video ref={video} className="marketing-friends-video" src="/videos/amigos-celular.mp4" muted playsInline loop preload="metadata" aria-hidden="true" />;
 }

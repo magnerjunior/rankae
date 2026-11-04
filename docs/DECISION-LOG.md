@@ -268,3 +268,7 @@ A oferta pública deixa de fixar a duração do teste na comunicação visual e 
 Os takes da abertura mostram partidas de rua com vários jogadores. O segundo vídeo começa a carregar assim que o primeiro toca, e a dissolvência só ocorre com pelo menos 2,5 segundos do próximo take em buffer. Se ainda não estiver pronto, o take atual continua em loop; nenhum frame parado é apresentado como transição.
 
 O take original do chute de longe também integra a sequência como terceiro vídeo. Ele começa aos 3,2 segundos para mostrar logo a cobrança, mantendo os dois takes coletivos. Cada próximo vídeo é carregado durante o take atual; a sequência volta ao início após o gol.
+
+## 2026-11-04 — vídeos enviados e nova abertura
+
+A capa usa o chute de longe e três takes enviados pelo proprietário (dois de society e um aéreo), sem as cenas anteriores na terra. O vídeo aéreo foi reduzido de 4K para 720p, sem áudio, para 1,24 MB. A cena gerada dos cinco amigos olhando o celular fica como fundo da seção de funcionamento. O placar saiu da capa e entrou na simulação do celular da seção de recursos. Os títulos adotam Teko em caixa alta, opção prevista no design system; o texto corrido permanece em Barlow.

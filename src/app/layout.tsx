@@ -4,6 +4,8 @@ import "@fontsource/barlow/500.css";
 import "@fontsource/barlow/600.css";
 import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/800.css";
+import "@fontsource/teko/600.css";
+import "@fontsource/teko/700.css";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { CookieConsent } from "@/components/cookie-consent";

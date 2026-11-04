@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LegalFooter } from "@/components/legal-document";
-import { MarketingVideo } from "@/components/marketing-video";
+import { FriendsVideo, MarketingVideo } from "@/components/marketing-video";
 import { commercialPlanSchema, DEFAULT_COMMERCIAL_PLAN, formatCurrency, trialMessage, whatsappLink } from "@/lib/commercial";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,16 +36,13 @@ export default async function HomePage() {
           <div className="marketing-actions"><a className="button marketing-primary" href={trialHref} target="_blank" rel="noreferrer">Testar grátis</a><a className="button marketing-secondary" href="#como-funciona">Ver como funciona</a></div>
           <small>Teste grátis sem cartão de crédito</small>
         </div>
-        <div className="marketing-live-card" aria-label="Prévia da operação do Rankaê">
-          <div className="marketing-live-head"><span><i /> Jogo 3</span><b>06:42</b></div>
-          <div className="marketing-live-score"><div><small>AMARELO · T3</small><strong>2</strong></div><span>×</span><div><small>VERMELHO · T4</small><strong>1</strong></div></div>
-          <div className="marketing-live-foot"><span>24 presentes</span><span>Próximo: T5</span></div>
-        </div>
       </section>
 
       <section className="marketing-proof" aria-label="Principais benefícios"><span>Chegada rápida</span><span>Times justos</span><span>Cronômetro confiável</span><span>Estatísticas do dia</span></section>
 
       <section className="marketing-section marketing-story" id="como-funciona">
+        <FriendsVideo />
+        <div className="marketing-story-shade" />
         <header className="marketing-section-head"><h2 className="display">Largue o papel<br />e deixe a bola rolar</h2><p>Da chegada da turma ao último jogo, o Rankaê organiza a pelada sem tirar você da beira do campo.</p></header>
         <div className="marketing-steps">
           <article><span>01</span><div><h3>Registre a chegada</h3><p>Digite um nome ou cole a lista inteira. Goleiros ficam separados e a ordem de chegada é preservada.</p></div></article>
@@ -55,7 +52,7 @@ export default async function HomePage() {
       </section>
 
       <section className="marketing-section marketing-showcase" id="recursos">
-        <div className="marketing-phone" aria-hidden="true"><div className="marketing-phone-bar"><span>Ranka de terça</span><b>3 × 2</b></div><div className="marketing-phone-timer">04:18<small>TEMPO NORMAL</small></div><div className="marketing-phone-teams"><span>AMARELO · T1</span><span>VERMELHO · T2</span></div><div className="marketing-phone-actions"><span>+ GOL</span><span>+ GOL</span></div><div className="marketing-phone-next">Próximo time <b>T3</b></div></div>
+        <div className="marketing-phone" aria-label="Prévia do placar no celular"><div className="marketing-phone-camera" /><div className="marketing-phone-bar"><span>Ranka de terça</span><b>Jogo 3</b></div><div className="marketing-phone-timer">04:18<small>TEMPO NORMAL</small></div><div className="marketing-phone-score"><div><small>AMARELO · T3</small><strong>2</strong></div><span>×</span><div><small>VERMELHO · T4</small><strong>1</strong></div></div><div className="marketing-phone-actions"><span>+ GOL</span><span>+ GOL</span></div><div className="marketing-phone-next"><span>24 presentes</span><span>Próximo <b>T5</b></span></div></div>
         <div className="marketing-showcase-copy"><span className="eyebrow">Feito para a beira da quadra</span><h2 className="display">O jogo todo na palma da mão</h2><p>Mais ritmo na quadra, mais assunto no grupo depois. Cada partida alimenta a história do seu ranka.</p><ul>
           <li><strong>Resposta imediata</strong><span>Toques rápidos e operação preparada para a conexão do campo.</span></li>
           <li><strong>Rodízio organizado</strong><span>Fila de times, próximos jogadores e histórico de partidas.</span></li>
