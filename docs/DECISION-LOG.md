@@ -264,3 +264,5 @@ A migration `20261103001700` foi aplicada no SQL Editor do projeto de produção
 ## 2026-11-04 — ajustes da apresentação pública
 
 A oferta pública deixa de fixar a duração do teste na comunicação visual e na mensagem de contato; a duração continua configurável internamente no plano. A seleção de texto usa verde da identidade. Dois takes licenciados do Pexels se alternam com dissolvência; o segundo só começa a carregar após o primeiro ficar pronto. Preferência por movimento reduzido e economia de dados impedem a reprodução automática.
+
+Os takes da abertura agora mostram partidas de rua com vários jogadores, substituindo o chute que demorava a acontecer e a cena individual. O segundo vídeo começa a carregar assim que o primeiro toca, e a dissolvência só ocorre com pelo menos 2,5 segundos do próximo take em buffer. Se ainda não estiver pronto, o take atual continua em loop; nenhum frame parado é apresentado como transição.

@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 
 const clips = [
-  "https://videos.pexels.com/video-files/35607635/15089925_2304_1080_30fps.mp4",
-  "https://videos.pexels.com/video-files/29556479/12722806_1920_1080_25fps.mp4",
+  "https://videos.pexels.com/video-files/39709897/16930050_1920_1080_30fps.mp4",
+  "https://videos.pexels.com/video-files/17446487/17446487-hd_1080_1920_60fps.mp4",
 ] as const;
 
 export function MarketingVideo() {
   const videos = useRef<Array<HTMLVideoElement | null>>([]);
   const [active, setActive] = useState(0);
   const switching = useRef(false);
+  const nextPrepared = useRef(false);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -35,16 +36,25 @@ export function MarketingVideo() {
 
   function prepareNext() {
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    if (!connection?.saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      videos.current[1]?.load();
+    const next = videos.current[1];
+    if (next && !nextPrepared.current && !connection?.saveData && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      nextPrepared.current = true;
+      next.load();
     }
+  }
+
+  function hasBufferedOpening(video: HTMLVideoElement) {
+    for (let index = 0; index < video.buffered.length; index += 1) {
+      if (video.buffered.start(index) <= 0.1 && video.buffered.end(index) >= Math.min(2.5, video.duration - 0.1)) return true;
+    }
+    return false;
   }
 
   function onProgress(index: number) {
     if (index !== active || switching.current) return;
     const current = videos.current[index];
     const next = videos.current[1 - index];
-    if (!current || !next || !Number.isFinite(current.duration) || current.duration - current.currentTime > 1.2 || next.readyState < 2) return;
+    if (!current || !next || !Number.isFinite(current.duration) || current.duration - current.currentTime > 1.2 || !hasBufferedOpening(next)) return;
     switching.current = true;
     next.currentTime = 0;
     void next.play().then(() => setActive(1 - index)).catch(() => { switching.current = false; });
@@ -60,7 +70,9 @@ export function MarketingVideo() {
       playsInline
       loop
       preload={index === 0 ? "metadata" : "none"}
-      onCanPlay={index === 0 ? prepareNext : undefined}
+      onPlaying={() => {
+        if (index === 0 && active === 0) prepareNext();
+      }}
       onTimeUpdate={() => onProgress(index)}
     />)}
   </div>;
