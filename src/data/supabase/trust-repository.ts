@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { commercialPlanSchema } from "@/lib/commercial";
 
 const legalDocumentSchema = z.object({
   id: z.string().uuid(), key: z.string(), version: z.number().int().positive(), title: z.string(), body: z.string(), effectiveAt: z.string(),
@@ -45,5 +46,11 @@ export class TrustRepository {
     const { data, error } = await this.client.rpc("get_platform_admin_overview", { p_reason: reason });
     if (error) throw error;
     return adminOverviewSchema.parse(data);
+  }
+
+  async commercialPlan() {
+    const { data, error } = await this.client.rpc("get_commercial_plan");
+    if (error) throw error;
+    return commercialPlanSchema.parse(data);
   }
 }

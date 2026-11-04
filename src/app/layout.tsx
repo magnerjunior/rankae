@@ -13,7 +13,7 @@ const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhos
 export const metadata: Metadata = {
   metadataBase,
   title: "Rankaê · Gestão de peladas",
-  description: "Gestão presencial, placar ao vivo e estatísticas para peladas brasileiras.",
+  description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: "/rankae-icon.svg", type: "image/svg+xml" }],
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Rankaê · Gestão de peladas",
-    description: "Gestão presencial, placar ao vivo e estatísticas para peladas brasileiras.",
+    description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
     type: "website",
     locale: "pt_BR",
     images: [{ url: "/rankae-brand-social.png", alt: "Rankaê" }],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Rankaê · Gestão de peladas",
-    description: "Gestão presencial, placar ao vivo e estatísticas para peladas brasileiras.",
+    description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
     images: ["/rankae-brand-social.png"],
   },
 };

@@ -252,3 +252,9 @@ A observabilidade passa a medir também formação, preparação, rotação, con
 Playwright passa a validar a aplicação local em Chromium desktop e viewport móvel. O adaptador demo é ativado somente no servidor de desenvolvimento iniciado pela suíte. O cenário autenticado é somente leitura e permanece ignorado sem credenciais fictícias de staging; credenciais pessoais e dados de produção não são aceitos como substitutos para um ambiente de teste.
 
 As suítes pgTAP foram ampliadas para as migrations `015/016`. Depois de concedido acesso à conta já persistida na CLI, as duas migrations foram aplicadas em ordem no projeto Rankaê. A validação SQL remota aprovou operação/concorrência em 24/24 e confiança/observabilidade em 22/22, sempre dentro de transações com rollback. Teste físico, carga, restauração, alertas externos, revisão jurídica e bootstrap MFA continuam gates humanos/externos explícitos, não simulações de sucesso.
+
+## 2026-11-03 — oferta comercial manual e limites por conta
+
+A landing page passa a apresentar o produto, o plano de lançamento e um teste acompanhado. A contratação continua manual pelo WhatsApp; não há cobrança, renovação ou ativação automática nesta entrega. O vídeo de fundo é decorativo, leve, carregado como mídia e removido quando o visitante prefere menos movimento.
+
+O plano público é uma projeção segura editável apenas pelo superadministrador com sessão MFA AAL2. Novos proprietários recebem um ranka; rankas adicionais exigem ampliação manual do direito da conta. Para preservar o combinado anterior, o único proprietário já existente recebe limite três. Como o ambiente possuía um único proprietário e nenhum administrador global, a migration promove esse proprietário como primeiro superadministrador, mantendo a exigência de MFA e a auditoria de alterações.
