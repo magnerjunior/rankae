@@ -1411,15 +1411,15 @@ function Rules({
                   name="enableTargetGoals"
                   defaultChecked={snapshot.rules.targetGoals > 0}
                 />
-                Total de gols
+                Gols de um time
                 <input
                   className="input mini-number"
                   type="number"
                   name="targetGoals"
                   min="1"
                   max="99"
-                  defaultValue={snapshot.rules.targetGoals || 10}
-                  aria-label="Total de gols"
+                  defaultValue={snapshot.rules.targetGoals || 2}
+                  aria-label="Gols de um time"
                 />
               </label>
               <label className="check-row">
