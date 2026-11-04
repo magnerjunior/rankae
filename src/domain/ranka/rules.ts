@@ -228,6 +228,12 @@ export function computeClockElapsed(snapshot: MatchClockSnapshot, nowIso: string
   return Math.max(0, snapshot.elapsedMsBeforeStart + now - startedAt);
 }
 
+export function reachedMatchGoalRule(score: { yellow: number; red: number }, targetGoals: number, targetGoalDifference: number): boolean {
+  if (score.yellow === score.red) return false;
+  return (targetGoals > 0 && Math.max(score.yellow, score.red) >= targetGoals)
+    || (targetGoalDifference > 0 && Math.abs(score.yellow - score.red) >= targetGoalDifference);
+}
+
 export function projectScore(events: MatchEvent[]): ScoreProjection {
   return events.reduce<ScoreProjection>((score, event) => {
     if (event.status !== "active") return score;

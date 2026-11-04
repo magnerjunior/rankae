@@ -569,6 +569,33 @@ export async function completeMatchAction(rankaId: string, matchId: string, expe
   return { status: "success", message: "Próximo jogo pronto.", nextPath: `/app/rankas/${rankaId}/jogo?etapa=partida` };
 }
 
+export async function finishMatchAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData): Promise<FastMutationResult> {
+  const { error } = await rpc("finish_match", { p_match_id: matchId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  if (error) return { status: "error", message: error.code === "40001" ? "A partida mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível encerrar a partida." };
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return { status: "success", message: "Partida encerrada." };
+}
+
+export async function adjustMatchClockAction(rankaId: string, matchId: string, formData: FormData): Promise<ClockMutationResult> {
+  const parsed = z.object({ minutes: z.coerce.number().int().min(1).max(10), revision: z.coerce.number().int().positive() }).safeParse({ minutes: formData.get("minutes"), revision: formData.get("expectedRevision") });
+  if (!parsed.success) return { status: "error", message: "Escolha de 1 a 10 minutos." };
+  const { data, error } = await rpc("adjust_match_clock", { p_match_id: matchId, p_add_ms: parsed.data.minutes * 60_000, p_expected_revision: parsed.data.revision, p_idempotency_key: idempotencyKey(formData) });
+  if (error) return { status: "error", message: "Não foi possível adicionar tempo. Atualize e tente novamente." };
+  const clock = readClockResult(data);
+  if (!clock) return { status: "error", message: "Não foi possível confirmar o novo tempo." };
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return clock;
+}
+
+export async function updateGoalAttributionAction(rankaId: string, eventId: string, matchRevision: number, formData: FormData): Promise<FastMutationResult> {
+  const parsed = z.object({ scorer: optionalUuid, assist: optionalUuid }).safeParse({ scorer: formData.get("scorer"), assist: formData.get("assist") });
+  if (!parsed.success || (parsed.data.scorer && parsed.data.scorer === parsed.data.assist)) return { status: "error", message: "Confira autor e assistência." };
+  const { error } = await rpc("update_goal_attribution", { p_event_id: eventId, p_scorer_player_id: parsed.data.scorer ?? null, p_assist_player_id: parsed.data.assist ?? null, p_expected_revision: matchRevision, p_idempotency_key: idempotencyKey(formData) });
+  if (error) return { status: "error", message: error.code === "40001" ? "A partida mudou. Atualize e tente novamente." : "Não foi possível atribuir o gol." };
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return { status: "success", message: "Autoria atualizada." };
+}
+
 export async function batchContributionsAction(sessionId: string, expectedRevision: number, formData: FormData): Promise<ContributionMutationResult> {
   const parsed = z.object({ playerIds: z.array(uuid).min(1), status: z.enum(["pending", "paid", "waived"]), note: z.string().trim().max(240).optional() }).safeParse({ playerIds: formData.getAll("playerIds"), status: formData.get("status"), note: formData.get("note") || undefined });
   if (!parsed.success) return { status: "error", message: "Selecione ao menos um jogador." };
@@ -589,7 +616,7 @@ export async function updateRulesAction(rankaId: string, sessionId: string, expe
   if (!parsed.success) finish(rankaId, "configuracoes", false, "dados");
   const presentCount = Math.max(1, Number(formData.get("presentCount") ?? 1));
   const contributionAmountCents = calculateContributionShare({ mode: parsed.data.contributionMode, fixedCents: parsed.data.contributionAmountCents, totalCents: parsed.data.totalCostCents, presentCount });
-  const rules = { squadSize: parsed.data.squadSize, maxLinePlayers: parsed.data.maxLinePlayers, maxKeepers: parsed.data.maxKeepers, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy, contributionMode: parsed.data.contributionMode, totalCostCents: parsed.data.totalCostCents };
+  const rules = { squadSize: parsed.data.squadSize, maxLinePlayers: parsed.data.maxLinePlayers, maxKeepers: parsed.data.maxKeepers, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalsConfigured: true, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy, contributionMode: parsed.data.contributionMode, totalCostCents: parsed.data.totalCostCents };
   const { error } = await rpc("update_session_rules", { p_session_id: sessionId, p_rules: rules, p_contribution_amount_cents: contributionAmountCents, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "configuracoes", !error, error ? "conflito" : "regras");
 }

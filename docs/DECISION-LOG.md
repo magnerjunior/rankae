@@ -290,3 +290,11 @@ O acompanhamento de jogadores conta encontros concluídos consecutivos sem prese
 O histórico consulta apenas a data aberta e lista 20 encontros por página. O painel do Supabase mostrava aviso de CPU alta; o relatório de consultas atribuía a maior parte do tempo acumulado à preparação de contexto de requisições, sem identificar o Rankaê como causa. A redução de consultas nesta entrega se limita à paginação e ao carregamento sob demanda do histórico. O aviso precisa ser acompanhado após a publicação; não há base para declarar o problema de CPU resolvido.
 
 Uma partida ainda aberta impede o encerramento do encontro no servidor para preservar o resultado. Nesse caso, o painel mantém o acesso ao encerramento visível e aponta para a partida. Após concluir a partida, o organizador pode encerrar o ranka do dia; nenhuma partida real foi finalizada durante a validação.
+
+## 2026-11-04 — encerramento da partida e histórico compacto
+
+Encerrar partida passa a ser uma transação própria, com confirmação, versão esperada e chave de idempotência. Ela congela o cronômetro pelo horário do servidor e mantém o jogo concluído visível para correção da autoria dos gols. O botão Próximo jogo chama o rodízio separadamente; o ranka do dia pode ser encerrado sem gerar outra partida. O rodízio só aceita uma partida concluída e impede execução repetida com outra chave.
+
+O limite de dois gols passa a valer para um dos times, preservando a possibilidade de empate. Ao atingir o limite, a interface oferece continuar ou finalizar. O ajuste manual acrescenta minutos à duração limite sem alterar o tempo transcorrido. A regra de dois gols é padrão apenas para novos encontros sem configuração explícita; salvar zero desativa a regra.
+
+O calendário do histórico consulta somente o mês exibido. Elencos arquivados continuam visíveis pelo registro histórico dos integrantes, e cada partida abre sob demanda. A conexão em tempo real fica restrita à tela do jogo, com atualizações agrupadas em 600 ms para reduzir recargas durante a navegação. A migração `20261104000300` foi aplicada no SQL Editor autorizado e registrada no histórico. O alerta de CPU do Supabase permanece em observação; não há medição que comprove sua resolução.

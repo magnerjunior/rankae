@@ -11,7 +11,7 @@ import { isDemoEnabled } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserId } from "@/server/auth";
 
-export default async function RankaPage({ params, searchParams }: { params: Promise<{ rankaId: string; section?: string[] }>; searchParams: Promise<{ sucesso?: string; erro?: string; period?: string; date?: string; etapa?: string; dia?: string; pagina?: string }> }) {
+export default async function RankaPage({ params, searchParams }: { params: Promise<{ rankaId: string; section?: string[] }>; searchParams: Promise<{ sucesso?: string; erro?: string; period?: string; date?: string; etapa?: string; dia?: string; pagina?: string; mes?: string }> }) {
   const { rankaId, section } = await params;
   const active = section?.[0] ?? "inicio";
   if (!isRankaSection(active)) notFound();
@@ -21,12 +21,12 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   }
   await requireUserId();
   const client = await createClient();
-  const { sucesso, erro, period: periodValue, date, etapa, dia, pagina } = await searchParams;
+  const { sucesso, erro, period: periodValue, date, etapa, dia, pagina, mes } = await searchParams;
   if (active === "historico") {
     const { data: ranka, error: rankaError } = await client.from("rankas").select("id,name,org_id").eq("id", rankaId).maybeSingle();
     if (rankaError) throw new Error("Não foi possível abrir o histórico.");
     if (!ranka) notFound();
-    return <RankaHistory client={client} rankaId={rankaId} rankaName={ranka.name} orgId={ranka.org_id} selectedId={dia} page={pagina} />;
+    return <RankaHistory client={client} rankaId={rankaId} rankaName={ranka.name} orgId={ranka.org_id} selectedId={dia} page={pagina} month={mes} />;
   }
   const repository = new SupabaseRankaRepository(client);
   const snapshot = await repository.getSnapshot(rankaId).catch((error: unknown) => {

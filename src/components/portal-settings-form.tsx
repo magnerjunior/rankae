@@ -5,11 +5,12 @@ import type { PortalSettingsActionState } from "@/app/app/rankas/[rankaId]/actio
 
 const initialState: PortalSettingsActionState = { status: "idle" };
 
-export function PortalSettingsForm({ action, currentVisibility }: { action: (state: PortalSettingsActionState, formData: FormData) => Promise<PortalSettingsActionState>; currentVisibility: "public" | "unlisted" | "pin_protected" | "private_off" }) {
+export function PortalSettingsForm({ action, currentVisibility, publicPath }: { action: (state: PortalSettingsActionState, formData: FormData) => Promise<PortalSettingsActionState>; currentVisibility: "public" | "unlisted" | "pin_protected" | "private_off"; publicPath: string }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [visibility, setVisibility] = useState(currentVisibility);
   const [copied, setCopied] = useState(false);
-  const absoluteLink = useMemo(() => state.sharePath && typeof window !== "undefined" ? `${window.location.origin}${state.sharePath}` : state.sharePath, [state.sharePath]);
+  const sharePath = state.sharePath ?? (currentVisibility === "public" ? publicPath : undefined);
+  const absoluteLink = useMemo(() => sharePath && typeof window !== "undefined" ? `${window.location.origin}${sharePath}` : sharePath, [sharePath]);
   async function copyLink() {
     if (absoluteLink) {
       await navigator.clipboard.writeText(absoluteLink);

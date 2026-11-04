@@ -14,7 +14,7 @@ export function RealtimeSessionRefresh({ sessionId }: { sessionId: string }) {
     let disposed = false;
     const refresh = () => {
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => router.refresh(), 120);
+      timer.current = setTimeout(() => router.refresh(), 600);
     };
 
     async function connect() {

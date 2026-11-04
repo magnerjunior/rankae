@@ -8,6 +8,7 @@ import { ArrivalManager } from "@/components/arrival-manager";
 import { EmptyState } from "@/components/feedback";
 import { FlashNotice } from "@/components/flash-notice";
 import { FastMutationForm } from "@/components/fast-mutation-form";
+import { FinishMatchControl } from "@/components/finish-match-control";
 import { OptimisticMatchClock } from "@/components/optimistic-match-clock";
 import { OptimisticScore } from "@/components/optimistic-score";
 import { PlayerCreateForm } from "@/components/player-create-form";
@@ -19,6 +20,7 @@ import { MatchPlayerManager } from "@/components/match-player-manager";
 import { RealtimeSessionRefresh } from "@/components/realtime-session-refresh";
 import {
   projectScore,
+  reachedMatchGoalRule,
   suggestOfficials,
   summarizeContributions,
 } from "@/domain/ranka/rules";
@@ -34,6 +36,9 @@ import {
   clockAction,
   clockNavigationAction,
   completeMatchAction,
+  finishMatchAction,
+  adjustMatchClockAction,
+  updateGoalAttributionAction,
   confirmOfficialsAction,
   createPlayerAction,
   generateSquadsAction,
@@ -577,7 +582,7 @@ function Teams({
 }
 
 function FinishDayControl({ snapshot }: { snapshot: RankaSnapshot }) {
-  const matchInProgress = snapshot.activeMatch && snapshot.activeMatch.state !== "ready";
+  const matchInProgress = snapshot.activeMatch && !["ready", "completed"].includes(snapshot.activeMatch.state);
   return <section className="finish-day-banner">
     <span><small>Ranka de {snapshot.sessionLabel}</small><strong>Terminou o futebol deste dia?</strong></span>
     {matchInProgress ? <Link className="button button-secondary button-small" href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`}>Finalizar a partida primeiro</Link> : <details><summary>Encerrar ranka</summary><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><p>Encerra definitivamente este encontro e abre o resumo do dia.</p><button className="button button-danger">Confirmar encerramento</button></form></details>}
@@ -701,12 +706,7 @@ function MatchConsole({
     "regulation_ended",
     "tie_break",
   ].includes(match.state);
-  const scoreRuleReached =
-    (snapshot.rules.targetGoals > 0 &&
-      score.yellow + score.red >= snapshot.rules.targetGoals) ||
-    (snapshot.rules.targetGoalDifference > 0 &&
-      Math.abs(score.yellow - score.red) >=
-        snapshot.rules.targetGoalDifference);
+  const scoreRuleReached = reachedMatchGoalRule(score, snapshot.rules.targetGoals, snapshot.rules.targetGoalDifference);
   return (
     <>
       <Heading
@@ -728,16 +728,17 @@ function MatchConsole({
           <TieForm snapshot={snapshot} />
         </section>
       )}
-      {["regulation_ended", "tie_break"].includes(match.state) && (
+      {match.state === "completed" && waitingSquads.length > 0 && (
         <section className="next-match-bar next-match-primary">
-          <span><strong>Partida encerrada</strong><small>Salva o resultado, aplica a rotação e abre o próximo jogo.</small></span>
+          <span><strong>Partida encerrada</strong><small>Confira os gols ou encerre o ranka de hoje.</small></span>
           <FastMutationForm className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
             <Key />
-            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">{match.state === "tie_break" ? "Usar desempate registrado" : "Quem continua?"}</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
-            <button className="button button-primary">Finalizar e próximo jogo</button>
+            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">Usar desempate registrado</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
+            <button className="button button-primary">Próximo jogo</button>
           </FastMutationForm>
         </section>
       )}
+      {!["ready", "completed", "cancelled"].includes(match.state) && <section className="next-match-bar next-match-primary"><span><strong>{scoreRuleReached ? "Fim de partida" : "Partida em andamento"}</strong><small>{scoreRuleReached && score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number} chegou ao limite de gols.` : ""}</small></span><FinishMatchControl action={finishMatchAction.bind(null, snapshot.id, match.id, match.revision)} ruleReached={scoreRuleReached} promptKey={`${match.id}:${score.yellow}:${score.red}`} winnerLabel={score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number}` : undefined} /></section>}
       <section className="scoreboard">
         <OptimisticMatchClock
           key={`${match.id}:${match.revision}`}
@@ -754,6 +755,8 @@ function MatchConsole({
           resetAction={clock("reset")}
           finishRegulationAction={clock("finish_regulation")}
           finishOvertimeAction={clock("finish_overtime")}
+          adjustAction={adjustMatchClockAction.bind(null, snapshot.id, match.id)}
+          showOvertimeOption={score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0}
         />
         <div className="score-sides">
           <div className="score-side">
@@ -804,12 +807,6 @@ function MatchConsole({
           />
         </div>
       </section>
-      {scoreRuleReached && ["live", "paused"].includes(match.state) && (
-        <div className="notice" style={{ marginTop: 12 }}>
-          A condição configurada de gols/diferença foi alcançada. Revise o
-          último evento e confirme o encerramento do tempo normal.
-        </div>
-      )}
 
       {match.state === "ready" && (
         <section className="panel support-panel" style={{ marginTop: 16 }}>
@@ -912,7 +909,8 @@ function MatchConsole({
           {activeEvents.length ? (
             <div className="event-list">
               {activeEvents.map((event) => (
-                <div className="event" key={event.id}>
+                <div key={event.id}>
+                <div className="event">
                   <span>
                     <strong>
                       {event.type === "goal"
@@ -950,6 +948,8 @@ function MatchConsole({
                       </button>
                     </form>
                   )}
+                </div>
+                {event.type === "goal" && <details className="goal-attribution"><summary>Autor e assistência</summary><FastMutationForm action={updateGoalAttributionAction.bind(null, snapshot.id, event.id, match.revision)}><Key /><label>Gol de<select className="select" name="scorer" defaultValue={event.scorerPlayerId ?? ""}><option value="">Não informado</option>{(event.side === "yellow" ? event.goalKind === "own_goal" ? redPlayers : yellowPlayers : event.goalKind === "own_goal" ? yellowPlayers : redPlayers).map((player) => <option key={player.id} value={player.id}>{player.fullName}</option>)}</select></label><label>Assistência<select className="select" name="assist" defaultValue={event.assistPlayerId ?? ""}><option value="">Sem assistência</option>{(event.side === "yellow" ? yellowPlayers : redPlayers).map((player) => <option key={player.id} value={player.id}>{player.fullName}</option>)}</select></label><button className="button button-secondary button-small">Salvar autoria</button></FastMutationForm></details>}
                 </div>
               ))}
             </div>
@@ -1497,6 +1497,7 @@ function Rules({
                 snapshot.portal.slug,
               )}
               currentVisibility={snapshot.portal.visibility}
+              publicPath={`/r/${snapshot.portal.slug}`}
             />
           </section>
         )}
@@ -1729,7 +1730,7 @@ export function RealRankaWorkspace({
     : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
   return (
     <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status}>
-      {snapshot.sessionId && snapshot.sessionState !== "completed" && <RealtimeSessionRefresh sessionId={snapshot.sessionId} />}
+      {isMatchScreen && snapshot.sessionId && snapshot.sessionState !== "completed" && <RealtimeSessionRefresh sessionId={snapshot.sessionId} />}
       {content}
     </AppShell>
   );

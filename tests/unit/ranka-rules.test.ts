@@ -12,6 +12,7 @@ import {
   groupSquads,
   orderEligibleAttendance,
   projectScore,
+  reachedMatchGoalRule,
   rotateSquads,
   rotateKeeperOnLoss,
   summarizeContributions,
@@ -21,6 +22,14 @@ import {
 } from "@/domain/ranka/rules";
 import type { Attendance, Player, TiePolicy } from "@/domain/ranka/types";
 import { parseArrivalList } from "@/domain/ranka/arrival-import";
+
+describe("limite de gols", () => {
+  it("encerra quando um time chega a dois gols e preserva o empate", () => {
+    expect(reachedMatchGoalRule({ yellow: 2, red: 0 }, 2, 0)).toBe(true);
+    expect(reachedMatchGoalRule({ yellow: 1, red: 1 }, 2, 0)).toBe(false);
+    expect(reachedMatchGoalRule({ yellow: 2, red: 2 }, 2, 0)).toBe(false);
+  });
+});
 
 const players: Player[] = Array.from({ length: 30 }, (_, index) => ({
   id: `p${index + 1}`,

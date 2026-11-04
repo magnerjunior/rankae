@@ -27,6 +27,8 @@ interface OptimisticMatchClockProps extends ClockView {
   resetAction: ClockAction;
   finishRegulationAction: ClockAction;
   finishOvertimeAction: ClockAction;
+  adjustAction: ClockAction;
+  showOvertimeOption: boolean;
 }
 
 function running(state: MatchState) { return state === "live" || state === "overtime_live"; }
@@ -87,6 +89,24 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
     }
   }
 
+  async function addTime(formData: FormData) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    formData.set("idempotencyKey", crypto.randomUUID());
+    formData.set("expectedRevision", String(clock.revision));
+    try {
+      const result = await props.adjustAction(formData);
+      if (result.status !== "success" || !result.state || result.elapsedMsBeforeStart === undefined || !result.serverNow || result.revision === undefined || result.durationLimitMs === undefined) {
+        setError(result.message ?? "Não foi possível adicionar tempo.");
+        return;
+      }
+      setClock({ state: result.state, startedAtServer: result.startedAtServer, elapsedMsBeforeStart: result.elapsedMsBeforeStart, durationLimitMs: result.durationLimitMs, serverNow: result.serverNow, revision: result.revision });
+      setError("");
+    } catch { setError("Não foi possível adicionar tempo."); }
+    finally { busyRef.current = false; setBusy(false); }
+  }
+
   return <>
     <div className="timer-bar"><LiveTimer {...clock} /></div>
     <div className="score-actions optimistic-clock-actions" aria-busy={busy}>
@@ -94,8 +114,8 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
       {running(clock.state) && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("pause", props.pauseAction)}>Pausar</button>}
       {(clock.state === "paused" || clock.state === "overtime_paused") && <button className="button button-primary" disabled={busy} type="button" onClick={() => run("resume", props.resumeAction)}>Retomar</button>}
       {!['completed','cancelled'].includes(clock.state) && <button className="button button-danger" disabled={busy} type="button" onClick={() => run("reset", props.resetAction)}>Reiniciar</button>}
-      {(clock.state === "live" || clock.state === "paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_regulation", props.finishRegulationAction)}>Encerrar tempo</button>}
-      {(clock.state === "overtime_live" || clock.state === "overtime_paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_overtime", props.finishOvertimeAction)}>Encerrar prorrogação</button>}
+      {props.showOvertimeOption && (clock.state === "live" || clock.state === "paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_regulation", props.finishRegulationAction)}>Ir para prorrogação</button>}
+      {['live','paused','overtime_live','overtime_paused'].includes(clock.state) && <form action={addTime} className="cluster"><label className="sr-only" htmlFor="clock-add-minutes">Minutos para adicionar</label><select id="clock-add-minutes" name="minutes" className="select" defaultValue="1"><option value="1">+1 min</option><option value="2">+2 min</option><option value="3">+3 min</option><option value="5">+5 min</option><option value="10">+10 min</option></select><button className="button button-secondary" disabled={busy}>Adicionar tempo</button></form>}
     </div>
     {error && <div className="flash-toast error" role="alert">{error}</div>}
   </>;

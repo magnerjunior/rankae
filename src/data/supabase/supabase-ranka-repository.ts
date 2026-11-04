@@ -112,7 +112,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     });
     const latestMatch = ((matchResult.data ?? [])[0] ?? null) as MatchRow | null;
     let activeMatch: LiveMatch | undefined;
-    if (latestMatch && latestMatch.state !== "completed" && latestMatch.state !== "cancelled") {
+    if (latestMatch && latestMatch.state !== "cancelled") {
       const [assignmentsResult, eventsResult, clockResult] = await Promise.all([
         this.client.from("match_assignments").select("id,player_id,squad_id,field_side,role").eq("match_id", latestMatch.id).neq("status", "cancelled"),
         this.client.from("match_events").select("id,event_type,side,scorer_player_id,assist_player_id,keeper_player_id,goal_kind,penalty_outcome,occurrence_ms,status,label").eq("match_id", latestMatch.id).order("created_at"),
