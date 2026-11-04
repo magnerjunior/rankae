@@ -272,3 +272,7 @@ O take original do chute de longe também integra a sequência como terceiro ví
 ## 2026-11-04 — vídeos enviados e nova abertura
 
 A capa usa o chute de longe e três takes enviados pelo proprietário (dois de society e um aéreo), sem as cenas anteriores na terra. O vídeo aéreo foi reduzido de 4K para 720p, sem áudio, para 1,24 MB. A cena gerada dos cinco amigos olhando o celular fica como fundo da seção de funcionamento. O placar saiu da capa e entrou na simulação do celular da seção de recursos. Os títulos adotam Teko em caixa alta, opção prevista no design system; o texto corrido permanece em Barlow.
+
+## 2026-11-04 — comunicação pública e prévia da partida
+
+A comunicação da landing, login, manifesto e metadados de compartilhamento usa “futebol” e “jogo” no lugar de “pelada”; “ranka” permanece como nome do encontro no produto. A prévia ilustrativa do celular mostra goleiro e seis jogadores de linha por lado, com autoria dos três gols. A barra pública e os dois botões da capa recebem vidro translúcido com destaque nas bordas, preservando contraste e fallback sem transparência. Controles dentro do celular permanecem sólidos.

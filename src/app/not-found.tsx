@@ -11,7 +11,7 @@ export default function NotFound() {
         <p className="status-code display" aria-hidden="true">404</p>
         <span className="eyebrow">Bola fora</span>
         <h1 className="display" id="not-found-title">Essa página não está em campo.</h1>
-        <p>O endereço pode estar incorreto ou o conteúdo pode ter sido removido. Volte para seus rankas e continue a organização da pelada.</p>
+        <p>O endereço pode estar incorreto ou o conteúdo pode ter sido removido. Volte para seus rankas e continue a organização dos jogos.</p>
         <div className="status-actions">
           <Link className="button button-primary" href="/app">Voltar aos meus rankas</Link>
           <Link className="button button-secondary" href="/">Ir para o início</Link>

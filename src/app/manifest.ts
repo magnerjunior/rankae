@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Rankaê · Pelada ao vivo",
+    name: "Rankaê · Seu futebol organizado",
     short_name: "Rankaê",
-    description: "Placar, times e estatísticas da sua pelada.",
+    description: "Placar, times e estatísticas de cada jogo.",
     start_url: "/",
     display: "standalone",
     background_color: "#f8faf8",

@@ -31,7 +31,7 @@ export default async function HomePage() {
         <MarketingVideo />
         <div className="marketing-video-shade" />
         <div className="marketing-hero-content">
-          <h1 className="display">Sua pelada<br />no ritmo do jogo</h1>
+          <h1 className="display">Seu futebol<br />no ritmo do jogo</h1>
           <p>Quem chegou, quem joga e quem marcou. Resolva tudo no celular e feche o dia com as estatísticas da turma.</p>
           <div className="marketing-actions"><a className="button marketing-primary" href={trialHref} target="_blank" rel="noreferrer">Testar grátis</a><a className="button marketing-secondary" href="#como-funciona">Ver como funciona</a></div>
           <small>Teste grátis sem cartão de crédito</small>
@@ -43,7 +43,7 @@ export default async function HomePage() {
       <section className="marketing-section marketing-story" id="como-funciona">
         <FriendsVideo />
         <div className="marketing-story-shade" />
-        <header className="marketing-section-head"><h2 className="display">Largue o papel<br />e deixe a bola rolar</h2><p>Da chegada da turma ao último jogo, o Rankaê organiza a pelada sem tirar você da beira do campo.</p></header>
+        <header className="marketing-section-head"><h2 className="display">Largue o papel<br />e deixe a bola rolar</h2><p>Da chegada da turma ao último jogo, o Rankaê organiza o futebol sem tirar você da beira do campo.</p></header>
         <div className="marketing-steps">
           <article><span>01</span><div><h3>Registre a chegada</h3><p>Digite um nome ou cole a lista inteira. Goleiros ficam separados e a ordem de chegada é preservada.</p></div></article>
           <article><span>02</span><div><h3>Monte e ajuste os times</h3><p>Forme as equipes, troque jogadores e confira a fila antes de colocar o relógio para rodar.</p></div></article>
@@ -52,7 +52,7 @@ export default async function HomePage() {
       </section>
 
       <section className="marketing-section marketing-showcase" id="recursos">
-        <div className="marketing-phone" aria-label="Prévia do placar no celular"><div className="marketing-phone-camera" /><div className="marketing-phone-bar"><span>Ranka de terça</span><b>Jogo 3</b></div><div className="marketing-phone-timer">04:18<small>TEMPO NORMAL</small></div><div className="marketing-phone-score"><div><small>AMARELO · T3</small><strong>2</strong></div><span>×</span><div><small>VERMELHO · T4</small><strong>1</strong></div></div><div className="marketing-phone-actions"><span>+ GOL</span><span>+ GOL</span></div><div className="marketing-phone-next"><span>24 presentes</span><span>Próximo <b>T5</b></span></div></div>
+        <div className="marketing-phone" aria-label="Exemplo ilustrativo de uma partida no celular"><div className="marketing-phone-camera" /><div className="marketing-phone-bar"><span>Ranka de terça</span><b>Jogo 3 · ao vivo</b></div><div className="marketing-phone-timer">04:18<small>TEMPO NORMAL</small></div><div className="marketing-phone-score"><div><small>AMARELO · T3</small><strong>2</strong></div><span>×</span><div><small>VERMELHO · T4</small><strong>1</strong></div></div><div className="marketing-phone-rosters"><div><strong>Time 3</strong><span>Rafael <small>GOL</small></span><span>Caio <small>⚽ 1</small></span><span>Bruno</span><span>Daniel</span><span>André <small>⚽ 1</small></span><span>Lucas</span><span>Pedro</span></div><div><strong>Time 4</strong><span>Tiago <small>GOL</small></span><span>Marcos</span><span>João <small>⚽ 1</small></span><span>Felipe</span><span>Vitor</span><span>Samuel</span><span>Gabriel</span></div></div><div className="marketing-phone-actions"><span>+ GOL</span><span>+ GOL</span></div><div className="marketing-phone-next"><span>24 presentes</span><span>Próximo <b>T5</b></span></div><small className="marketing-phone-demo">Exemplo ilustrativo</small></div>
         <div className="marketing-showcase-copy"><span className="eyebrow">Feito para a beira da quadra</span><h2 className="display">O jogo todo na palma da mão</h2><p>Mais ritmo na quadra, mais assunto no grupo depois. Cada partida alimenta a história do seu ranka.</p><ul>
           <li><strong>Resposta imediata</strong><span>Toques rápidos e operação preparada para a conexão do campo.</span></li>
           <li><strong>Rodízio organizado</strong><span>Fila de times, próximos jogadores e histórico de partidas.</span></li>
@@ -62,7 +62,7 @@ export default async function HomePage() {
       </section>
 
       <section className="marketing-section marketing-pricing" id="plano">
-        <div className="marketing-price-copy"><span className="eyebrow">Um plano simples</span><h2 className="display">Seu próximo ranka começa aqui</h2><p>Um espaço completo para organizar sua pelada e manter a turma jogando.</p></div>
+        <div className="marketing-price-copy"><span className="eyebrow">Um plano simples</span><h2 className="display">Seu próximo ranka começa aqui</h2><p>Um espaço completo para organizar seu futebol e manter a turma jogando.</p></div>
         <article className="marketing-price-card"><span className="marketing-price-badge">Teste grátis</span><h3>Rankaê Essencial</h3>{plan.compareAtPriceCents && <del>{formatCurrency(plan.compareAtPriceCents)}</del>}<div className="marketing-price"><strong>{formatCurrency(plan.monthlyPriceCents)}</strong><span>/ mês</span></div><p>Inclui 1 ranka ativo na sua conta.</p><ul><li>Fluxo completo do jogo</li><li>Histórico e estatísticas</li><li>Contribuições e portal do grupo</li></ul><div className="marketing-extra"><span>Ranka adicional</span><strong>+ {formatCurrency(plan.extraRankaPriceCents)}/mês</strong></div>{plan.annualPriceCents && <small>Opção anual: {formatCurrency(plan.annualPriceCents)} por ano.</small>}<a className="button marketing-primary" href={trialHref} target="_blank" rel="noreferrer">Testar grátis</a></article>
       </section>
 

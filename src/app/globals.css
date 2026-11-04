@@ -809,3 +809,42 @@ body :is(h1, h2, h3, .display) { font-family: "Teko", "Barlow Condensed", sans-s
 @media (prefers-reduced-motion: reduce) {
   .marketing-friends-video { display: none; }
 }
+
+/* Vidro seletivo: contorno iluminado e leve refração sobre o conteúdo. */
+.marketing-header, .marketing-hero .marketing-primary, .marketing-hero .marketing-secondary {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.54);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72), inset 0 -1px 0 rgba(255,255,255,.2), 0 12px 30px rgba(3,26,19,.2);
+  backdrop-filter: blur(18px) saturate(170%);
+}
+.marketing-header::before, .marketing-hero .marketing-primary::before, .marketing-hero .marketing-secondary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(118deg, rgba(255,255,255,.32), rgba(255,255,255,0) 36%, rgba(255,255,255,.1) 70%, rgba(255,255,255,.28));
+}
+.marketing-header { background: rgba(243,250,245,.68); }
+.marketing-hero .marketing-primary { background: rgba(92,236,39,.86); }
+.marketing-hero .marketing-secondary { background: rgba(241,255,247,.12); }
+.marketing-phone { width: min(340px, 82vw); min-height: 620px; }
+.marketing-phone-rosters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 10px; }
+.marketing-phone-rosters > div { min-width: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 13px; background: white; }
+.marketing-phone-rosters > div > strong { display: block; padding: 5px 8px; font-family: "Barlow", sans-serif; font-size: .69rem; color: #19392b; background: #f0f5f0; }
+.marketing-phone-rosters > div > span { min-height: 24px; display: flex; align-items: center; justify-content: space-between; gap: 3px; padding: 3px 7px; font-size: .71rem; white-space: nowrap; }
+.marketing-phone-rosters > div > span:nth-child(odd) { background: #f6f8f6; }
+.marketing-phone-rosters small { font-size: .58rem; font-weight: 700; color: var(--brand-700); }
+.marketing-phone-demo { display: block; margin-top: 10px; color: var(--muted); font-size: .62rem; text-align: center; }
+@supports not (backdrop-filter: blur(18px)) {
+  .marketing-header { background: #f7faf7; }
+  .marketing-hero .marketing-primary { background: #66eb28; }
+  .marketing-hero .marketing-secondary { background: #244c3d; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .marketing-header, .marketing-hero .marketing-primary, .marketing-hero .marketing-secondary { backdrop-filter: none; }
+  .marketing-header { background: #f7faf7; }
+  .marketing-hero .marketing-primary { background: #66eb28; }
+  .marketing-hero .marketing-secondary { background: #244c3d; }
+}

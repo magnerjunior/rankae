@@ -14,8 +14,9 @@ const metadataBase = new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhos
 
 export const metadata: Metadata = {
   metadataBase,
-  title: "Rankaê · Gestão de peladas",
-  description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
+  title: "Rankaê | Organize seu futebol do início ao fim",
+  description: "Organize jogadores, monte os times, acompanhe o placar e registre as estatísticas de cada jogo. Tudo pelo celular, com o Rankaê.",
+  alternates: { canonical: "/" },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [{ url: "/rankae-icon.svg", type: "image/svg+xml" }],
@@ -23,16 +24,18 @@ export const metadata: Metadata = {
     apple: "/rankae-icon.svg",
   },
   openGraph: {
-    title: "Rankaê · Gestão de peladas",
-    description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
+    title: "Rankaê | Seu futebol organizado em um só lugar",
+    description: "Da chegada dos jogadores ao último apito: times, placar, rodízio e estatísticas direto no celular.",
     type: "website",
+    url: "/",
+    siteName: "Rankaê",
     locale: "pt_BR",
     images: [{ url: "/rankae-brand-social.png", alt: "Rankaê" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rankaê · Gestão de peladas",
-    description: "Organize chegada, times, partidas, rodízio e estatísticas da sua pelada pelo celular.",
+    title: "Rankaê | Seu futebol organizado em um só lugar",
+    description: "Da chegada dos jogadores ao último apito: times, placar, rodízio e estatísticas direto no celular.",
     images: ["/rankae-brand-social.png"],
   },
 };
