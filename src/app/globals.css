@@ -836,7 +836,6 @@ body :is(h1, h2, h3, .display) { font-family: "Teko", "Barlow Condensed", sans-s
 .marketing-phone-rosters > div > span { min-height: 24px; display: flex; align-items: center; justify-content: space-between; gap: 3px; padding: 3px 7px; font-size: .71rem; white-space: nowrap; }
 .marketing-phone-rosters > div > span:nth-child(odd) { background: #f6f8f6; }
 .marketing-phone-rosters small { font-size: .58rem; font-weight: 700; color: var(--brand-700); }
-.marketing-phone-demo { display: block; margin-top: 10px; color: var(--muted); font-size: .62rem; text-align: center; }
 @supports not (backdrop-filter: blur(18px)) {
   .marketing-header { background: #f7faf7; }
   .marketing-hero .marketing-primary { background: #66eb28; }
@@ -847,4 +846,27 @@ body :is(h1, h2, h3, .display) { font-family: "Teko", "Barlow Condensed", sans-s
   .marketing-header { background: #f7faf7; }
   .marketing-hero .marketing-primary { background: #66eb28; }
   .marketing-hero .marketing-secondary { background: #244c3d; }
+}
+
+/* Ajustes de contraste e margens na apresentação móvel. */
+.marketing-header { background: rgba(210,215,213,.82); }
+.marketing-primary { color: white; border: 1px solid rgba(255,255,255,.48); background: linear-gradient(125deg, #126b49, #279546); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 12px 30px rgba(11,61,46,.2); backdrop-filter: blur(16px) saturate(150%); }
+.marketing-primary:hover { color: white; background: linear-gradient(125deg, #0f6343, #238741); }
+.marketing-hero .marketing-primary { color: white; background: linear-gradient(125deg, rgba(18,107,73,.95), rgba(39,149,70,.9)); }
+.marketing-price-card { border-color: rgba(255,255,255,.88); background: linear-gradient(135deg, rgba(255,255,255,.84), rgba(240,249,243,.76)); box-shadow: inset 0 1px 0 white, inset 1px 0 0 rgba(255,255,255,.65), 0 22px 60px rgba(11,61,46,.13); backdrop-filter: blur(18px) saturate(140%); }
+@media (max-width: 759px) {
+  .marketing-header { left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); width: auto; max-width: calc(100vw - 32px); padding-inline: 10px; }
+  .marketing-header .brand { min-width: 0; }
+  .marketing-header .brand-name { width: min(88px, 24vw); }
+  .marketing-header .button { flex: none; }
+}
+@supports not (backdrop-filter: blur(16px)) {
+  .marketing-header { background: #d5d9d7; }
+  .marketing-price-card { background: #f6faf7; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .marketing-header { background: #d5d9d7; }
+  .marketing-primary, .marketing-price-card { backdrop-filter: none; }
+  .marketing-hero .marketing-primary { background: #126b49; }
+  .marketing-price-card { background: #f6faf7; }
 }
