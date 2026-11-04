@@ -15,6 +15,8 @@ test("página pública e acesso do organizador carregam sem vazamento lateral", 
   const trialLink = page.getByRole("link", { name: "Testar grátis" }).first();
   await expect(trialLink).toHaveAttribute("href", /wa\.me\/5531995284698/);
   await expectNoHorizontalOverflow(page);
+  await page.evaluate(() => window.scrollTo(0, 1200));
+  await expect.poll(() => page.locator(".marketing-header").evaluate((header) => Math.round(header.getBoundingClientRect().top))).toBeLessThan(20);
 
   await page.getByRole("link", { name: "Entrar" }).click();
   await expect(page.getByRole("heading", { name: "Acesso do organizador" })).toBeVisible();
