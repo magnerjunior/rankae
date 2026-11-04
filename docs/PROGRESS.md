@@ -234,7 +234,7 @@ Resultados reais de 2026-11-03:
 - [x] Saída definitiva atualiza presença, escala temporal, squad, substituição e auditoria na mesma transação.
 - [x] Recomposição em cascata leva eventual déficit ao último time da fila; regra pura testada.
 - [x] Resumo ampliado com mais vitórias, mais derrotas e goleiros menos/mais vazados.
-- [ ] Migração `20261103001500` está preparada para aplicação manual pelo proprietário no projeto Supabase Rankaê.
+- [x] Migração `20261103001500` aplicada ao projeto Supabase Rankaê em 2026-11-03.
 
 ## Plano operacional em três fases — Fase 2
 
@@ -246,8 +246,8 @@ Resultados reais de 2026-11-03:
 - [x] Contribuições em lote atualizam as linhas de forma otimista, com rollback em conflito.
 - [x] Observabilidade ampliada para formação, preparação, rotação, contribuições e encerramento.
 - [x] `npm run lint`, `npm run typecheck`, 40 testes unitários e `npm run build` aprovados localmente.
-- [ ] Migrações `20261103001500` e `20261103001600` preparadas, mas não aplicadas, conforme combinado: o proprietário fará o envio ao Supabase.
-- [ ] Teste remoto com 2–3 organizadores permanece bloqueado até as duas migrations serem aplicadas.
+- [x] Migrações `20261103001500` e `20261103001600` aplicadas em ordem; histórico local/remoto alinhado.
+- [x] Concorrência, idempotência, troca/saída e observabilidade validadas remotamente em transações com rollback.
 
 ## Plano operacional em três fases — Fase 3
 
@@ -258,7 +258,7 @@ Resultados reais de 2026-11-03:
 - [x] pgTAP de operação ampliado de 19 para 24 asserções, cobrindo troca, saída, replay idempotente e conflito de organizador desatualizado.
 - [x] pgTAP de observabilidade ampliado de 20 para 22 asserções, incluindo rotação.
 - [x] `npm audit --omit=dev`: zero vulnerabilidades de produção.
-- [ ] pgTAP ampliado não executado: Docker/Postgres local não está instalado e as migrations `015/016` ainda não foram aplicadas em staging.
+- [x] pgTAP operacional remoto: 24/24; pgTAP de confiança/observabilidade remoto: 22/22; ambos terminaram com rollback.
 - [ ] Teste autenticado, celular físico, staging, carga, restauração, alerta externo, revisão jurídica e bootstrap MFA permanecem pendentes; detalhes em `docs/ops/VALIDACAO-FASE-3.md`.
 
 ## Ajuste de campo — 2026-11-03

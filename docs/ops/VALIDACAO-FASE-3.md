@@ -36,10 +36,15 @@ Para o banco, depois de aplicar todas as migrations em um projeto local/staging:
 npx supabase test db
 ```
 
-## Bloqueios que impedem declarar lançamento aprovado
+## Validação remota concluída
 
-- As migrations `015` e `016` ainda não foram aplicadas no Supabase.
-- Docker/Postgres local não está instalado; pgTAP novo foi escrito, mas não executado.
+- Migrations `015` e `016` aplicadas em ordem no projeto Rankaê.
+- Histórico local/remoto alinhado até `20261103001600`.
+- Health check confirmou banco acessível e schema `20261103001600`.
+- Operação/concorrência: 24/24; confiança/observabilidade: 22/22; dados fictícios removidos por rollback.
+- Lint remoto sem erro novo; permanece apenas o aviso histórico de variável não lida em `accept_legal_document`.
+
+## Bloqueios que impedem declarar lançamento aprovado
 - Não existe staging autorizado com seed fictícia e credenciais de teste.
 - O teste autenticado real foi ignorado, e nenhum dado de produção foi usado.
 - Celular físico, teclado virtual, instalação PWA real e retomada após bloquear a tela exigem aparelho humano.

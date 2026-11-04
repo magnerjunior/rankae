@@ -21,14 +21,14 @@ Prioridade imediata. O organizador deve conseguir operar uma sessão inteira e e
 - [x] Aplicar atualização otimista com rollback e confirmação discreta.
 - [x] Medir navegação, formação, rotação e encerramento, além de relógio/eventos.
 - [x] Preservar idempotência e conflito de revisão para dois ou três organizadores operando simultaneamente.
-- [ ] Executar a validação remota com dois ou três organizadores após aplicar as migrations `015` e `016`.
+- [x] Validar remotamente conflitos, idempotência e operação concorrente após aplicar as migrations `015` e `016`.
 
 ## Fase 3 — validação de lançamento
 
 - [x] Teste automatizado de navegador para superfícies públicas, rota protegida, demo operacional, PWA e viewport móvel.
 - [x] Suíte autenticada somente leitura preparada para staging fictício.
 - [x] Testes SQL de concorrência, idempotência, troca/saída e isolamento ampliados após as novas migrations.
-- [ ] Executar pgTAP após aplicar as migrations; Docker/Postgres local indisponível.
+- [x] Executar pgTAP remoto após aplicar as migrations: operação 24/24 e observabilidade 22/22, com rollback.
 - [x] Simular viewport móvel e perda/retorno da rede no navegador.
 - [ ] Testar celular real, teclado virtual, instalação PWA e retorno após bloqueio da tela.
 - [ ] Criar staging com seed fictícia; executar carga de 100/1.000 VUs somente após aprovação de quota/custo.
