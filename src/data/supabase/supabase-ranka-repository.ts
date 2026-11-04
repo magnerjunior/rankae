@@ -77,7 +77,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     if (!ranka) throw new RankaNotFoundError();
     const typedRanka = ranka as RankaRow;
     const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
-      this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).limit(1),
+      this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("created_at", { ascending: false }).limit(1),
       this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);

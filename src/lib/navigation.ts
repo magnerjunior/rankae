@@ -7,6 +7,7 @@ export const rankaSections = [
   { key: "partida", label: "Partida", short: "Jogo" },
   { key: "contribuicoes", label: "Contribuições", short: "Contrib." },
   { key: "estatisticas", label: "Estatísticas", short: "Stats" },
+  { key: "historico", label: "Histórico", short: "Histórico" },
   { key: "configuracoes", label: "Regras", short: "Regras" },
 ] as const;
 

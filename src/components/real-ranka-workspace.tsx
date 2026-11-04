@@ -24,6 +24,7 @@ import {
 } from "@/domain/ranka/rules";
 import type { MatchEvent, Player } from "@/domain/ranka/types";
 import type { PublicRankaSnapshot } from "@/domain/public-portal/types";
+import { absenceDetails, type PlayerActivity } from "@/domain/player-activity";
 import type { RankaSnapshot, SessionSummary } from "@/data/ports/ranka-repository";
 import type { RankaSection } from "@/lib/navigation";
 import {
@@ -54,6 +55,7 @@ import {
   startGameFromArrivalAction,
   swapSquadPlayersAction,
   manageMatchPlayerAction,
+  updateInactivityAlertAction,
 } from "@/app/app/rankas/[rankaId]/actions";
 
 function Key() {
@@ -108,18 +110,15 @@ function money(cents: number) {
   }).format(cents / 100);
 }
 
-function Dashboard({ snapshot }: { snapshot: RankaSnapshot }) {
+function Dashboard({ snapshot, playerActivity }: { snapshot: RankaSnapshot; playerActivity?: PlayerActivity[] }) {
   const present = snapshot.attendance.filter(
     (entry) => entry.status === "present",
   ).length;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const completedToday = snapshot.sessionState === "completed" && snapshot.sessionDate === today;
+  const inactiveCount = (playerActivity ?? []).filter((activity) => absenceDetails(activity, today).alert).length;
+  const debtCount = (playerActivity ?? []).filter((activity) => activity.unpaid_sessions > 0).length;
   const launch = snapshot.sessionState === "completed" ? (
-    completedToday ? (
-      <Link className="start-ranka-button compact" href={`/app/rankas/${snapshot.id}/estatisticas?period=last`}><span>Ver resumo do ranka encerrado</span><b>→</b></Link>
-    ) : (
-      <form action={startRankaAction.bind(null, snapshot.id)}><button className="start-ranka-button compact"><span>Iniciar ranka de hoje</span><b>→</b></button></form>
-    )
+    <form action={startRankaAction.bind(null, snapshot.id)}><button className="start-ranka-button compact"><span>Iniciar novo ranka</span><b>→</b></button></form>
   ) : snapshot.sessionId ? (
     <Link
       className="start-ranka-button compact"
@@ -145,12 +144,15 @@ function Dashboard({ snapshot }: { snapshot: RankaSnapshot }) {
   return (
     <>
       <Heading
-        eyebrow="Hoje"
+        eyebrow={snapshot.sessionState === "completed" ? "Último encontro" : snapshot.sessionDate === today ? "Hoje" : "Encontro em andamento"}
         title={snapshot.name}
         description={snapshot.sessionLabel}
         sessionId={snapshot.sessionId}
       />
       {launch}
+      {(inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
+      {snapshot.sessionState === "completed" && <Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver último ranka encerrado</Link>}
+      {snapshot.sessionState !== "completed" && snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}
       <div className="metric-grid quick-metrics">
         <div className="metric">
           <strong>{present}</strong>
@@ -195,6 +197,7 @@ function Dashboard({ snapshot }: { snapshot: RankaSnapshot }) {
               <small>Resultados e ranking</small>
             </span>
           </Link>
+          <Link className="action-row" href={`/app/rankas/${snapshot.id}/historico`}><span><strong>Histórico dos rankas</strong><small>Veja cada data, jogo e chegada</small></span></Link>
         </div>
       </section>
     </>
@@ -205,12 +208,18 @@ function Players({
   snapshot,
   success,
   error,
+  playerActivity,
+  inactivitySettings,
 }: {
   snapshot: RankaSnapshot;
   success?: string;
   error?: string;
+  playerActivity?: PlayerActivity[];
+  inactivitySettings?: { months: number; revision: number };
 }) {
   const action = createPlayerAction.bind(null, snapshot.id, snapshot.orgId!);
+  const activityByPlayer = new Map((playerActivity ?? []).map((entry) => [entry.player_id, entry]));
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   return (
     <>
       <Heading
@@ -220,6 +229,7 @@ function Players({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
+      {inactivitySettings && <form className="activity-setting" action={updateInactivityAlertAction.bind(null, snapshot.id, inactivitySettings.revision)}><label>Alertar após <input className="input" type="number" name="months" min="1" max="24" defaultValue={inactivitySettings.months} /> meses sem comparecer</label><button className="button button-secondary button-small">Salvar</button></form>}
       <div className="two-column" style={{ marginTop: 16 }}>
         <section className="panel">
           <h2 className="panel-title display">Novo jogador</h2>
@@ -231,7 +241,10 @@ function Players({
             <span className="badge badge-green">{snapshot.players.length}</span>
           </div>
           {snapshot.players.length ? (
-            snapshot.players.map((player) => (
+            snapshot.players.map((player) => {
+              const activity = activityByPlayer.get(player.id);
+              const absence = activity ? absenceDetails(activity, today) : undefined;
+              return (
               <div className="person-row player-catalog-row" key={player.id}>
                 <span className="avatar">
                   {player.fullName
@@ -245,6 +258,7 @@ function Players({
                   <small>
                     {player.role === "keeper" ? "Goleiro" : "Linha"}
                   </small>
+                  {activity && absence && <details className="player-activity"><summary><span className={absence.alert ? "activity-alert" : ""}>{absence.alert ? "Atenção · " : ""}{absence.short}</span>{activity.unpaid_sessions > 0 && <span className="activity-debt">{activity.unpaid_sessions} {activity.unpaid_sessions === 1 ? "contribuição pendente" : "contribuições pendentes"}</span>}</summary><small>{absence.exact}{activity.unpaid_sessions > 0 ? ` · ${money(activity.unpaid_cents)} em aberto` : ""}</small></details>}
                 </span>
                 <form
                   className="player-membership-form"
@@ -269,7 +283,7 @@ function Players({
                   </button>
                 </form>
               </div>
-            ))
+            ); })
           ) : (
             <EmptyState
               title="Nenhum jogador"
@@ -564,7 +578,7 @@ function Teams({
 
 function FinishDayControl({ snapshot }: { snapshot: RankaSnapshot }) {
   return <section className="finish-day-banner">
-    <span><small>Ranka de {snapshot.sessionLabel}</small><strong>Terminou o futebol de hoje?</strong></span>
+    <span><small>Ranka de {snapshot.sessionLabel}</small><strong>Terminou o futebol deste dia?</strong></span>
     <details><summary>Encerrar ranka</summary><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><p>Encerra definitivamente esta data e abre o resumo do dia.</p><button className="button button-danger">Confirmar encerramento</button></form></details>
   </section>;
 }
@@ -589,7 +603,6 @@ function MatchConsole({
           sessionId={snapshot.sessionId}
         />
         <Notice success={success} error={error} />
-        <FinishDayControl snapshot={snapshot} />
         <section className="panel">
           <EmptyState
             title="Nenhum jogo preparado"
@@ -702,7 +715,6 @@ function MatchConsole({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
-      {match.state === "ready" && <FinishDayControl snapshot={snapshot} />}
       {match.state === "regulation_ended" && score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0 && (
         <section className="next-match-bar overtime-choice">
           <span><strong>O jogo terminou empatado</strong><small>Jogue a prorrogação ou defina manualmente quem continua.</small></span>
@@ -1634,8 +1646,9 @@ function GameHub({ snapshot, success, error, stage }: { snapshot: RankaSnapshot;
     <section className="session-finished-panel">
       <span className="eyebrow">Dia finalizado</span>
       <h1 className="display">Ranka encerrado</h1>
-      <p>As partidas e os eventos deste dia estão preservados. O próximo encontro começa em uma nova data.</p>
-      <Link className="button button-primary" href={`/app/rankas/${snapshot.id}/estatisticas?period=last`}>Ver resumo do dia</Link>
+      <p>As partidas e os eventos deste encontro estão preservados.</p>
+      <form action={startRankaAction.bind(null, snapshot.id)}><button className="button button-primary">Iniciar novo ranka</button></form>
+      <Link className="button button-secondary" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver este encontro</Link>
     </section>
   </>;
   const current = stage === "chegada" || stage === "times" || stage === "partida"
@@ -1644,6 +1657,7 @@ function GameHub({ snapshot, success, error, stage }: { snapshot: RankaSnapshot;
   const base = `/app/rankas/${snapshot.id}/jogo`;
   return <>
     <div className="session-day-strip"><span>Ranka do dia</span><strong>{snapshot.sessionLabel}</strong><em>Em andamento</em></div>
+    {snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}
     <nav className="game-flow-nav" aria-label="Etapas do jogo">
       <Link className={current === "chegada" ? "active" : ""} href={`${base}?etapa=chegada`}>1. Chegada</Link>
       <Link className={current === "times" ? "active" : ""} href={`${base}?etapa=times`}>2. Times</Link>
@@ -1662,6 +1676,8 @@ export function RealRankaWorkspace({
   sessionSummary,
   statsDate,
   gameStage,
+  playerActivity,
+  inactivitySettings,
 }: {
   active: RankaSection;
   snapshot: RankaSnapshot;
@@ -1671,10 +1687,12 @@ export function RealRankaWorkspace({
   sessionSummary?: SessionSummary;
   statsDate?: string;
   gameStage?: string;
+  playerActivity?: PlayerActivity[];
+  inactivitySettings?: { months: number; revision: number };
 }) {
   let content: React.ReactNode;
   if (active === "jogadores")
-    content = <Players snapshot={snapshot} success={success} error={error} />;
+    content = <Players snapshot={snapshot} success={success} error={error} playerActivity={playerActivity} inactivitySettings={inactivitySettings} />;
   else if (active === "jogo")
     content = <GameHub snapshot={snapshot} success={success} error={error} stage={gameStage} />;
   else if (active === "chegada")
@@ -1683,7 +1701,7 @@ export function RealRankaWorkspace({
     content = <Teams snapshot={snapshot} success={success} error={error} />;
   else if (active === "partida")
     content = (
-      <MatchConsole snapshot={snapshot} success={success} error={error} />
+      <>{snapshot.sessionState !== "completed" && snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}<MatchConsole snapshot={snapshot} success={success} error={error} /></>
     );
   else if (active === "contribuicoes")
     content = (
@@ -1691,7 +1709,7 @@ export function RealRankaWorkspace({
     );
   else if (active === "configuracoes")
     content = <Rules snapshot={snapshot} success={success} error={error} />;
-  else if (active === "inicio") content = <Dashboard snapshot={snapshot} />;
+  else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} />;
   else
     content = (
       <Stats

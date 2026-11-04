@@ -176,6 +176,22 @@ export async function startRankaAction(rankaId: string) {
   redirect(`/app/rankas/${rankaId}/chegada`);
 }
 
+export async function updateInactivityAlertAction(rankaId: string, expectedRevision: number, formData: FormData) {
+  const months = z.coerce.number().int().min(1).max(24).safeParse(formData.get("months"));
+  if (!months.success) finish(rankaId, "jogadores", false, "alerta");
+  await requireUserId();
+  const supabase = await createClient();
+  const { data: ranka, error: readError } = await supabase.from("rankas").select("settings_json,revision").eq("id", rankaId).single();
+  if (readError || !ranka || ranka.revision !== expectedRevision) finish(rankaId, "jogadores", false, "alerta");
+  const settings = ranka.settings_json && typeof ranka.settings_json === "object" && !Array.isArray(ranka.settings_json) ? ranka.settings_json : {};
+  const { data, error } = await supabase.from("rankas")
+    .update({ settings_json: { ...settings, inactivityAlertMonths: months.data }, revision: expectedRevision + 1, updated_at: new Date().toISOString() })
+    .eq("id", rankaId).eq("revision", expectedRevision).select("id").maybeSingle();
+  if (error || !data) finish(rankaId, "jogadores", false, "alerta");
+  revalidatePath(`/app/rankas/${rankaId}/jogadores`);
+  redirect(`/app/rankas/${rankaId}/jogadores?sucesso=alerta`);
+}
+
 export async function addArrivalAction(rankaId: string, sessionId: string, expectedRevision: number, _previous: ArrivalActionState, formData: FormData): Promise<ArrivalActionState> {
   const parsed = z.object({
     fullName: z.string().trim().min(2).max(120),
