@@ -8,8 +8,9 @@ describe("commercial helpers", () => {
   });
 
   it("builds an encoded WhatsApp trial request", () => {
-    const link = whatsappLink(trialMessage(30));
+    const link = whatsappLink(trialMessage());
     expect(link).toContain("https://wa.me/5531995284698?text=");
-    expect(decodeURIComponent(link)).toContain("teste grátis do Rankaê por 30 dias");
+    expect(decodeURIComponent(link)).toContain("teste grátis do Rankaê");
+    expect(decodeURIComponent(link)).not.toContain("30 dias");
   });
 });

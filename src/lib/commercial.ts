@@ -30,8 +30,8 @@ export function whatsappLink(message: string) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
-export function trialMessage(days: number) {
-  return `Olá! Quero solicitar meu teste grátis do Rankaê${days > 0 ? ` por ${days} dias` : ""}.`;
+export function trialMessage() {
+  return "Olá! Quero solicitar meu teste grátis do Rankaê.";
 }
 
 export const EXTRA_RANKA_MESSAGE = "Olá! Quero contratar um ranka adicional no Rankaê para minha conta.";

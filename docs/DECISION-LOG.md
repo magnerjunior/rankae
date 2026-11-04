@@ -260,3 +260,7 @@ A landing page passa a apresentar o produto, o plano de lançamento e um teste a
 O plano público é uma projeção segura editável apenas pelo superadministrador com sessão MFA AAL2. Novos proprietários recebem um ranka; rankas adicionais exigem ampliação manual do direito da conta. Para preservar o combinado anterior, o único proprietário já existente recebe limite três. Como o ambiente possuía um único proprietário e nenhum administrador global, a migration promove esse proprietário como primeiro superadministrador, mantendo a exigência de MFA e a auditoria de alterações.
 
 A migration `20261103001700` foi aplicada no SQL Editor do projeto de produção e registrada no histórico `supabase_migrations.schema_migrations`. A consulta de verificação retornou versão `017`, plano 2990/1500 centavos, teste de 30 dias, um superadministrador ativo e limite três para o proprietário existente. O health check publicado também retornou `ok` com a versão `017`. A CLI da conta conectada respondeu 403 para escrita; a aplicação foi feita pela sessão autorizada do painel.
+
+## 2026-11-04 — ajustes da apresentação pública
+
+A oferta pública deixa de fixar a duração do teste na comunicação visual e na mensagem de contato; a duração continua configurável internamente no plano. A seleção de texto usa verde da identidade. Dois takes licenciados do Pexels se alternam com dissolvência; o segundo só começa a carregar após o primeiro ficar pronto. Preferência por movimento reduzido e economia de dados impedem a reprodução automática.

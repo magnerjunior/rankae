@@ -7,10 +7,10 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
 
 test("página pública e acesso do organizador carregam sem vazamento lateral", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Sua pelada.*No ritmo do jogo/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Sua pelada.*no ritmo do jogo/i })).toBeVisible();
   await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
   await expect(page.getByText("R$ 29,90")).toBeVisible();
-  const trialLink = page.getByRole("link", { name: /Testar grátis/i });
+  const trialLink = page.getByRole("link", { name: "Testar grátis" }).first();
   await expect(trialLink).toHaveAttribute("href", /wa\.me\/5531995284698/);
   await expectNoHorizontalOverflow(page);
 
