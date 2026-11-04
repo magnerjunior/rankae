@@ -152,7 +152,7 @@ function Dashboard({ snapshot, playerActivity }: { snapshot: RankaSnapshot; play
       {launch}
       {(inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
       {snapshot.sessionState === "completed" && <Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver último ranka encerrado</Link>}
-      {snapshot.sessionState !== "completed" && snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}
+      {snapshot.sessionState !== "completed" && snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}
       <div className="metric-grid quick-metrics">
         <div className="metric">
           <strong>{present}</strong>
@@ -577,9 +577,10 @@ function Teams({
 }
 
 function FinishDayControl({ snapshot }: { snapshot: RankaSnapshot }) {
+  const matchInProgress = snapshot.activeMatch && snapshot.activeMatch.state !== "ready";
   return <section className="finish-day-banner">
     <span><small>Ranka de {snapshot.sessionLabel}</small><strong>Terminou o futebol deste dia?</strong></span>
-    <details><summary>Encerrar ranka</summary><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><p>Encerra definitivamente esta data e abre o resumo do dia.</p><button className="button button-danger">Confirmar encerramento</button></form></details>
+    {matchInProgress ? <Link className="button button-secondary button-small" href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`}>Finalizar a partida primeiro</Link> : <details><summary>Encerrar ranka</summary><form action={finishRankaSessionAction.bind(null, snapshot.id, snapshot.sessionId!, snapshot.revision)}><Key /><p>Encerra definitivamente este encontro e abre o resumo do dia.</p><button className="button button-danger">Confirmar encerramento</button></form></details>}
   </section>;
 }
 
@@ -1657,7 +1658,7 @@ function GameHub({ snapshot, success, error, stage }: { snapshot: RankaSnapshot;
   const base = `/app/rankas/${snapshot.id}/jogo`;
   return <>
     <div className="session-day-strip"><span>Ranka do dia</span><strong>{snapshot.sessionLabel}</strong><em>Em andamento</em></div>
-    {snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}
+    {snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}
     <nav className="game-flow-nav" aria-label="Etapas do jogo">
       <Link className={current === "chegada" ? "active" : ""} href={`${base}?etapa=chegada`}>1. Chegada</Link>
       <Link className={current === "times" ? "active" : ""} href={`${base}?etapa=times`}>2. Times</Link>
@@ -1701,7 +1702,7 @@ export function RealRankaWorkspace({
     content = <Teams snapshot={snapshot} success={success} error={error} />;
   else if (active === "partida")
     content = (
-      <>{snapshot.sessionState !== "completed" && snapshot.sessionId && (!snapshot.activeMatch || snapshot.activeMatch.state === "ready") && <FinishDayControl snapshot={snapshot} />}<MatchConsole snapshot={snapshot} success={success} error={error} /></>
+      <>{snapshot.sessionState !== "completed" && snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}<MatchConsole snapshot={snapshot} success={success} error={error} /></>
     );
   else if (active === "contribuicoes")
     content = (
