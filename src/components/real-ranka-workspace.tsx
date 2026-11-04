@@ -175,7 +175,7 @@ function Dashboard({ snapshot, playerActivity }: { snapshot: RankaSnapshot; play
         <div className="action-list">
           <Link className="action-row" href={`/app/rankas/${snapshot.id}/jogo`}>
             <span>
-              <strong>Jogo de hoje</strong>
+              <strong>{snapshot.sessionState === "completed" ? "Último encontro" : "Encontro em andamento"}</strong>
               <small>Chegada, times e partida no mesmo lugar</small>
             </span>
           </Link>
