@@ -298,3 +298,7 @@ Encerrar partida passa a ser uma transação própria, com confirmação, versã
 O limite de dois gols passa a valer para um dos times, preservando a possibilidade de empate. Ao atingir o limite, a interface oferece continuar ou finalizar. O ajuste manual acrescenta minutos à duração limite sem alterar o tempo transcorrido. A regra de dois gols é padrão apenas para novos encontros sem configuração explícita; salvar zero desativa a regra.
 
 O calendário do histórico consulta somente o mês exibido. Elencos arquivados continuam visíveis pelo registro histórico dos integrantes, e cada partida abre sob demanda. A conexão em tempo real fica restrita à tela do jogo, com atualizações agrupadas em 600 ms para reduzir recargas durante a navegação. A migração `20261104000300` foi aplicada no SQL Editor autorizado e registrada no histórico. O alerta de CPU do Supabase permanece em observação; não há medição que comprove sua resolução.
+
+## 2026-11-10 — Desempenho de navegação
+
+Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e sem cache compartilhado. Telas de carregamento apresentam feedback durante navegação. Nenhuma migração é necessária. O ganho real depende da rede e do banco e requer medição autenticada; os testes de carga permanecem restritos a staging autorizado.

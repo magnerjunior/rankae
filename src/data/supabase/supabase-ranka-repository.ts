@@ -72,30 +72,34 @@ export class SupabaseRankaRepository implements RankaRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async getSnapshot(rankaId: string): Promise<RankaSnapshot> {
-    const { data: ranka, error: rankaError } = await this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).maybeSingle();
+    // Independent reads retain RLS and share one network round instead of two.
+    const [rankaResult, sessionResult] = await Promise.all([
+      this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).maybeSingle(),
+      this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("created_at", { ascending: false }).limit(1),
+    ]);
+    const { data: ranka, error: rankaError } = rankaResult;
     if (rankaError) throw queryFailure("Não foi possível consultar o ranka", rankaError.code);
     if (!ranka) throw new RankaNotFoundError();
     const typedRanka = ranka as RankaRow;
-    const [{ data: sessions, error: sessionError }, { data: playerRows, error: playersError }] = await Promise.all([
-      this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("created_at", { ascending: false }).limit(1),
-      this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
-    ]);
+    const { data: sessions, error: sessionError } = sessionResult;
     if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);
-    if (playersError) throw queryFailure("Não foi possível carregar os jogadores", playersError.code);
     const session = (sessions?.[0] ?? null) as SessionRow | null;
     if (!session) throw new Error("Este ranka ainda não possui sessão.");
 
-    const [attendanceResult, squadsResult, matchResult, contributionsResult] = await Promise.all([
+    const [attendanceResult, squadsResult, matchResult, contributionsResult, playersResult] = await Promise.all([
       this.client.from("attendance").select("id,player_id,arrival_index,status,role_preference").eq("session_id", session.id).order("arrival_index"),
       this.client.from("squads").select("id,squad_number,state,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).neq("state", "archived").order("squad_number"),
       this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1),
       this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id),
+      this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (attendanceResult.error) throw queryFailure("Não foi possível carregar a chegada", attendanceResult.error.code);
     if (squadsResult.error) throw queryFailure("Não foi possível carregar os times", squadsResult.error.code);
     if (matchResult.error) throw queryFailure("Não foi possível carregar as partidas", matchResult.error.code);
     if (contributionsResult.error) throw queryFailure("Não foi possível carregar as contribuições", contributionsResult.error.code);
 
+    const { data: playerRows, error: playersError } = playersResult;
+    if (playersError) throw queryFailure("Não foi possível carregar os jogadores", playersError.code);
     const players: Player[] = ((playerRows ?? []) as PlayerRow[]).map((row) => ({
       id: row.id, fullName: row.full_name,
       aliases: [row.nickname, ...(row.player_aliases ?? []).map((alias) => alias.alias)].filter((value): value is string => Boolean(value)),
