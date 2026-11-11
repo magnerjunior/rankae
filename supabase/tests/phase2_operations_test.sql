@@ -41,7 +41,7 @@ select results_eq($$select state::text from public.matches where session_id = '4
 select lives_ok($$select public.record_match_event((select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'), 'goal', 'yellow', null, null, null, 'normal', null, null, '{}', 2, '40000000-0000-0000-0000-000000000004')$$, 'records goal without author');
 select lives_ok($$select public.record_match_event((select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'), 'goal', 'yellow', null, null, null, 'normal', null, null, '{}', 2, '40000000-0000-0000-0000-000000000004')$$, 'replays same idempotency key safely');
 select results_eq($$select count(*)::bigint from public.match_events where session_id = '4c000000-0000-0000-0000-000000000001' and event_type = 'goal'$$, array[1::bigint], 'double tap creates one goal');
-select throws_ok($$select public.record_match_event((select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'), 'goal', 'red', null, null, null, 'normal', null, null, '{}', 2, '40000000-0000-0000-0000-000000000005')$$, '40001', null, 'stale second editor gets revision conflict');
+select throws_ok($$select public.record_match_event((select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'), 'goal', 'red', null, null, null, 'normal', null, null, '{}', 2, '40000000-0000-0000-0000-000000000005')$$, 'PT409', null, 'stale second editor gets revision conflict');
 
 select lives_ok($$select public.transition_match_clock((select id from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'), 'pause', 3, '40000000-0000-0000-0000-000000000006')$$, 'second editor can pause current revision');
 select results_eq($$select state::text from public.matches where session_id = '4c000000-0000-0000-0000-000000000001'$$, array['paused'::text], 'pause is persisted');
@@ -79,7 +79,7 @@ select throws_ok($$select public.manage_match_player(
   '42000000-0000-0000-0000-000000000007',
   '42000000-0000-0000-0000-000000000014',
   false, 4, 5, '40000000-0000-0000-0000-000000000010'
-)$$, '40001', null, 'stale organizer cannot overwrite a newer field substitution');
+)$$, 'PT409', null, 'stale organizer cannot overwrite a newer field substitution');
 
 select case
   when count(*) = 0 then 'ok 24/24'
