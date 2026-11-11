@@ -302,3 +302,9 @@ O calendário do histórico consulta somente o mês exibido. Elencos arquivados 
 ## 2026-11-10 — Desempenho de navegação
 
 Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e sem cache compartilhado. Telas de carregamento apresentam feedback durante navegação. Nenhuma migração é necessária. O ganho real depende da rede e do banco e requer medição autenticada; os testes de carga permanecem restritos a staging autorizado.
+
+
+## 2026-11-11 — Eliminar retries de conflito de revisão
+- PostgREST 14 repetia indefinidamente conflitos de versão do cronômetro sinalizados com SQLSTATE 40001. A migração 20261111000100 devolve HTTP 409 com PT409 sem alterar as validações de concorrência, autorização ou idempotência.
+- Aplicada e registrada em produção. Verificação mostrou 24 funções corrigidas e nenhum conflito de revisão ainda sinalizado com 40001. Após cessarem os erros a cada segundo, o relatório do Supabase mostrou CPU de 1,19% na janela das 12h30 às 13h30 (São Paulo).
+- O aplicativo reconhece o código antigo e PT409 durante a transição.
