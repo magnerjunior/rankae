@@ -26,7 +26,7 @@ begin
   if exists (select 1 from public.audit_logs where session_id = p_session_id and idempotency_key = p_idempotency_key) then
     return jsonb_build_object('session_revision', target.revision, 'idempotent', true);
   end if;
-  if target.revision <> p_expected_revision then raise exception 'Revision conflict' using errcode = '40001', detail = target.revision::text; end if;
+  if target.revision <> p_expected_revision then raise exception 'Revision conflict' using errcode = 'PT409', detail = target.revision::text; end if;
   if exists (select 1 from public.matches where session_id = p_session_id) then
     raise exception 'Squads cannot be regenerated after matches exist' using errcode = '55000';
   end if;

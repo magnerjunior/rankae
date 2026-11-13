@@ -9,7 +9,7 @@ test("página pública e acesso do organizador carregam sem vazamento lateral", 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Seu futebol.*no ritmo do jogo/i })).toBeVisible();
   await expect(page).toHaveTitle("Rankaê | App para organizar peladas e futebol amador");
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/$/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^https?:\/\/[^/]+\/?$/);
   await expect(page.locator("#recursos .match-preview")).toBeVisible();
   await expect(page.locator(".marketing-hero .match-preview")).toHaveCount(0);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Rankaê | App para organizar peladas e futebol amador");

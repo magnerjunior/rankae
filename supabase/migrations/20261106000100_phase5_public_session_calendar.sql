@@ -83,7 +83,7 @@ begin
     return jsonb_build_object('match_revision', target_match.revision, 'idempotent', true);
   end if;
   if target_match.revision <> p_expected_revision then
-    raise exception 'Revision conflict' using errcode = '40001', detail = target_match.revision::text;
+    raise exception 'Revision conflict' using errcode = 'PT409', detail = target_match.revision::text;
   end if;
   if p_scorer_player_id is not null and not exists (
     select 1 from public.match_assignments
@@ -139,7 +139,7 @@ begin
     return jsonb_build_object('session_revision', target.revision, 'idempotent', true);
   end if;
   if target.revision <> p_expected_revision then
-    raise exception 'Revision conflict' using errcode = '40001', detail = target.revision::text;
+    raise exception 'Revision conflict' using errcode = 'PT409', detail = target.revision::text;
   end if;
   before_enabled := coalesce((target.rules_snapshot ->> 'waiveKeeperContributions')::boolean, false);
 
