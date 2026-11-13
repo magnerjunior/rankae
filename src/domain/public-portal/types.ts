@@ -39,6 +39,7 @@ export interface PublicLiveMatch {
 }
 
 export interface PublicResult {
+  matchId?: string;
   date: string;
   ordinal: number;
   yellowSquadNumber: number;
@@ -59,6 +60,11 @@ export interface PublicRankaSnapshot {
   periodLabel: string;
   snapshotVersion: number;
   asOfServer: string;
+}
+
+export interface PublicSessionDate {
+  date: string;
+  count: number;
 }
 
 export interface PortalGateState {

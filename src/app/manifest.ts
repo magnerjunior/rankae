@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Placar, times e estatísticas de cada jogo.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f8faf8",
-    theme_color: "#121b17",
+    background_color: "#eef3ff",
+    theme_color: "#0739d5",
     lang: "pt-BR",
     icons: [
       { src: "/rankae-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },

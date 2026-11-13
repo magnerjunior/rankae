@@ -4,6 +4,8 @@ import { LoginForm } from "@/components/login-form";
 import { hasSupabaseConfig, isDemoEnabled } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
+export const metadata = { title: "Entrar no Rankaê", robots: { index: false, follow: true } };
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string; mensagem?: string }> }) {
   const configured = hasSupabaseConfig();
   const demoEnabled = isDemoEnabled();

@@ -1,35 +1,29 @@
-# Design system — Rankaê (obrigatório)
+# Design system — Rankaê
 
 ## Direção criativa
-Esporte amador premium, brasileiro, identidade marcante e interface focada. **Tema claro default**, não estética de dashboard de IA. Branco principal, verde premium como assinatura, cinzas sólidos. Visual técnico/esportivo sofisticado, modular e mais editorial que brinquedo. Evitar cards flutuando sem propósito, gradientes neon, sombras pesadas e ícones decorativos em cada linha.
+Esporte amador brasileiro com linguagem gráfica de campo e placar. Azul elétrico é a cor da marca. A landing usa grandes áreas azuis, grade discreta e diagramas táticos. O painel operacional usa fundo claro, navegação azul e verde neon para ação principal e seleção.
 
-## Tokens iniciais — ajustar por contraste
-- `--bg: #F8FAF8` (canvas), `--surface: #FFFFFF`, `--surface-alt: #F1F5F1`.
-- `--brand-900: #0B3D2E`, `--brand-700: #126B49`, `--brand-600: #167A52`, `--brand-100: #E4F3E9`.
-- `--ink: #14251D`, `--muted: #64736A`, `--border: #DAE5DC`, `--danger: #C83B42`.
-- Colete amarelo `#E6B800` com texto muito escuro; colete vermelho `#C93F43` com texto branco; ambos com rótulos textuais — não depender só de cor.
-- Border radius: 10–14px controles, 16–20px painéis, modal 20px; não arredondar tudo como pílula.
-- Espaçamento base 4/8/12/16/24/32 px; layout 8pt grid; largura confortável <=1200px; mobile bottom nav fixa com safe-area.
+## Tokens
+- `--surface: #FFFFFF`, `--brand-100: #EEF3FF`, `--ink: #101A35`.
+- `--brand-700: #0739D5`, `--brand-900: #0428A0`, `--brand-accent: #B6FF00`.
+- Use texto escuro sobre verde neon. Colete amarelo `#E6B800` com texto escuro e colete vermelho `#AD2935` com texto branco. Inclua sempre o rótulo da equipe.
+- Controles com raio de 10–14 px e painéis com raio de 16–20 px. A navegação móvel respeita a área segura.
 
 ## Tipografia
-- Títulos: fonte de impacto com letras relativamente abertas: testar **Barlow Condensed** peso 700/800 com tracking +0.02em a +0.045em; ou **Teko** se boa leitura. NÃO usar Bebas Neue como única fonte nem títulos apertados.
-- Texto/interface: **Barlow** (500/600 para rótulos, 400 para corpo) ou **Manrope**; escolher uma e manter consistência.
-- Números do placar e cronômetro: numerais tabulares, bem grandes e estáveis.
-- Fallbacks locais e `font-display: swap`; validar caracteres `ê`, `ç`, `ã` e acentos.
-- Evitar fontes de peso 300, texto cinza muito pálido e caixa alta no corpo.
+- Títulos em **Barlow Condensed 800** com espaçamento compacto. A landing usa uma escala maior e caixa alta no hero.
+- Interface em **Barlow** 400, 600 e 700 com arquivos locais do subconjunto latino.
+- Placar e cronômetro usam numerais tabulares.
 
-## Vidro / glass
-O usuário citou “Expo Glasser Effect”; interpretado como referência visual a **Expo GlassEffect / Liquid Glass**, não exigência técnica da biblioteca Expo. Produto é **Next.js web/PWA**; não instalar `expo-glass-effect` (componente nativo iOS).
-- Usar `backdrop-filter: blur(14px)` com fundo translúcido e borda sutil **somente** em navbar inferior, barra rápida, modais/overlays e talvez cabeçalho sticky.
-- `@supports` e fallback opaco para navegadores incompatíveis; respeitar `prefers-reduced-transparency` e `prefers-reduced-motion` quando aplicável.
-- Vidro nunca pode reduzir contraste, legibilidade de placar nem interferir em performance de celular básico.
-- Preferir elementos sólidos em linhas/tabelas e nas ações críticas durante jogo.
+## Superfícies e movimento
+- Tabelas e modais usam superfícies sólidas. Botões e barras fixas têm Liquid Glass leve, com fundo sólido como fallback e respeito à preferência por transparência reduzida.
+- Elementos táticos são SVG. Vídeos de fundo são reproduzidos quando visíveis, respeitam movimento reduzido e usam `preload="none"`.
+- Transições curtas respeitam `prefers-reduced-motion`.
 
 ## Componentes obrigatórios
 `AppShell`, `BottomNav`, `RankaHeader`, `LiveMatchCard`, `TimerDisplay`, `TeamScorePanel`, `GoalQuickSheet`, `PlayerAutocomplete`, `ArrivalQueue`, `TeamRoster`, `UpcomingTeamPreview`, `KeeperAssignment`, `BallBoyStrip`, `ContributionBulkBar`, `RulesEditor`, `PrivacyGate`, `StatsPeriodSelector`, `EmptyState`, `Toast`, `ConfirmDialog`, `AuditBadge`.
 
 ## Composição
-- Desktop: sidebar compacta + área principal; mobile: topo enxuto + bottom nav com 4–5 destinos e FAB contextual se necessário.
+- Barra inferior com cinco destinos, centralizada em telas largas. O menu dá acesso às seções secundárias.
 - Jogando: amarelo à esquerda, relógio central no topo, vermelho à direita; times têm número/nome visível. Ação + gol explícita em cada lado; desfazer via histórico/`–` com confirmação contextual.
 - Tela pré-jogo: equipes e jogadores, goleiros, gandulas, reservas, regra ativa e botão iniciar.
 - Filtros rápidos de estatísticas: Último ranka / Este mês / Temporada / Dia específico.

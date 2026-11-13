@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LiveTimer } from "@/components/live-timer";
 import { computeClockElapsed } from "@/domain/ranka/rules";
@@ -55,7 +55,6 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const busyRef = useRef(false);
-  const storageKey = useMemo(() => `rankae:clock:${props.matchId}`, [props.matchId]);
 
   async function run(command: Command, action: ClockAction) {
     if (busyRef.current) return;
@@ -65,7 +64,6 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
     setClock(optimistic);
     setBusy(true);
     setError("");
-    localStorage.setItem(storageKey, JSON.stringify({ ...optimistic, savedAt: Date.now() }));
     const data = new FormData();
     data.set("idempotencyKey", crypto.randomUUID());
     data.set("expectedRevision", String(before.revision));
@@ -78,7 +76,6 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
       }
       const confirmed: ClockView = { state: result.state, startedAtServer: result.startedAtServer, elapsedMsBeforeStart: result.elapsedMsBeforeStart, durationLimitMs: result.durationLimitMs, serverNow: result.serverNow, revision: result.revision };
       setClock(confirmed);
-      localStorage.setItem(storageKey, JSON.stringify({ ...confirmed, savedAt: Date.now() }));
       if (command === "finish_regulation" || command === "finish_overtime") router.refresh();
     } catch {
       setClock(before);

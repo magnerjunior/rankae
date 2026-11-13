@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { parseArrivalList, type ArrivalImportEntry } from "@/domain/ranka/arrival-import";
 import type { ArrivalItem, ArrivalMutationResult } from "@/app/app/rankas/[rankaId]/actions";
@@ -50,8 +50,7 @@ export function ArrivalManager(props: ArrivalManagerProps) {
   const revisionRef = useRef(props.initialRevision);
   const queueRef = useRef<Promise<void>>(Promise.resolve());
   const inputRef = useRef<HTMLInputElement>(null);
-  const cacheKey = `rankae:arrival:${props.rankaId}:${props.sessionId}`;
-  const draftKey = `${cacheKey}:bulk-draft`;
+  const draftKey = `rankae:arrival:${props.rankaId}:${props.sessionId}:bulk-draft`;
   const parsedBulk = useMemo(() => parseArrivalList(bulkText), [bulkText]);
   const lineCount = entries.filter((entry) => entry.role === "line").length;
   const keeperCount = entries.filter((entry) => entry.role === "keeper").length;
@@ -59,11 +58,6 @@ export function ArrivalManager(props: ArrivalManagerProps) {
   const linePlayers = entries.filter((entry) => entry.role === "line").toSorted((a, b) => a.arrivalIndex - b.arrivalIndex);
   const requiredLines = props.squadSize * 2;
   const canStart = lineCount >= requiredLines || props.canStartExisting;
-
-  useEffect(() => {
-    const safeEntries = entries.filter((entry) => !entry.id.startsWith("temp-"));
-    localStorage.setItem(cacheKey, JSON.stringify({ revision: revisionRef.current, entries: safeEntries, savedAt: Date.now() }));
-  }, [cacheKey, entries]);
 
   function enqueue<T>(action: MutationAction<T>, input: T, onSuccess: (result: ArrivalMutationResult) => void, onError: () => void) {
     setSyncing((current) => current + 1);

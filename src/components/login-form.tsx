@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type AccessMode = "signin" | "signup" | "recovery";
 
-export function LoginForm({ initialMessage }: { initialMessage?: string }) {
+export function LoginForm({ initialMessage, admin = false }: { initialMessage?: string; admin?: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +49,7 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
       setMessage("Conta criada. Abra o e-mail de confirmação para liberar o primeiro acesso.");
       return;
     }
-    router.push("/app");
+    router.push(admin ? "/admin" : "/app");
     router.refresh();
   }
 
@@ -76,7 +76,7 @@ export function LoginForm({ initialMessage }: { initialMessage?: string }) {
       <button className="button button-primary" disabled={pending} type="submit">{buttonLabel}</button>
       <div className="login-options">
         {mode !== "signin" && <button className="button button-quiet" type="button" onClick={() => { setMode("signin"); setMessage(undefined); }}>Já tenho conta</button>}
-        {mode === "signin" && <button className="button button-quiet" type="button" onClick={() => { setMode("signup"); setMessage(undefined); }}>Primeiro acesso? Criar conta</button>}
+        {!admin && mode === "signin" && <button className="button button-quiet" type="button" onClick={() => { setMode("signup"); setMessage(undefined); }}>Primeiro acesso? Criar conta</button>}
         {mode === "signin" && <button className="button button-quiet button-small" type="button" onClick={() => { setMode("recovery"); setMessage(undefined); }}>Esqueci minha senha</button>}
       </div>
     </form>

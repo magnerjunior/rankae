@@ -1,5 +1,8 @@
 "use server";
 
+import { isRevisionConflict } from "@/lib/database-errors";
+import { validInitialSelection } from "@/domain/initial-teams";
+
 import { randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -10,7 +13,9 @@ import { calculateContributionShare, canAcceptArrival } from "@/domain/ranka/rul
 
 const uuid = z.string().uuid();
 const optionalUuid = z.preprocess((value) => value || undefined, uuid.optional());
-const playerSchema = z.object({ fullName: z.string().trim().min(2).max(120), nickname: z.string().trim().max(60).optional(), aliases: z.string().max(240).optional(), role: z.enum(["line", "keeper", "either"]) });
+import { scheduleSchema } from "@/domain/ranka/schedule";
+
+const playerSchema = z.object({ fullName: z.string().trim().min(2).max(120), nickname: z.string().trim().max(60).optional(), phone: z.string().regex(/^\+?\d{8,15}$/).optional() });
 
 export interface ArrivalActionState {
   status: "idle" | "success" | "error";
@@ -131,7 +136,7 @@ function readArrivalResult(data: unknown): { revision?: number; arrivals?: Arriv
 function arrivalError(code?: string): ArrivalMutationResult {
   if (code === "23514") return { status: "error", message: "O limite dessa posição foi atingido." };
   if (code === "23505") return { status: "error", message: "Há nomes iguais. Use também o sobrenome." };
-  if (code === "40001") return { status: "error", message: "A lista mudou em outro aparelho. Atualize e tente novamente." };
+  if (isRevisionConflict(code)) return { status: "error", message: "A lista mudou em outro aparelho. Atualize e tente novamente." };
   return { status: "error", message: "Não foi possível salvar agora. Tente novamente." };
 }
 
@@ -158,7 +163,7 @@ async function rpc(name: string, args: Record<string, unknown>) {
     "batch_mark_contributions",
     "finish_ranka_session",
   ].includes(name)) {
-    const statusCode = result.error ? result.error.code === "40001" ? 409 : 500 : 200;
+    const statusCode = result.error ? isRevisionConflict(result.error.code) ? 409 : 500 : 200;
     await supabase.rpc("record_authenticated_route_outcome", {
       p_route_key: name,
       p_duration_ms: Math.round(performance.now() - startedAt),
@@ -247,7 +252,7 @@ export async function addArrivalAction(rankaId: string, sessionId: string, expec
   if (error) {
     if (error.code === "23514") return { status: "error", message: "O limite dessa posição foi atingido." };
     if (error.code === "23505") return { status: "error", message: "Há nomes iguais. Digite também o sobrenome." };
-    if (error.code === "40001") return { status: "error", message: "A lista mudou. Atualizamos a tela; tente mais uma vez." };
+    if (isRevisionConflict(error.code)) return { status: "error", message: "A lista mudou. Atualizamos a tela; tente mais uma vez." };
     return { status: "error", message: "Não foi possível confirmar a chegada agora." };
   }
   revalidatePath(`/app/rankas/${rankaId}/chegada`);
@@ -348,10 +353,25 @@ export async function startGameFromArrivalAction(rankaId: string, sessionId: str
 }
 
 export async function createPlayerAction(rankaId: string, orgId: string, formData: FormData) {
-  const parsed = playerSchema.safeParse({ fullName: formData.get("fullName"), nickname: formData.get("nickname") || undefined, aliases: formData.get("aliases") || undefined, role: formData.get("role") });
+  const phone = String(formData.get("phone") ?? "").trim().replace(/[\s().-]/g, "");
+  const parsed = playerSchema.safeParse({ fullName: formData.get("fullName"), nickname: formData.get("nickname") || undefined, phone: phone || undefined });
   if (!parsed.success) finish(rankaId, "jogadores", false, "dados");
-  const { error } = await rpc("create_player_with_aliases_confirmed", { p_org_id: orgId, p_full_name: parsed.data.fullName, p_nickname: parsed.data.nickname ?? null, p_role: parsed.data.role, p_aliases: parsed.data.aliases?.split(",").map((alias) => alias.trim()).filter(Boolean) ?? [], p_confirm_possible_duplicate: formData.get("confirmPossibleDuplicate") === "on" });
+  const { error } = await rpc("create_player_profile", { p_org_id: orgId, p_full_name: parsed.data.fullName, p_nickname: parsed.data.nickname ?? null, p_phone: parsed.data.phone ?? null, p_confirm_possible_duplicate: formData.get("confirmPossibleDuplicate") === "on", p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "jogadores", !error, error ? "salvar" : "jogador");
+}
+
+export async function payPendingContributionAction(rankaId: string, sessionId: string, playerId: string, revision: number, formData: FormData) {
+  const { error } = await rpc("pay_ranka_pending_contribution", { p_ranka_id: rankaId, p_session_id: sessionId, p_player_id: playerId, p_expected_revision: revision, p_idempotency_key: idempotencyKey(formData) });
+  revalidatePath(`/app/rankas/${rankaId}`);
+  redirect(`/app/rankas/${rankaId}/jogadores?filtro=pendentes&${error ? "erro" : "sucesso"}=contribuicao`);
+}
+
+export async function saveRankaScheduleAction(rankaId: string, revision: number, formData: FormData) {
+  const parsed = scheduleSchema.safeParse({ mode: formData.get("mode"), date: formData.get("date"), weekdays: [...new Set(formData.getAll("weekdays").map(Number))], alternateDay: Number(formData.get("alternateDay")) });
+  if (!parsed.success) finish(rankaId, "configuracoes", false, "agenda");
+  const schedule = parsed.data;
+  const { error } = await rpc("update_ranka_schedule", { p_ranka_id: rankaId, p_expected_revision: revision, p_idempotency_key: idempotencyKey(formData), p_mode: schedule.mode, p_date: "date" in schedule ? schedule.date : null, p_weekdays: schedule.mode === "weekly" ? schedule.weekdays : null, p_alternate_day: schedule.mode === "alternating" ? schedule.alternateDay : null });
+  finish(rankaId, "configuracoes", !error, "agenda");
 }
 
 export async function setPlayerMembershipAction(rankaId: string, playerId: string, formData: FormData) {
@@ -376,10 +396,11 @@ export async function setAttendanceStatusAction(rankaId: string, sessionId: stri
 }
 
 export async function generateSquadsAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
-  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
+  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks", "manual"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
   if (!parsed.success) finish(rankaId, "jogo", false, "dados");
+  if (parsed.data.method === "manual" && !validInitialSelection(formData.getAll("manualPlayers").map(String), parsed.data.squadSize)) finish(rankaId, "jogo", false, "dados");
   const seed = parsed.data.method === "shuffle_blocks" ? parsed.data.seed ?? randomBytes(4).readUInt32BE(0) % 2_147_483_647 : null;
-  const { error } = await rpc("generate_session_squads", { p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: seed, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const { error } = await rpc("generate_initial_squads", { p_manual_players: formData.getAll("manualPlayers"), p_yellow_number: Number(formData.get("yellowNumber") || 1), p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: seed, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "jogo", !error, error ? "conflito" : "times");
 }
 
@@ -415,7 +436,7 @@ export async function swapSquadPlayersAction(rankaId: string, sessionId: string,
     p_idempotency_key: idempotencyKey(formData),
   });
   if (error) {
-    const message = error.code === "40001"
+    const message = isRevisionConflict(error.code)
       ? "Os times mudaram em outro aparelho. Atualize e tente novamente."
       : error.code === "55000"
         ? "Volte à formação dos times antes de preparar a partida."
@@ -429,7 +450,7 @@ export async function swapSquadPlayersAction(rankaId: string, sessionId: string,
 
 export async function prepareMatchAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData): Promise<FastMutationResult> {
   const { error } = await rpc("prepare_next_match", { p_session_id: sessionId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "Os times mudaram em outro aparelho. Tente novamente." : "Não foi possível preparar a partida." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "Os times mudaram em outro aparelho. Tente novamente." : "Não foi possível preparar a partida." };
   revalidatePath(`/app/rankas/${rankaId}`);
   return { status: "success", message: "Pré-jogo pronto.", nextPath: `/app/rankas/${rankaId}/jogo?etapa=partida` };
 }
@@ -447,7 +468,7 @@ export async function clockAction(rankaId: string, matchId: string, command: str
   if (!parsed.success || !revision.success) return { status: "error", message: "Não foi possível atualizar o relógio." };
   const desiredStates: Record<typeof parsed.data, string[]> = { start: ["live"], pause: ["paused", "overtime_paused"], resume: ["live", "overtime_live"], reset: ["ready"], finish_regulation: ["regulation_ended"], start_overtime: ["overtime_live"], finish_overtime: ["tie_break"] };
   let result = await rpc("transition_match_clock", { p_match_id: matchId, p_command: parsed.data, p_expected_revision: revision.data, p_idempotency_key: idempotencyKey(formData) });
-  if (result.error?.code === "40001") {
+  if (isRevisionConflict(result.error?.code)) {
     const current = await rpc("get_match_clock_snapshot", { p_match_id: matchId });
     const currentClock = readClockResult(current.data);
     if (currentClock?.state && desiredStates[parsed.data].includes(currentClock.state)) return currentClock;
@@ -491,7 +512,7 @@ export async function recordEventAction(matchId: string, expectedRevision: numbe
     : parsed.data.label || "Marco";
   const metadata = parsed.data.markerKind === "card" ? { kind: "card", color: parsed.data.cardColor, durationMinutes: parsed.data.cardMinutes, playerId: cardPlayer } : { kind: "note" };
   const { error } = await rpc("record_match_event", { p_match_id: matchId, p_event_type: parsed.data.eventType, p_side: parsed.data.side ?? null, p_scorer_player_id: cardPlayer ?? parsed.data.scorerPlayerId ?? null, p_assist_player_id: parsed.data.assistPlayerId ?? null, p_keeper_player_id: parsed.data.keeperPlayerId ?? null, p_goal_kind: parsed.data.goalKind ?? null, p_penalty_outcome: parsed.data.penaltyOutcome ?? null, p_label: parsed.data.eventType === "marker" ? markerLabel.slice(0, 80) : parsed.data.label ?? null, p_metadata: metadata, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "A partida mudou em outro aparelho. Tente novamente." : "Não foi possível registrar o evento." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A partida mudou em outro aparelho. Tente novamente." : "Não foi possível registrar o evento." };
   return { status: "success", message: parsed.data.eventType === "marker" ? "Ocorrência registrada." : "Evento registrado." };
 }
 
@@ -527,7 +548,7 @@ export async function recordGoalFastAction(matchId: string, expectedRevision: nu
     p_idempotency_key: key,
   });
   let result = await rpc("record_match_event", args(expectedRevision));
-  if (result.error?.code === "40001") {
+  if (isRevisionConflict(result.error?.code)) {
     const current = await rpc("get_match_clock_snapshot", { p_match_id: matchId });
     const clock = readClockResult(current.data);
     if (clock?.revision) result = await rpc("record_match_event", args(clock.revision));
@@ -564,14 +585,14 @@ export async function completeMatchAction(rankaId: string, matchId: string, expe
   const parsed = z.object({ resultOverride: z.preprocess((value) => value || undefined, z.enum(["yellow", "red", "both_out"]).optional()), reason: z.string().trim().max(240).optional() }).safeParse({ resultOverride: formData.get("resultOverride"), reason: formData.get("reason") || undefined });
   if (!parsed.success) return { status: "error", message: "Revise o resultado antes de continuar." };
   const { error } = await rpc("complete_match_and_rotate", { p_match_id: matchId, p_result_override: parsed.data.resultOverride ?? null, p_reason: parsed.data.reason ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "A partida foi alterada em outro aparelho. Tente novamente." : "Não foi possível abrir o próximo jogo." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A partida foi alterada em outro aparelho. Tente novamente." : "Não foi possível abrir o próximo jogo." };
   revalidatePath(`/app/rankas/${rankaId}`);
   return { status: "success", message: "Próximo jogo pronto.", nextPath: `/app/rankas/${rankaId}/jogo?etapa=partida` };
 }
 
 export async function finishMatchAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData): Promise<FastMutationResult> {
   const { error } = await rpc("finish_match", { p_match_id: matchId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "A partida mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível encerrar a partida." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A partida mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível encerrar a partida." };
   revalidatePath(`/app/rankas/${rankaId}`);
   return { status: "success", message: "Partida encerrada." };
 }
@@ -591,19 +612,63 @@ export async function updateGoalAttributionAction(rankaId: string, eventId: stri
   const parsed = z.object({ scorer: optionalUuid, assist: optionalUuid }).safeParse({ scorer: formData.get("scorer"), assist: formData.get("assist") });
   if (!parsed.success || (parsed.data.scorer && parsed.data.scorer === parsed.data.assist)) return { status: "error", message: "Confira autor e assistência." };
   const { error } = await rpc("update_goal_attribution", { p_event_id: eventId, p_scorer_player_id: parsed.data.scorer ?? null, p_assist_player_id: parsed.data.assist ?? null, p_expected_revision: matchRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "A partida mudou. Atualize e tente novamente." : "Não foi possível atribuir o gol." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A partida mudou. Atualize e tente novamente." : "Não foi possível atribuir o gol." };
   revalidatePath(`/app/rankas/${rankaId}`);
   return { status: "success", message: "Autoria atualizada." };
+}
+
+export async function editHistoricalGoalAction(rankaId: string, sessionId: string, eventId: string, matchRevision: number, formData: FormData) {
+  const parsed = z.object({
+    side: z.enum(["yellow", "red"]),
+    goalKind: z.enum(["normal", "penalty", "own_goal"]),
+    minute: z.coerce.number().int().min(0).max(1440),
+    second: z.coerce.number().int().min(0).max(59),
+    scorer: optionalUuid,
+    assist: optionalUuid,
+  }).safeParse({ side: formData.get("side"), goalKind: formData.get("goalKind"), minute: formData.get("minute"), second: formData.get("second"), scorer: formData.get("scorer"), assist: formData.get("assist") });
+  if (!parsed.success || (parsed.data.scorer && parsed.data.scorer === parsed.data.assist)) finishHistory(rankaId, sessionId, false);
+  const occurrenceMs = parsed.data.minute * 60_000 + parsed.data.second * 1_000;
+  const { error } = await rpc("edit_match_goal", {
+    p_event_id: eventId,
+    p_side: parsed.data.side,
+    p_goal_kind: parsed.data.goalKind,
+    p_occurrence_ms: occurrenceMs,
+    p_scorer_player_id: parsed.data.scorer ?? null,
+    p_assist_player_id: parsed.data.assist ?? null,
+    p_expected_revision: matchRevision,
+    p_idempotency_key: idempotencyKey(formData),
+  });
+  finishHistory(rankaId, sessionId, !error);
+}
+
+export async function voidHistoricalMatchEventAction(rankaId: string, sessionId: string, eventId: string, matchRevision: number, formData: FormData) {
+  const reason = z.string().trim().min(3).max(240).safeParse(formData.get("reason"));
+  if (!reason.success) finishHistory(rankaId, sessionId, false);
+  const { error } = await rpc("void_match_event", { p_event_id: eventId, p_reason: reason.data, p_expected_revision: matchRevision, p_idempotency_key: idempotencyKey(formData) });
+  finishHistory(rankaId, sessionId, !error);
+}
+
+function finishHistory(rankaId: string, sessionId: string, ok: boolean): never {
+  revalidatePath(`/app/rankas/${rankaId}/historico`);
+  redirect(`/app/rankas/${rankaId}/historico?dia=${sessionId}&${ok ? "sucesso" : "erro"}=correcao`);
 }
 
 export async function batchContributionsAction(sessionId: string, expectedRevision: number, formData: FormData): Promise<ContributionMutationResult> {
   const parsed = z.object({ playerIds: z.array(uuid).min(1), status: z.enum(["pending", "paid", "waived"]), note: z.string().trim().max(240).optional() }).safeParse({ playerIds: formData.getAll("playerIds"), status: formData.get("status"), note: formData.get("note") || undefined });
   if (!parsed.success) return { status: "error", message: "Selecione ao menos um jogador." };
   const { data, error } = await rpc("batch_mark_contributions", { p_session_id: sessionId, p_player_ids: parsed.data.playerIds, p_status: parsed.data.status, p_note: parsed.data.note ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
-  if (error) return { status: "error", message: error.code === "40001" ? "A lista mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível atualizar as contribuições." };
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A lista mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível atualizar as contribuições." };
   const output = z.object({ session_revision: z.coerce.number().int().positive() }).safeParse(data);
   revalidatePath(`/app/rankas`);
   return { status: "success", message: `${parsed.data.playerIds.length} contribuição(ões) atualizada(s).`, revision: output.success ? output.data.session_revision : undefined };
+}
+
+export async function setKeeperWaiverAction(rankaId: string, sessionId: string, expectedRevision: number, enabled: boolean): Promise<ContributionMutationResult> {
+  const { data, error } = await rpc("set_session_keeper_waiver", { p_session_id: sessionId, p_enabled: enabled, p_expected_revision: expectedRevision, p_idempotency_key: randomUUID() });
+  if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A rodada mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível atualizar a isenção dos goleiros." };
+  const output = z.object({ session_revision: z.coerce.number().int().positive() }).safeParse(data);
+  revalidatePath(`/app/rankas/${rankaId}`);
+  return { status: "success", message: enabled ? "Goleiros isentos nesta rodada." : "Isenção dos goleiros removida." , revision: output.success ? output.data.session_revision : undefined };
 }
 
 export async function updateRulesAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {

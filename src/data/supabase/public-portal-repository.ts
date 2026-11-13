@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { PortalGateState, PortalPeriod, PublicRankaSnapshot } from "@/domain/public-portal/types";
+import type { PortalGateState, PortalPeriod, PublicRankaSnapshot, PublicSessionDate } from "@/domain/public-portal/types";
 
 const gateSchema = z.object({
   status: z.enum(["open", "link_required", "pin_required", "unavailable"]),
@@ -14,7 +14,7 @@ const playerStatSchema = z.object({
   penaltiesMissed: z.number(), penaltiesSaved: z.number(), matches: z.number(), wins: z.number(), losses: z.number(), draws: z.number(),
 });
 const squadSchema = z.object({ number: z.number(), players: z.array(z.string()) });
-const resultSchema = z.object({ date: z.string(), ordinal: z.number(), yellowSquadNumber: z.number(), redSquadNumber: z.number(), yellowScore: z.number(), redScore: z.number() });
+const resultSchema = z.object({ matchId: z.string().uuid().optional(), date: z.string(), ordinal: z.number(), yellowSquadNumber: z.number(), redSquadNumber: z.number(), yellowScore: z.number(), redScore: z.number() });
 const liveSchema = z.object({
   ordinal: z.number(), state: z.enum(["draft","ready","live","paused","regulation_ended","overtime_live","overtime_paused","tie_break","completed","cancelled","manual_review"]),
   clockPhase: z.enum(["regulation","overtime"]), startedAtServer: z.string().nullish(), elapsedMsBeforeStart: z.number(), durationLimitMs: z.number(),
@@ -37,13 +37,14 @@ export class PublicPortalRepository {
     return { status: gate.status, rankaName: gate.ranka_name, linkRequired: gate.link_required, warning: gate.warning };
   }
 
-  async getSnapshot(input: { slug: string; grant?: string; period: PortalPeriod; date?: string }): Promise<PublicRankaSnapshot | null> {
-    const { data, error } = await this.client.rpc("get_public_ranka_snapshot", {
+  async getSnapshot(input: { slug: string; grant?: string; period: PortalPeriod; date?: string; internal?: boolean }): Promise<PublicRankaSnapshot | null> {
+    const { data, error } = await this.client.rpc(input.internal ? "get_internal_ranka_statistics" : "get_public_ranka_snapshot", {
       p_slug: input.slug,
-      p_grant_token: input.grant ?? null,
+      ...(input.internal ? {} : { p_grant_token: input.grant ?? null }),
       p_period: input.period,
       p_specific_date: input.date ?? null,
     });
+    if (input.internal && error?.code === "PGRST202") return this.getSnapshot({ ...input, internal: false });
     if (error) throw new Error("Não foi possível carregar o placar público.");
     if (!data) return null;
     const parsed = snapshotSchema.parse(data);
@@ -56,6 +57,16 @@ export class PublicPortalRepository {
         keepers: { yellow: parsed.liveMatch.keepers.yellow ?? undefined, red: parsed.liveMatch.keepers.red ?? undefined },
       } : undefined,
     };
+  }
+
+  async getCalendar(input: { slug: string; grant?: string; month: string }): Promise<PublicSessionDate[]> {
+    const { data, error } = await this.client.rpc("get_public_ranka_calendar", {
+      p_slug: input.slug,
+      p_grant_token: input.grant ?? null,
+      p_month: `${input.month}-01`,
+    });
+    if (error || !Array.isArray(data)) throw new Error("Não foi possível carregar o calendário público.");
+    return z.array(z.object({ date: z.string(), count: z.number().int().positive() })).parse(data);
   }
 
   async exchange(input: { slug: string; linkToken?: string; pin?: string; grantToken: string; fingerprint: string }) {

@@ -19,6 +19,7 @@ export interface SessionRules {
   tiePolicy: "overtime" | "both_out" | "penalties" | "odd_even" | "manual";
   contributionMode: "fixed" | "divide_total";
   totalCostCents: number;
+  waiveKeeperContributions: boolean;
 }
 
 export interface MatchAssignment {

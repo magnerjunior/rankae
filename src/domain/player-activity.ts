@@ -8,6 +8,31 @@ export type PlayerActivity = {
   alert_months: number;
 };
 
+export type PendingContribution = { player_id: string; session_id: string; scheduled_on: string; session_number: number; amount_cents: number; revision: number; requestId: string };
+
+export type PlayerActivityFilter = "all" | "debt" | "absent";
+export type PlayerAbsenceOrder = "longest" | "shortest";
+export type PlayerActivityRow<TPlayer extends { fullName: string } = { fullName: string }> = {
+  player: TPlayer;
+  activity?: PlayerActivity;
+};
+
+export function selectPlayerActivityRows<TPlayer extends { fullName: string }>(
+  rows: PlayerActivityRow<TPlayer>[],
+  filter: PlayerActivityFilter,
+  order: PlayerAbsenceOrder,
+  today: string,
+): PlayerActivityRow<TPlayer>[] {
+  return rows
+    .filter(({ activity }) => filter === "all" || (filter === "debt" ? (activity?.unpaid_sessions ?? 0) > 0 : (activity?.missed_sessions ?? 0) > 0))
+    .toSorted((a, b) => {
+      const dateA = a.activity?.absence_since_on ?? today;
+      const dateB = b.activity?.absence_since_on ?? today;
+      const absenceOrder = order === "longest" ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+      return absenceOrder || a.player.fullName.localeCompare(b.player.fullName, "pt-BR");
+    });
+}
+
 export function absenceDetails(activity: PlayerActivity, today: string) {
   if (activity.missed_sessions === 0) return { short: "Em dia", exact: "Nenhum encontro perdido desde a última presença", alert: false };
   const start = new Date(`${activity.absence_since_on}T12:00:00Z`);

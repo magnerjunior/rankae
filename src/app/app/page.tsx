@@ -13,10 +13,9 @@ const entitlementSchema = z.object({ limit: z.number().int().positive(), used: z
 export default async function AppPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
   const userId = await requireUserId();
   const supabase = await createClient();
-  const [{ data, error }, { data: organizationData }, capabilityResult, entitlementResult, planResult] = await Promise.all([
+  const [{ data, error }, { data: organizationData }, entitlementResult, planResult] = await Promise.all([
     supabase.from("rankas").select("id,name,slug,visibility").order("created_at"),
     supabase.from("organizations").select("id,name,owner_user_id").order("created_at"),
-    supabase.rpc("get_platform_admin_capability"),
     supabase.rpc("get_ranka_entitlement"),
     supabase.rpc("get_commercial_plan"),
   ]);
@@ -25,8 +24,6 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   const ownedOrganizations = ((organizationData ?? []) as OrganizationRow[]).filter((organization) => organization.owner_user_id === userId);
   if (!rankas.length) redirect("/app/configurar");
   const { erro } = await searchParams;
-  const adminCapability = capabilityResult.data;
-  const isAdmin = Boolean(adminCapability && typeof adminCapability === "object" && "active" in adminCapability && adminCapability.active === true);
   const entitlement = entitlementSchema.safeParse(entitlementResult.data).success ? entitlementSchema.parse(entitlementResult.data) : { limit: 1, used: rankas.length, canCreate: false };
   const parsedPlan = commercialPlanSchema.safeParse(planResult.data);
   const plan = parsedPlan.success ? parsedPlan.data : DEFAULT_COMMERCIAL_PLAN;
@@ -34,7 +31,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   const acquireHref = whatsappLink(EXTRA_RANKA_MESSAGE);
 
   return <main className="page ranka-picker">
-    <header className="between ranka-picker-head"><span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span><details className="account-menu"><summary className="button button-secondary button-small">Menu</summary><div className="account-popover"><Link href="/app/privacidade">Privacidade</Link><Link href="/app/legal">Documentos</Link>{isAdmin && <Link href="/admin">Administração</Link>}<form action={signOutAction}><button>Sair</button></form></div></details></header>
+    <header className="between ranka-picker-head"><span className="brand"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></span><details className="account-menu"><summary className="button button-secondary button-small">Menu</summary><div className="account-popover"><Link href="/app/privacidade">Privacidade</Link><Link href="/app/legal">Documentos</Link><form action={signOutAction}><button>Sair</button></form></div></details></header>
     <header className="page-heading"><span className="eyebrow">Meus rankas</span><h1 className="display">Qual vai rolar?</h1></header>
     {erro && <div className="notice notice-warning">Não foi possível criar o ranka. Revise os dados ou fale com o suporte para ampliar seu plano.</div>}
     <div className="ranka-grid">

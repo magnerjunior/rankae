@@ -1,5 +1,7 @@
+import { InitialTeamFields } from "@/components/initial-team-fields";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
+import { RankaRanking, RankaResults } from "@/components/ranka-results";
 import { AppShell } from "@/components/app-shell";
 import { ContributionManager } from "@/components/contribution-manager";
 import { GameStatusBar } from "@/components/game-status-bar";
@@ -12,6 +14,11 @@ import { FinishMatchControl } from "@/components/finish-match-control";
 import { OptimisticMatchClock } from "@/components/optimistic-match-clock";
 import { OptimisticScore } from "@/components/optimistic-score";
 import { PlayerCreateForm } from "@/components/player-create-form";
+import { RankaScheduleForm } from "@/components/ranka-schedule-form";
+import { nextRankaDate, type RankaSchedule } from "@/domain/ranka/schedule";
+import type { PendingContribution } from "@/domain/player-activity";
+import { PlayerDirectory } from "@/components/player-directory";
+import { KeeperWaiverControl } from "@/components/keeper-waiver-control";
 import { SupportAssignments } from "@/components/support-assignments";
 import { PortalSettingsForm } from "@/components/portal-settings-form";
 import { TeamRoster } from "@/components/ranka-workspace";
@@ -52,8 +59,8 @@ import {
   updateMarkerAction,
   voidEventAction,
   configurePortalAction,
-  setPlayerMembershipAction,
   startRankaAction,
+  saveRankaScheduleAction,
   reorderArrivalAction,
   renameArrivalAction,
   removeArrivalAction,
@@ -115,11 +122,12 @@ function money(cents: number) {
   }).format(cents / 100);
 }
 
-function Dashboard({ snapshot, playerActivity }: { snapshot: RankaSnapshot; playerActivity?: PlayerActivity[] }) {
+function Dashboard({ snapshot, playerActivity, schedule }: { snapshot: RankaSnapshot; playerActivity?: PlayerActivity[]; schedule: RankaSchedule }) {
   const present = snapshot.attendance.filter(
     (entry) => entry.status === "present",
   ).length;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const nextDate = nextRankaDate(schedule, today);
   const inactiveCount = (playerActivity ?? []).filter((activity) => absenceDetails(activity, today).alert).length;
   const debtCount = (playerActivity ?? []).filter((activity) => activity.unpaid_sessions > 0).length;
   const launch = snapshot.sessionState === "completed" ? (
@@ -155,7 +163,8 @@ function Dashboard({ snapshot, playerActivity }: { snapshot: RankaSnapshot; play
         sessionId={snapshot.sessionId}
       />
       {launch}
-      {(inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
+      {nextDate && <p className="muted">Próximo encontro previsto: {nextDate.split("-").reverse().join("/")}</p>}
+      {(inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores${debtCount ? "?filtro=pendentes" : ""}`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
       {snapshot.sessionState === "completed" && <Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver último ranka encerrado</Link>}
       {snapshot.sessionState !== "completed" && snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}
       <div className="metric-grid quick-metrics">
@@ -215,15 +224,20 @@ function Players({
   error,
   playerActivity,
   inactivitySettings,
+  pending,
+  pendingUnavailable,
+  debtFilter,
 }: {
   snapshot: RankaSnapshot;
   success?: string;
   error?: string;
   playerActivity?: PlayerActivity[];
   inactivitySettings?: { months: number; revision: number };
+  pending: PendingContribution[];
+  pendingUnavailable: boolean;
+  debtFilter: boolean;
 }) {
   const action = createPlayerAction.bind(null, snapshot.id, snapshot.orgId!);
-  const activityByPlayer = new Map((playerActivity ?? []).map((entry) => [entry.player_id, entry]));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   return (
     <>
@@ -238,57 +252,27 @@ function Players({
       <div className="two-column" style={{ marginTop: 16 }}>
         <section className="panel">
           <h2 className="panel-title display">Novo jogador</h2>
-          <PlayerCreateForm players={snapshot.players} action={action} />
+          <PlayerCreateForm players={snapshot.players} action={action} requestId={randomUUID()} />
         </section>
         <section className="panel">
           <div className="panel-head">
             <h2 className="panel-title display">Jogadores cadastrados</h2>
             <span className="badge badge-green">{snapshot.players.length}</span>
           </div>
+          {pendingUnavailable && <p role="status">As pendências por encontro estão indisponíveis no momento.</p>}
           {snapshot.players.length ? (
-            snapshot.players.map((player) => {
-              const activity = activityByPlayer.get(player.id);
-              const absence = activity ? absenceDetails(activity, today) : undefined;
-              return (
-              <div className="person-row player-catalog-row" key={player.id}>
-                <span className="avatar">
-                  {player.fullName
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((part) => part[0])
-                    .join("")}
-                </span>
-                <span className="person-info">
-                  <strong>{player.fullName}</strong>
-                  <small>
-                    {player.role === "keeper" ? "Goleiro" : "Linha"}
-                  </small>
-                  {activity && absence && <details className="player-activity"><summary><span className={absence.alert ? "activity-alert" : ""}>{absence.alert ? "Atenção · " : ""}{absence.short}</span>{activity.unpaid_sessions > 0 && <span className="activity-debt">{activity.unpaid_sessions} {activity.unpaid_sessions === 1 ? "contribuição pendente" : "contribuições pendentes"}</span>}</summary><small>{absence.exact}{activity.unpaid_sessions > 0 ? ` · ${money(activity.unpaid_cents)} em aberto` : ""}</small></details>}
-                </span>
-                <form
-                  className="player-membership-form"
-                  action={setPlayerMembershipAction.bind(
-                    null,
-                    snapshot.id,
-                    player.id,
-                  )}
-                >
-                  <Key />
-                  <select
-                    className="select"
-                    name="membership"
-                    defaultValue={player.membership ?? "regular"}
-                    aria-label={`Vínculo de ${player.fullName}`}
-                  >
-                    <option value="regular">Fixo</option>
-                    <option value="guest">Visitante</option>
-                  </select>
-                  <button className="button button-secondary button-small">
-                    Salvar
-                  </button>
-                </form>
-              </div>
-            ); })
+            <PlayerDirectory
+              key={String(debtFilter)}
+              pending={pending}
+              debtFilter={debtFilter}
+              rows={snapshot.players.map((player) => ({ player, activity: playerActivity?.find((entry) => entry.player_id === player.id) }))}
+              today={today}
+              rankaId={snapshot.id}
+              sessionId={snapshot.sessionId}
+              revision={snapshot.revision}
+              presentIds={snapshot.attendance.filter((entry) => entry.status === "present").map((entry) => entry.playerId)}
+              waivedIds={snapshot.contributions.filter((entry) => entry.status === "waived").map((entry) => entry.playerId)}
+            />
           ) : (
             <EmptyState
               title="Nenhum jogador"
@@ -415,29 +399,7 @@ function Teams({
         {present.length ? (
           <form action={generate} className="cluster">
             <Key />
-            <label className="field compact-field">
-              Jogadores por time
-              <select
-                className="select"
-                name="squadSize"
-                defaultValue={snapshot.rules.squadSize}
-              >
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-              </select>
-            </label>
-            <label className="field compact-field">
-              Como dividir
-              <select
-                className="select"
-                name="method"
-                defaultValue="shuffle_blocks"
-              >
-                <option value="sequential">Por ordem de chegada</option>
-                <option value="shuffle_blocks">Sortear T1/T2 · demais por chegada</option>
-              </select>
-            </label>
+            <InitialTeamFields players={snapshot.players.filter(player => present.includes(player.id) && player.role === "line")} size={snapshot.rules.squadSize} />
             <button className="button button-primary">
               {snapshot.hasPersistedSquads
                 ? "Refazer times"
@@ -1279,6 +1241,7 @@ function Contributions({
         </div>
       </div>
       <section className="panel" style={{ marginTop: 16 }}>
+        {snapshot.sessionId && <KeeperWaiverControl rankaId={snapshot.id} sessionId={snapshot.sessionId} revision={snapshot.revision} enabled={snapshot.rules.waiveKeeperContributions} />}
         <ContributionManager
           rows={snapshot.attendance.map((entry) => {
             const player = snapshot.players.find((item) => item.id === entry.playerId);
@@ -1575,58 +1538,11 @@ function Stats({
               <h2 className="panel-title display">
                 Ranking · {publicSnapshot.periodLabel}
               </h2>
-              {publicSnapshot.stats.length ? (
-                publicSnapshot.stats.map((player, index) => (
-                  <div className="ranking-row" key={player.name}>
-                    <span className="ranking-position">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span>
-                      <strong>{player.name}</strong>
-                      <small>
-                        {player.matches} jogos · {player.wins} vitórias ·{" "}
-                        {player.assists} assistências
-                      </small>
-                    </span>
-                    <strong>{player.goals} gols</strong>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  title="Ainda sem estatísticas"
-                  description="Elas aparecem após a primeira partida concluída."
-                />
-              )}
+              <RankaRanking key={publicSnapshot.period + (date ?? "")} players={publicSnapshot.stats} />
             </section>
             <section className="panel">
               <h2 className="panel-title display">Resultados</h2>
-              {publicSnapshot.results.length ? (
-                publicSnapshot.results.map((result) => (
-                  <div
-                    className="result-row"
-                    key={`${result.date}-${result.ordinal}`}
-                  >
-                    <span>
-                      <small>
-                        {result.date} · J{result.ordinal}
-                      </small>
-                      <strong>T{result.yellowSquadNumber}</strong>
-                    </span>
-                    <strong>
-                      {result.yellowScore} × {result.redScore}
-                    </strong>
-                    <span className="right">
-                      <small>final</small>
-                      <strong>T{result.redSquadNumber}</strong>
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  title="Sem partidas concluídas"
-                  description="As partidas concluídas aparecem aqui."
-                />
-              )}
+              <RankaResults slug={publicSnapshot.slug} results={publicSnapshot.results} internal />
             </section>
           </div>
         </>
@@ -1671,6 +1587,7 @@ function GameHub({ snapshot, success, error, stage }: { snapshot: RankaSnapshot;
 
 export function RealRankaWorkspace({
   active,
+  schedule,
   snapshot,
   success,
   error,
@@ -1680,8 +1597,12 @@ export function RealRankaWorkspace({
   gameStage,
   playerActivity,
   inactivitySettings,
+  pending,
+  pendingUnavailable,
+  debtFilter,
 }: {
   active: RankaSection;
+  schedule: RankaSchedule;
   snapshot: RankaSnapshot;
   success?: string;
   error?: string;
@@ -1691,10 +1612,13 @@ export function RealRankaWorkspace({
   gameStage?: string;
   playerActivity?: PlayerActivity[];
   inactivitySettings?: { months: number; revision: number };
+  pending: PendingContribution[];
+  pendingUnavailable: boolean;
+  debtFilter: boolean;
 }) {
   let content: React.ReactNode;
   if (active === "jogadores")
-    content = <Players snapshot={snapshot} success={success} error={error} playerActivity={playerActivity} inactivitySettings={inactivitySettings} />;
+    content = <Players snapshot={snapshot} success={success} error={error} playerActivity={playerActivity} inactivitySettings={inactivitySettings} pending={pending} pendingUnavailable={pendingUnavailable} debtFilter={debtFilter} />;
   else if (active === "jogo")
     content = <GameHub snapshot={snapshot} success={success} error={error} stage={gameStage} />;
   else if (active === "chegada")
@@ -1710,8 +1634,8 @@ export function RealRankaWorkspace({
       <Contributions snapshot={snapshot} success={success} error={error} />
     );
   else if (active === "configuracoes")
-    content = <Rules snapshot={snapshot} success={success} error={error} />;
-  else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} />;
+    content = <><Rules snapshot={snapshot} success={success} error={error} />{inactivitySettings && <RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} />}</>;
+  else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} schedule={schedule} />;
   else
     content = (
       <Stats
@@ -1729,7 +1653,7 @@ export function RealRankaWorkspace({
     ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} state={snapshot.activeMatch.state} score={`${score?.yellow ?? 0} × ${score?.red ?? 0}`} startedAt={snapshot.activeMatch.startedAtServer} elapsedMs={snapshot.activeMatch.elapsedMsBeforeStart} label={`Jogo ${snapshot.activeMatch.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} />
     : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
   return (
-    <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status}>
+    <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status} gameNeedsFreshData={Boolean(snapshot.activeMatch)}>
       {isMatchScreen && snapshot.sessionId && snapshot.sessionState !== "completed" && <RealtimeSessionRefresh sessionId={snapshot.sessionId} />}
       {content}
     </AppShell>

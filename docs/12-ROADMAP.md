@@ -29,5 +29,12 @@
 - Testar cenários de 100 e 1000 VUs em staging autorizado (ou declarar limitações, custos e não executar sem aprovação).
 - Relatório técnico + correções. **Não prometer proteção jurídica absoluta ou capacidade medida sem evidências.** Parar.
 
+## FASE 5 — gestão de jogadores e revisão de resultados
+- Atalho visível para Jogadores; filtrar contribuições pendentes e jogadores sem presença recente; ordenar do maior ao menor tempo de ausência.
+- Isenção de contribuição para goleiros por encontro e isenção individual da rodada, registradas com trilha de auditoria.
+- No portal público, calendário do mês com dias de ranka destacados; selecionar um dia abre resultados daquele encontro.
+- No histórico autenticado, editar dados do gol ou anulá-lo com justificativa; placar continua derivado dos eventos e todas as correções são auditadas.
+- Migration local versionada e testes compatíveis; aplicar no projeto remoto somente após autorização específica.
+
 ## Futuro (fora destas fases)
 Veja `docs/13-FUTURO.md`.

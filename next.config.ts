@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   agentRules: false,
+  experimental: { staleTimes: { static: 30 } },
   async headers() {
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
@@ -13,6 +14,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: securityHeaders },
       { source: "/app/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      { source: "/admin", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
       { source: "/r/:path*", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "private, no-store" }] },
       { source: "/api/health", headers: [{ key: "Cache-Control", value: "no-store" }] },
     ];

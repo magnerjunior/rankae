@@ -8,8 +8,11 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
 test("página pública e acesso do organizador carregam sem vazamento lateral", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Seu futebol.*no ritmo do jogo/i })).toBeVisible();
-  await expect(page).toHaveTitle("Rankaê | Organize seu futebol do início ao fim");
-  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Rankaê | Seu futebol organizado em um só lugar");
+  await expect(page).toHaveTitle("Rankaê | App para organizar peladas e futebol amador");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/$/);
+  await expect(page.locator("#recursos .match-preview")).toBeVisible();
+  await expect(page.locator(".marketing-hero .match-preview")).toHaveCount(0);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Rankaê | App para organizar peladas e futebol amador");
   await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
   await expect(page.getByText("R$ 29,90")).toBeVisible();
   const trialLink = page.getByRole("link", { name: "Testar grátis" }).first();

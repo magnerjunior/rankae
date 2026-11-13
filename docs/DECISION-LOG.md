@@ -298,3 +298,85 @@ Encerrar partida passa a ser uma transação própria, com confirmação, versã
 O limite de dois gols passa a valer para um dos times, preservando a possibilidade de empate. Ao atingir o limite, a interface oferece continuar ou finalizar. O ajuste manual acrescenta minutos à duração limite sem alterar o tempo transcorrido. A regra de dois gols é padrão apenas para novos encontros sem configuração explícita; salvar zero desativa a regra.
 
 O calendário do histórico consulta somente o mês exibido. Elencos arquivados continuam visíveis pelo registro histórico dos integrantes, e cada partida abre sob demanda. A conexão em tempo real fica restrita à tela do jogo, com atualizações agrupadas em 600 ms para reduzir recargas durante a navegação. A migração `20261104000300` foi aplicada no SQL Editor autorizado e registrada no histórico. O alerta de CPU do Supabase permanece em observação; não há medição que comprove sua resolução.
+
+## 2026-11-05 — teaser audiovisual autorizado
+
+Produção autorizada pelo proprietário após planejamento. Corte vertical de 28 segundos com suspense, identidade oficial, voz sintética masculina pt-BR, música e efeitos originais separados. Estrutura isolada em videos/rankae-teaser-lancamento, sem alterações funcionais ou gravações no banco. Componentes reais renderizados com ações locais e dados fictícios rotulados; contexto de partida e ranking composto com estilos do produto, sem alegação de captura autenticada. Versões completa, sem narração, sem música e visual cru. Ferramentas auxiliares fora das dependências da aplicação. Nenhum pagamento ou modificação de produção.
+
+## 2026-11-05 — reformulação do teaser
+
+Referência Navalux analisada para cadência, variação de enquadramento e contraste. Montagem refeita para cerca de 16 segundos com narração em um take, edição de pausas e marcação por palavra. Barra removida; alternância de fundos da marca, ações locais com componentes reais e exportações com faixas separadas. Sem mudanças na aplicação, no banco ou na produção.
+
+## 2026-11-05 — remodelagem V3 do teaser
+
+Nova narração e montagem de 22 segundos, orientadas à sequência de chegada, times e gol. Chamadas por frases, movimentos curtos e suavizados, retirada do slogan comparativo, trilha reduzida e efeitos restritos a duas ações. Arquivos independentes mantidos. Mudanças limitadas ao projeto audiovisual e documentação.
+
+## 2026-11-06 — Fase 5: jogadores, isenções e histórico público/editável
+
+O atalho Jogadores fica visível no topo também em celular. A lista permite filtrar contribuições pendentes, filtrar quem perdeu encontros e ordenar pela data desde a qual cada jogador está ausente. A isenção individual é limitada ao encontro atual; a regra de isenção de goleiros vale para o encontro atual, registra a decisão e cria/atualiza os registros dos presentes, inclusive chegadas posteriores. Isenções anteriores permanecem no histórico.
+
+O portal público recebe um calendário mensal que revela somente datas e contagens de encontros para rankas com acesso público habilitado. O histórico autenticado permite corrigir lado, tipo, minuto e autoria do gol, ou anulá-lo com motivo. O placar segue derivado dos eventos; correções usam transação, revisão otimista, idempotência e trilha de auditoria.
+
+A migration `20261106000100_phase5_public_session_calendar.sql` está preparada localmente. Nenhuma migration foi aplicada a projeto remoto nem houve alteração de produção nesta fase.
+
+## 2026-11-10 — Lote exclusivo de desempenho
+- Escopo: reduzir espera de navegação; sem features, mudanças de regra ou novas dependências.
+- Arquivos: repositório Supabase, loading do painel/seções e teste de concorrência das leituras.
+- Snapshot: ranka e sessão consultados em paralelo sob RLS; jogadores carregados junto dos detalhes da sessão. Caminho com partida passa de quatro para três rodadas dependentes de dados (autenticação fora dessa contagem).
+- Loading boundaries permitem feedback durante navegação dinâmica, sem cache compartilhado de dados privados.
+- Nenhuma migração criada. Alterações anteriores de fase 5 permanecem separadas deste lote.
+- Riscos: latência real depende de rede, região e consultas/RLS; sem benchmark autenticado de produção, não afirmar percentual de ganho.
+- Publicação: usuário autorizou GitHub/Supabase para as edições; aplicar somente lotes validados. Consulta ao GitHub falhou por getaddrinfo; CLI Supabase falhou ao gravar telemetria fora do workspace.
+- Reprodução: npm run lint; npm run typecheck; npm test; npm run build; npm run test:e2e. Manual: abrir um ranka autorizado, alternar Início/Jogo/Contribuições, verificar carregamento e dados; repetir sem sessão para conferir redirecionamento.
+- Validação deste lote: lint e typecheck concluídos sem erros; 45 testes unitários passaram (5 arquivos), incluindo concorrência de consultas e ranka inacessível. A primeira execução do Vitest foi bloqueada por EPERM no temporário; repetição com TEMP/TMP em artifacts/tmp passou. git diff --check passou.
+- Build e smoke Playwright foram iniciados, ficaram sem concluir na inicialização/compilação e foram interrompidos; não estão aprovados. Smoke autenticado e medição de latência real continuam pendentes.
+- Commit também bloqueado: Permission denied ao criar .git/index.lock. Nenhum commit, push, deploy ou migração remota realizado. Lote local não constitui conclusão da fase de desempenho.
+
+## 2026-11-10 — Formação inicial manual
+Escolha explícita de dois times completos a partir dos presentes de linha, ou sorteio/chegada, com coletes iniciais invertíveis. Demais presentes seguem por chegada; não muda numeração histórica. Nova RPC generate_initial_squads mantém autorização, lock, revisão, idempotência e valida elegibilidade/duplicação no banco. Migração 20261110000100 preparada, não aplicada remotamente. Sem cadastro direto nesta tela: nomes são confirmados na Chegada. Validar manualmente Times > Escolher jogadores > coletes > confirmar; conferir T3 e a preparação do jogo. Testes SQL/integrados reais pendentes de acesso ao banco.
+
+## 2026-11-11 — Correção do consumo por retries de conflitos (aplicada ao Supabase)
+- Evidência: painel de produção apresentava ~3.600 erros/hora, um por segundo. Log identificou `transition_match_clock` com SQLSTATE 40001 e PostgREST 14.18. O Supabase documenta retries infinitos nessa combinação: https://supabase.com/kb/troubleshooting/high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions-77326b.
+- Migração 20261111000100 troca somente o código explícito de conflitos de revisão nas funções PL/pgSQL do aplicativo para PT409 (HTTP 409), preservando corpos, ownership, grants, SECURITY DEFINER, search_path, locks e idempotência. Não altera dados de partidas nem remove a checagem de versão. Definições históricas permanecem intactas; a migração corretiva deve rodar após todas as anteriores.
+- Aplicada via SQL Editor do projeto vinculado em transação, com lock_timeout 5s e statement_timeout 20s; registrada em supabase_migrations.schema_migrations (versão/nome, como repair). Verificação remota: 24 funções corrigidas, zero guards de revisão com 40001. As duas migrações anteriores ainda não publicadas não foram aplicadas neste atendimento.
+- Logs após aplicação: último 40001 às 08:22:20 America/Sao_Paulo; três PT409 às 08:22:21 encerraram tentativas pendentes. Não houve repetição por segundo no intervalo observado seguinte. Indicador de CPU ainda 88%; não foi demonstrado percentual de redução ou melhora de latência.
+- Aplicação reconhece PT409 e o código antigo durante rollout, preservando a reconciliação limitada do cronômetro e classificação HTTP 409 na telemetria.
+- 53 testes unitários passaram, typecheck passou após corrigir substituição de referência, lint passou. Testes SQL pgTAP adicionados, mas ainda não executados. Build em validação.
+- Publicação GitHub ainda bloqueada: conexão de leitura ao origin funcionou, mas .git/index.lock recusou escrita e o pedido de execução ampliada foi rejeitado pela política do ambiente. Nenhum commit/push realizado. Não contornar por outro diretório.
+- Reprodução: npm test; npm run typecheck; npm run lint; npm run build -- --webpack. Para Vitest neste ambiente usar TEMP/TMP em artifacts/tmp. Staging: executar supabase/tests/non_retryable_revision_conflicts_test.sql e testar versão desatualizada de uma partida fictícia, esperando 409 imediato sem mutação. Produção: observar novos logs e CPU após atualização das métricas; não disparar carga.
+
+- Resultado final: build de produção com webpack passou; smoke HTTP de /entrar, /offline e manifesto passou. Rota privada sem sessão confirmou redirecionamento em streaming para /entrar (HTTP 200 após loading boundary, com NEXT_REDIRECT); a primeira asserção esperava apenas 307 e foi ajustada à resposta em streaming. Não executada jornada autenticada de escrita em produção.
+
+## 2026-11-13 - Cache de navegação do painel
+- O painel antecipa uma aba elegível depois de 750 ms e prioriza a intenção indicada por mouse ou teclado. O `localStorage` guarda somente o identificador da última seção para essa previsão. O pré-carregamento automático é pulado em conexões 2G, offline e com economia de dados.
+- Payloads pré-carregados ficam em memória no roteador do Next por até 30 segundos. A aba Jogo mantém leitura sob demanda quando já há partida no snapshot, pois o relógio usa a referência de horário recebida do servidor. A autorização no servidor, a invalidação após gravações e as revisões continuam no fluxo existente.
+- O service worker guarda somente arquivos de build e imagens públicas de marca, além do fallback offline. Removidas gravações locais de snapshots de chegada e relógio que não tinham leitores. Consultas independentes de jogadores, alertas e estatísticas passam a rodar em paralelo, reutilizando o cliente Supabase da autorização na mesma requisição.
+- Arquivos principais: `next.config.ts`, `public/sw.js`, rota e componentes do painel, `src/server/auth.ts` e `tests/unit/service-worker-cache.test.ts`. Nenhuma migração ou dependência nova. Lint e TypeScript excluem cópias locais de validação já ignoradas pelo Git em `artifacts/`.
+- Reproduzir com build de produção, abrir um ranka autorizado, esperar o carregamento da aba prevista e alternar entre as abas com Network aberto. Conferir que o clique na rota já pré-carregada reaproveita o payload, que uma alteração invalida o conteúdo e que abrir uma rota privada sem sessão leva a `/entrar`. A primeira abertura e o retorno depois do prazo do cache dependem da rede.
+- Validação: lint, typecheck, `git diff --check` e 55 testes unitários passaram. O build webpack gerou 18 páginas com um worker e um fallback local de `mkdir` após erro EPERM na geração estática do Windows. Smoke HTTP em memória confirmou login, offline, manifesto e redirecionamento sem sessão com `no-store`. A conexão do Chrome ao servidor local foi bloqueada pelo ambiente. Navegação autenticada e latência no celular continuam sem medição. Nenhum deploy efetuado.
+
+## 2026-11-13 - Identidade visual azul elétrico
+- A landing passa a usar uma grade e um campo tático em SVG, um mockup demonstrativo feito com as classes do placar e a nova marca em azul, branco e verde neon. Preço, oferta de teste, chamadas e descrição de recursos seguem os dados e links atuais.
+- Mantidos os vídeos de fundo no hero e em Como funciona. O navegador pausa os vídeos fora da área visível e deixa o usuário pausar cada seção. As barras fixas e os botões usam Liquid Glass leve, com fallback sólido e respeito à preferência por transparência reduzida.
+- Tokens globais aplicam a identidade ao painel, login, portal e PWA. A barra inferior tem ícones com rótulos, e Chegada, Times e Partida destacam Jogo. Os estilos do placar preservam a distinção das equipes. A nova versão do cache estático entrega os arquivos de marca atualizados.
+- Arquivos principais: `src/app/marketing.css`, `src/app/globals.css`, `src/app/page.tsx`, componentes de navegação, mockup, vídeo e carregamento, ícones e imagem de compartilhamento. Nenhuma migração ou dependência nova.
+- Para revisar localmente, abra a landing em telas de 320 px e desktop, role até Como funciona e teste os botões de pausa. Entre em um ranka de teste e navegue por Jogo, Jogadores, Contribuições, Estatísticas e Regras. Confira também o placar com movimento e transparência reduzidos.
+- Validação: lint, typecheck, build webpack com o fallback de diretório do Windows e 55 testes unitários passaram. Chromium verificou a landing em 320, 393, 768 e 1350 px, incluindo preço, ausência de rolagem lateral e Liquid Glass. Em 393 px, verificou a reprodução e a pausa do vídeo local de Como funciona. Smoke HTTP confirmou login, redirecionamento privado, offline e manifesto. O vídeo remoto do hero, a operação autenticada e a velocidade em aparelho físico seguem sem validação. Nenhum deploy.
+
+## 2026-11-13 - Revisão da landing, portal e organização do ranka
+- Restaurados os vetores e a imagem social originais. Hero centralizado com vídeos de fundo, grade mais discreta e placar movido para Recursos. Liquid Glass nas barras e botões. Tema escuro opcional pelo menu do ranka.
+- Landing tem título e descrição de busca, canonical, Open Graph, dados estruturados com preço vigente, sitemap e robots. Portais abertos têm canonical próprio. Portais restritos e rotas de gestão usam noindex.
+- Ranking compartilhado entre painel e portal mostra 10 posições, expansão e cinco critérios. O portal mantém os períodos existentes e carrega escalações e gols de partidas concluídas sob demanda, usando a projeção pública dos nomes. A área de gestão usa autorização do ranka.
+- O catálogo aceita nome, apelido e telefone opcional. Contatos ficam em tabela com RLS, sem leitura direta por clientes e com remoção no fluxo de anonimização. O painel leva às pendências filtradas por jogador, com baixa por encontro. A agenda fica em Regras e mostra a próxima data prevista no Início. O início do encontro continua manual.
+- Migrações locais: `20261113000100_rankings_and_match_details.sql` e `20261113000200_player_contacts_payments_schedule.sql`. Validar com `supabase test db` em ambiente de teste após aplicar as migrações pendentes na ordem. Abrir Regras e salvar uma agenda semanal e uma alternada. Conferir data no Início. Em Jogadores, criar um perfil e baixar uma pendência fictícia de encontro encerrado. Comparar os detalhes públicos e internos com um perfil oculto no portal. Nenhuma alteração em produção.
+- Build webpack, lint, typecheck e 58 testes unitários passaram. Chromium validou a landing em 320, 393, 768 e 1350 px. Smoke HTTP verificou robots, sitemap, dados estruturados e rotas privadas sem sessão. Testes pgTAP e jornada autenticada pendentes de banco de teste.
+
+- Ajuste da landing: o hero começa com vídeo local e pula clipes indisponíveis. As duas seções posicionam o vídeo abaixo da camada de contraste e dos textos. A grade e a camada azul ficaram mais suaves. O selo de teste usa verde neon com texto escuro.
+
+## 2026-11-13 - Administração em /admin
+- O atalho do menu de organizador foi removido. A rota antiga devolve 404. A rota direta usa as credenciais existentes e o segundo fator TOTP. Usuários sem papel global recebem 404. Operações administrativas continuam protegidas pelo AAL2 no banco.
+- A migração `20261113000300_admin_accounts_and_finance.sql` adiciona testes por conta com validade e limite de criação, além de recebimentos manuais. Quando o teste expira, a cota volta ao limite base. A operação preserva os rankas existentes. O painel reutiliza métricas e incidentes já registrados.
+- Após aplicar a migração em ambiente de teste, conferir `get_platform_admin_capability` pela conta proprietária. Se o papel global ainda estiver ausente e o projeto realmente tiver uma única conta, o script `supabase/bootstrap/sole-admin.sql` vincula esse usuário. O script exige exatamente um registro em Auth e deve ser executado antes de enviar convites.
+- Para habilitar convites, configurar `SUPABASE_SECRET_KEY` no servidor. Autorizar `/auth/callback` no domínio do ambiente em Auth e configurar o modelo **Invite user** com o link `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite`. O callback valida o convite e abre a página de definição de senha. Validar entrega em staging com e-mail de teste.
+- Reproduzir com `npm run lint`, `npm run typecheck`, `npm test`, `npm run build -- --webpack` e `supabase test db`. Em staging, acessar `/admin` com o proprietário, confirmar TOTP, conceder teste para uma conta fictícia, criar rankas até o limite, conferir recebimentos e repetir o acesso com um organizador comum. Nenhuma migração, convite ou deploy foi executado remotamente.
+- Validação local: build webpack, lint, typecheck e 58 testes unitários passaram. Smoke HTTP verificou o formulário em `/admin`, ausência de conteúdo privilegiado sem sessão, cache privado e 404 em `/app/admin`. Testes pgTAP e autenticação real dependem de banco de teste e credenciais apropriadas.
