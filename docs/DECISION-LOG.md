@@ -380,3 +380,12 @@ Escolha explícita de dois times completos a partir dos presentes de linha, ou s
 - Para habilitar convites, configurar `SUPABASE_SECRET_KEY` no servidor. Autorizar `/auth/callback` no domínio do ambiente em Auth e configurar o modelo **Invite user** com o link `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite`. O callback valida o convite e abre a página de definição de senha. Validar entrega em staging com e-mail de teste.
 - Reproduzir com `npm run lint`, `npm run typecheck`, `npm test`, `npm run build -- --webpack` e `supabase test db`. Em staging, acessar `/admin` com o proprietário, confirmar TOTP, conceder teste para uma conta fictícia, criar rankas até o limite, conferir recebimentos e repetir o acesso com um organizador comum. Nenhuma migração, convite ou deploy foi executado remotamente.
 - Validação local: build webpack, lint, typecheck e 58 testes unitários passaram. Smoke HTTP verificou o formulário em `/admin`, ausência de conteúdo privilegiado sem sessão, cache privado e 404 em `/app/admin`. Testes pgTAP e autenticação real dependem de banco de teste e credenciais apropriadas.
+## 2026-11-10 — Desempenho de navegação
+
+Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e sem cache compartilhado. Telas de carregamento apresentam feedback durante navegação. Nenhuma migração é necessária. O ganho real depende da rede e do banco e requer medição autenticada; os testes de carga permanecem restritos a staging autorizado.
+
+
+## 2026-11-11 — Eliminar retries de conflito de revisão
+- PostgREST 14 repetia indefinidamente conflitos de versão do cronômetro sinalizados com SQLSTATE 40001. A migração 20261111000100 devolve HTTP 409 com PT409 sem alterar as validações de concorrência, autorização ou idempotência.
+- Aplicada e registrada em produção. Verificação mostrou 24 funções corrigidas e nenhum conflito de revisão ainda sinalizado com 40001. Após cessarem os erros a cada segundo, o relatório do Supabase mostrou CPU de 1,19% na janela das 12h30 às 13h30 (São Paulo).
+- O aplicativo reconhece o código antigo e PT409 durante a transição.
