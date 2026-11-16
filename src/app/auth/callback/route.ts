@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { z } from "zod";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const requestedNext = url.searchParams.get("next");
-  const next = requestedNext === "/redefinir-senha" ? requestedNext : "/app";
+  const teamInvite = z.uuid().safeParse(url.searchParams.get("equipe"));
+  const next = teamInvite.success ? `/convites/equipe/${teamInvite.data}` : requestedNext === "/redefinir-senha" ? requestedNext : "/app";
   const tokenHash = url.searchParams.get("token_hash");
   if (tokenHash && url.searchParams.get("type") === "invite") {
     const supabase = await createClient();
@@ -15,8 +17,8 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(new URL("/entrar?erro=confirmacao", url.origin));
+    if (error) return NextResponse.redirect(new URL(teamInvite.success ? `${next}?erro=confirmacao` : "/entrar?erro=confirmacao", url.origin));
   }
-  if (!code) return NextResponse.redirect(new URL("/entrar?erro=confirmacao", url.origin));
+  if (!code) return NextResponse.redirect(new URL(teamInvite.success ? `${next}?erro=confirmacao` : "/entrar?erro=confirmacao", url.origin));
   return NextResponse.redirect(new URL(next, url.origin));
 }

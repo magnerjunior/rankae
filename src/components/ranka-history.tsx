@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppShell } from "@/components/app-shell";
 import { FlashNotice } from "@/components/flash-notice";
+import type { TrialAccess } from "@/server/account-trial";
 import { editHistoricalGoalAction, voidHistoricalMatchEventAction } from "@/app/app/rankas/[rankaId]/actions";
 
 type Day = { id: string; scheduled_on: string; session_number: number; state: string; created_at: string };
@@ -22,7 +23,7 @@ function encounterLabel(day: Day) {
   return `${dayLabel(day.scheduled_on)}${day.session_number > 1 ? ` · Encontro ${day.session_number}` : ""}`;
 }
 
-export async function RankaHistory({ client, rankaId, rankaName, orgId, selectedId, page, month, success, failure }: { client: SupabaseClient; rankaId: string; rankaName: string; orgId: string; selectedId?: string; page?: string; month?: string; success?: string; failure?: string }) {
+export async function RankaHistory({ client, rankaId, rankaName, orgId, selectedId, page, month, success, failure, trial }: { client: SupabaseClient; rankaId: string; rankaName: string; orgId: string; selectedId?: string; page?: string; month?: string; success?: string; failure?: string; trial?: TrialAccess }) {
   const pageNumber = /^\d+$/.test(page ?? "") ? Math.min(Number(page), 1000) : 0;
   const offset = pageNumber * 20;
   const { data: rows, error } = await client.from("sessions").select("id,scheduled_on,session_number,state,created_at").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("session_number", { ascending: false }).range(offset, offset + 20);
@@ -36,7 +37,7 @@ export async function RankaHistory({ client, rankaId, rankaName, orgId, selected
     selected = requested as Day | undefined;
   }
   const base = `/app/rankas/${rankaId}/historico`;
-  if (!selected) return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData><h1 className="display">Histórico</h1><p>{pageNumber ? "Não há mais encontros nesta página." : "Este ranka ainda não tem encontros registrados."}</p>{pageNumber > 0 && <Link href={`${base}?pagina=${pageNumber - 1}`}>Voltar</Link>}</AppShell>;
+  if (!selected) return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData trial={trial}><h1 className="display">Histórico</h1><p>{pageNumber ? "Não há mais encontros nesta página." : "Este ranka ainda não tem encontros registrados."}</p>{pageNumber > 0 && <Link href={`${base}?pagina=${pageNumber - 1}`}>Voltar</Link>}</AppShell>;
 
   const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? "") ? month! : selected.scheduled_on.slice(0, 7);
   const [year, monthNumber] = validMonth.split("-").map(Number);
@@ -81,7 +82,7 @@ export async function RankaHistory({ client, rankaId, rankaName, orgId, selected
   const total = payments.reduce((sum, payment) => sum + payment.amount_cents, 0);
   const paid = payments.filter((payment) => payment.status === "paid").reduce((sum, payment) => sum + payment.amount_cents, 0);
 
-  return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData>
+  return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData trial={trial}>
     <header className="page-heading"><span className="eyebrow">Cada encontro registrado</span><h1 className="display">Histórico do ranka</h1></header>
     {success && <FlashNotice kind="success" message="Correção salva e registrada no histórico." />}
     {failure && <FlashNotice kind="error" message="Não foi possível salvar. Atualize o histórico e tente novamente." />}

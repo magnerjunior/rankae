@@ -87,13 +87,13 @@ export class SupabaseRankaRepository implements RankaRepository {
     const { data: sessions, error: sessionError } = sessionResult;
     if (sessionError) throw queryFailure("Não foi possível carregar a sessão autorizada", sessionError.code);
     const session = (sessions?.[0] ?? null) as SessionRow | null;
-    if (!session) throw new Error("Este ranka ainda não possui sessão.");
+    const empty = { data: [], error: null };
 
     const [attendanceResult, squadsResult, matchResult, contributionsResult, playersResult] = await Promise.all([
-      this.client.from("attendance").select("id,player_id,arrival_index,status,role_preference").eq("session_id", session.id).order("arrival_index"),
-      this.client.from("squads").select("id,squad_number,state,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).neq("state", "archived").order("queue_position"),
-      this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1),
-      this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id),
+      session ? this.client.from("attendance").select("id,player_id,arrival_index,status,role_preference").eq("session_id", session.id).order("arrival_index") : empty,
+      session ? this.client.from("squads").select("id,squad_number,state,squad_members(player_id,assignment_order,removed_at)").eq("session_id", session.id).neq("state", "archived").order("queue_position") : empty,
+      session ? this.client.from("matches").select("id,ordinal,yellow_squad_id,red_squad_id,state,clock_phase,started_at_server,elapsed_ms_before_start,duration_limit_ms,regulation_duration_ms,overtime_duration_ms,revision").eq("session_id", session.id).order("ordinal", { ascending: false }).limit(1) : empty,
+      session ? this.client.from("contribution_records").select("player_id,amount_cents,status").eq("session_id", session.id) : empty,
       this.client.from("players").select("id,full_name,nickname,role_preference,membership_status,public_visible,public_display_name,player_aliases!player_aliases_player_id_fkey(alias)").eq("org_id", typedRanka.org_id).eq("status", "active").order("normalized_name"),
     ]);
     if (attendanceResult.error) throw queryFailure("Não foi possível carregar a chegada", attendanceResult.error.code);
@@ -112,7 +112,7 @@ export class SupabaseRankaRepository implements RankaRepository {
       publicDisplayName: row.public_display_name ?? undefined,
     }));
     const attendance: Attendance[] = ((attendanceResult.data ?? []) as AttendanceRow[]).map((row) => ({ id: row.id, playerId: row.player_id, arrivalIndex: row.arrival_index, status: row.status, rolePreference: row.role_preference === "keeper" ? "keeper" : "line" }));
-    const rules = readRules(session.rules_snapshot ?? {});
+    const rules = readRules(session?.rules_snapshot ?? {});
     const persistedSquads: Squad[] = ((squadsResult.data ?? []) as SquadRow[]).map((row) => {
       const playerIds = (row.squad_members ?? []).filter((member) => !member.removed_at).toSorted((a, b) => a.assignment_order - b.assignment_order).map((member) => member.player_id);
       return { id: row.id, number: row.squad_number, playerIds, complete: playerIds.length >= rules.squadSize, deficit: Math.max(0, rules.squadSize - playerIds.length) };
@@ -139,16 +139,16 @@ export class SupabaseRankaRepository implements RankaRepository {
     }
 
     return {
-      id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session.id, name: typedRanka.name,
-      sessionLabel: new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${session.scheduled_on}T12:00:00Z`)),
-      sessionDate: session.scheduled_on,
-      sessionState: session.state,
+      id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session?.id, name: typedRanka.name,
+      sessionLabel: session ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${session.scheduled_on}T12:00:00Z`)) : "Nenhum dia de futebol iniciado",
+      sessionDate: session?.scheduled_on ?? "",
+      sessionState: session?.state ?? "planned",
       players, attendance,
       squads: persistedSquads.length ? persistedSquads : groupSquads(attendance, players, { squadSize: rules.squadSize }),
       hasPersistedSquads: persistedSquads.length > 0,
-      rules, contributionAmountCents: session.contribution_amount_cents,
+      rules, contributionAmountCents: session?.contribution_amount_cents ?? 0,
       contributions: ((contributionsResult.data ?? []) as ContributionRow[]).map((row) => ({ playerId: row.player_id, amountCents: row.amount_cents, status: row.status })),
-      activeMatch, revision: session.revision,
+      activeMatch, revision: session?.revision ?? 0,
       portal: { slug: typedRanka.slug, visibility: typedRanka.visibility, hasProtectedLink: Boolean(typedRanka.invite_token_hash) },
     };
   }

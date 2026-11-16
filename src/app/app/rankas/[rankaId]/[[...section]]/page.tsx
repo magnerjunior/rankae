@@ -9,6 +9,7 @@ import { isRankaSection } from "@/lib/navigation";
 import { hasSupabaseConfig, isDemoEnabled } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserId } from "@/server/auth";
+import { getAccountTrial } from "@/server/account-trial";
 import type { PlayerActivity } from "@/domain/player-activity";
 import { scheduleSchema } from "@/domain/ranka/schedule";
 import { randomUUID } from "node:crypto";
@@ -27,13 +28,15 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   await requireUserId({ client });
   const { sucesso, erro, period: periodValue, date, etapa, dia, pagina, mes, filtro } = await searchParams;
   if (active === "historico") {
-    const { data: ranka, error: rankaError } = await client.from("rankas").select("id,name,org_id").eq("id", rankaId).maybeSingle();
+    const [{ data: ranka, error: rankaError }, trial] = await Promise.all([
+      client.from("rankas").select("id,name,org_id").eq("id", rankaId).maybeSingle(), getAccountTrial(client, rankaId),
+    ]);
     if (rankaError) throw new Error("Não foi possível abrir o histórico.");
     if (!ranka) notFound();
-    return <RankaHistory client={client} rankaId={rankaId} rankaName={ranka.name} orgId={ranka.org_id} selectedId={dia} page={pagina} month={mes} success={sucesso} failure={erro} />;
+    return <RankaHistory client={client} rankaId={rankaId} rankaName={ranka.name} orgId={ranka.org_id} selectedId={dia} page={pagina} month={mes} success={sucesso} failure={erro} trial={trial} />;
   }
   const repository = new SupabaseRankaRepository(client);
-  const [snapshot, activityResult, settingsResult, pendingResult] = await Promise.all([
+  const [snapshot, activityResult, settingsResult, pendingResult, trial] = await Promise.all([
     repository.getSnapshot(rankaId).catch((error: unknown) => {
       if (error instanceof RankaNotFoundError) notFound();
       throw error;
@@ -41,6 +44,7 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     active === "jogadores" || active === "inicio" ? client.rpc("get_ranka_player_activity", { p_ranka_id: rankaId }) : undefined,
     ["jogadores", "inicio", "configuracoes"].includes(active) ? client.from("rankas").select("settings_json,revision").eq("id", rankaId).single() : undefined,
     active === "jogadores" ? client.rpc("get_ranka_pending_contributions", { p_ranka_id: rankaId }) : undefined,
+    getAccountTrial(client, rankaId),
   ]);
   if (activityResult?.error) throw new Error("Não foi possível carregar o acompanhamento dos jogadores.");
   if (settingsResult?.error) throw new Error("Não foi possível carregar as configurações de alerta.");
@@ -56,5 +60,5 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   const playerActivity = activityResult ? (activityResult.data ?? []) as PlayerActivity[] : undefined;
   const pending = ((pendingResult?.data ?? []) as Omit<PendingContribution, "requestId">[]).map((row) => ({ ...row, requestId: randomUUID() }));
   const schedule = scheduleSchema.safeParse(settings?.settings_json?.schedule).data ?? { mode: "unset" as const };
-  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} debtFilter={filtro === "pendentes"} />;
+  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} debtFilter={filtro === "pendentes"} trial={trial} />;
 }

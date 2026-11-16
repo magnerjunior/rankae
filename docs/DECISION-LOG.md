@@ -404,3 +404,32 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - A navegação mantém Jogadores na barra inferior e adiciona o atalho no cabeçalho. O atalho de tema agora é um ícone. As regras de jogo guardam a preferência de desempate no snapshot da sessão, e o organizador confirma o resultado antes da rotação.
 - O acesso direto a `/admin` usa e-mail e senha e exige uma atribuição ativa em `platform_admins`. A migração `20261116124438` atualiza a função usada pelas operações privilegiadas. As atribuições existentes e as trilhas de auditoria continuam em uso.
 - O administrador gera um link individual em Contas e testes. Configure `SUPABASE_SECRET_KEY` somente no servidor e `NEXT_PUBLIC_APP_URL` com o domínio público. No Supabase hospedado, desative **Allow new users to sign up** em Auth. A configuração local já desativa cadastro aberto. O link gerado no painel é compartilhado pelo administrador e dispensa o modelo de e-mail **Invite user**.
+
+## 2026-11-16 - Evolução comercial, fase 1
+
+- A landing remove a faixa de benefícios e apresenta uma vitrine de oito funcionalidades antes do preço. A navegação usa rolagem por toque, teclado e setas, com movimento suave conforme a preferência do usuário. O placar demonstrativo e os vídeos de fundo continuam nas seções existentes.
+- Os cards de Como funciona usam Liquid Glass com fundo azul escuro, texto claro e fundo sólido quando a transparência é reduzida. Para a demonstração, abra `/`, vá para Recursos, deslize a lista ou use as setas e confira o bloco sobre o vídeo na seção anterior.
+- A fase 2 cobre contas, cotas de rankas e de dias de futebol, além da conversão após o teste. A fase 3 cobre gestão de colaboradores, navegação administrativa e retenção de logs. Esta entrega não altera planos ou banco de dados.
+- Validação local: lint, TypeScript, build webpack e 60 testes unitários aprovados. Smoke no Chrome em 320, 393 e 1350 px confirmou navegação por setas, gesto nas larguras móveis, reprodução dos dois vídeos, efeito Liquid Glass e preferências de movimento e transparência reduzidos. Sem migração ou publicação.
+
+## 2026-11-16 - Evolução comercial, fase 2
+
+- A migração `20261116152405` separa o limite de rankas do limite de dias de futebol. A conta teste ganha, por padrão, um ranka e um dia de futebol para usar em 30 dias a partir da criação do convite. O admin pode ajustar esses valores. A cota é da conta, com um encontro por data de São Paulo, e permite várias partidas durante o dia. Criar o ranka não abre um encontro automaticamente.
+- O banco bloqueia novos dias e partidas fora da cota e preserva a leitura do histórico. Contas ativas existentes mantêm o acesso. Ativar uma conta pelo painel libera novos dias e permite marcar se a conta é pagante, independentemente do registro de recebimentos.
+- Em `/admin`, abra **Contas e testes** e escolha **Adicionar conta** para gerar o link de convite. Abra **Ver conta** para ajustar o acesso e consultar os rankas com os cinco encontros mais recentes de cada grupo. Os portais públicos têm links diretos. Portais restritos continuam protegidos. O acompanhamento de incidentes nesta fase é da plataforma.
+- Para demonstrar em ambiente de teste, crie uma conta com cota de um dia, use o convite para escolher a senha, crie um ranka, inicie o encontro e encerre-o após jogar. O banner informa o fim do teste, mantém o acesso aos resultados e oferece o botão Assinar via WhatsApp. Antes do fim, o aviso aparece nos últimos sete dias.
+- Validação local: lint, TypeScript, build webpack, 60 testes unitários, 20 verificações SQL em PostgreSQL isolado e smoke HTTP com autenticação simulada. O comando `supabase test db` depende de uma instância Supabase local. A migração e os convites ainda não foram testados no Supabase hospedado. Nenhum deploy nesta fase.
+
+## 2026-11-16 - Evolução comercial, fase 3
+
+- O painel administrativo tem navegação retrátil no celular e atalhos para Visão geral, Contas, Financeiro, Plano, Incidentes e Manutenção. Os detalhes da conta permitem ajustar o limite de cada organização e inspecionar rankas, incluindo encontros recentes e partidas pendentes de revisão. A inspeção é somente leitura e registra auditoria.
+- Em **Meus rankas → Menu → Equipe**, o dono gera um link por e-mail convidado, reabre links pendentes, cancela convites e remove acessos. Convites duram sete dias e reservam vaga. O padrão é de três colaboradores por organização. O convidado confirma o endereço com Supabase Auth e pode operar os rankas da organização. O limite de rankas próprios de uma nova conta criada por esse fluxo é zero até o admin liberar outro tipo de acesso.
+- Para demonstrar em staging, crie um convite com e-mail de teste, abra o link, confirme o e-mail e aceite a vaga. Verifique que a conta acessa os rankas do grupo e que o menu de equipe está disponível ao dono. Em produção será necessário verificar `SUPABASE_SECRET_KEY`, o SMTP do Supabase Auth e o retorno permitido para `/auth/callback`.
+- A manutenção está programada semanalmente, às segundas-feiras às 07h17 UTC no Cron. Consolida amostras de telemetria bruta com mais de 30 dias e mantém totais diários por um ano. Remove tentativas de acesso com mais de 14 dias e convites e autorizações temporárias vencidos há mais de 30 dias. Preserva partidas, histórico, auditoria privilegiada e incidentes. O painel mostra o resultado da última execução.
+- Migrações desta fase: `20261116152414` e `20261116154800`. Aplicar depois da fase 2 em ordem de versão. A validação local usa PostgreSQL isolado, com simulação do agendador, e deixa a entrega por e-mail e a execução agendada hospedadas para a verificação após implantação.
+- Resultados locais: lint, typecheck, build webpack e 60 testes unitários aprovados. O PostgreSQL isolado passou 48 verificações SQL das fases 2 e 3. O smoke com autenticação simulada verificou a página de convite, a equipe e a inspeção de rankas. O Chrome confirmou a navegação do admin e o status da limpeza em 320 e 1200 px, sem rolagem lateral da página. Sem deploy.
+
+## 2026-11-16 - Publicação das fases comerciais 1 a 3
+
+- Migrações de testes, colaboradores e retenção aplicadas no Supabase de produção. Os nomes locais foram alinhados às versões registradas no banco.
+- Job `rankae-weekly-observability-retention` confirmado ativo às segundas-feiras, 07h17 UTC (04h17 em Brasília). A primeira execução e o envio real de convites ainda precisam de validação operacional.

@@ -367,6 +367,29 @@ button { cursor: pointer; }
 .mfa-enrollment img { max-width: 100%; height: auto; padding: 10px; border: 1px solid var(--border); border-radius: 16px; background: white; }
 .mfa-enrollment code { display: block; max-width: 100%; margin: 10px 0; padding: 10px; overflow-wrap: anywhere; border-radius: 8px; background: var(--surface-alt); color: var(--brand-900); }
 .admin-section { margin-top: 20px; }
+.admin-account-create { margin-block: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.admin-account-create > summary { min-height: 34px; display: list-item; cursor: pointer; font-weight: 700; }
+.admin-account-create[open] > summary { margin-bottom: 10px; }
+.admin-page [id] { scroll-margin-top: 88px; }
+.admin-page .table-scroll { position: relative; }
+.admin-nav { position: sticky; z-index: 35; top: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 0 0 14px 14px; background: var(--surface); }
+.admin-nav nav { flex: 1 0 100%; display: grid; grid-template-columns: repeat(auto-fit,minmax(112px,1fr)); gap: 4px 8px; }
+.admin-nav:not([data-expanded="true"]) nav { display: none; }
+.admin-nav nav a { display: flex; align-items: center; min-height: 44px; padding: 4px 8px; color: var(--ink); font-weight: 650; text-decoration: none; }
+.admin-nav nav a:hover { background: var(--surface-alt); border-radius: 6px; }
+.team-access-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 8px 16px; padding-block: 12px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.team-access-row span { flex: 1 1 160px; }
+.team-access-row small { display: block; color: var(--muted); }
+.team-access-row .input { max-width: 9rem; }
+@media (min-width: 900px) {
+  .admin-nav-toggle { display: none; }
+  .admin-nav nav, .admin-nav:not([data-expanded="true"]) nav { flex: 0 1 auto; display: flex; flex-wrap: wrap; }
+}
+@supports (backdrop-filter: blur(8px)) {
+  @media (prefers-reduced-transparency: no-preference) {
+    .admin-nav { background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(8px); }
+  }
+}
 .admin-plan-form { display: grid; gap: 12px; }
 .incident-row { display: grid; gap: 14px; }
 .incident-row h3 { margin: 8px 0 0; }
@@ -802,6 +825,18 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 .topbar .topbar-brand { grid-row: 1; grid-column: 4; display: inline-flex; }
 .topbar-brand .brand-name { width: clamp(68px, 22vw, 102px); }
 .game-status-bar { top: 114px; }
+.topbar:has(.account-trial-banner) + .game-status-bar { position: static; }
+.account-trial-banner { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border: 1px solid #ffffff52; border-radius: 12px; background: #042068; color: #fff; box-shadow: inset 0 1px #ffffff40; }
+.account-trial-banner strong, .account-trial-banner span { display: block; }
+.account-trial-banner strong { color: var(--brand-accent); }
+.account-trial-banner span { font-size: .85rem; line-height: 1.24; }
+.account-trial-banner .button { flex-shrink: 0; min-height: 44px; }
+.account-trial-banner .button:focus-visible { outline-color: #fff; }
+@supports (backdrop-filter: blur(6px)) {
+  @media (prefers-reduced-transparency: no-preference) {
+    .account-trial-banner { background: #042068ee; backdrop-filter: blur(6px); }
+  }
+}
 .arrival-start-sticky { top: 122px; }
 .settings-schedule { margin-top: 16px; scroll-margin-top: 126px; }
 .period-tab { background: var(--surface-alt); color: var(--ink); border-color: var(--control-border); }

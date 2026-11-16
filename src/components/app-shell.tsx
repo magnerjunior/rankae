@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { InstallAppButton } from "@/components/install-app-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountTrialBanner } from "@/components/account-trial-banner";
+import type { TrialAccess } from "@/server/account-trial";
 import { rankaSections, type RankaSection } from "@/lib/navigation";
 
 const bottomKeys: RankaSection[] = [
@@ -70,6 +72,7 @@ export function AppShell({
   rankaId = "demo",
   title = "Ranka do Parque",
   gameStatus,
+  trial,
   gameNeedsFreshData = false,
 }: {
   active: RankaSection;
@@ -78,6 +81,7 @@ export function AppShell({
   title?: string;
   demo?: boolean;
   gameStatus?: React.ReactNode;
+  trial?: TrialAccess;
   gameNeedsFreshData?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -154,6 +158,7 @@ export function AppShell({
           >
             <span className="brand-name">Rankaê</span>
           </Link>
+          <AccountTrialBanner trial={trial} />
         </header>
         {gameStatus}
         <main className="page">{children}</main>

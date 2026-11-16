@@ -102,17 +102,15 @@
 .match-preview .score-number { display: block; margin: 10px 0; font-size: clamp(2.5rem, 7vw, 4.1rem); }
 .match-preview .goal-button { min-height: 24px; display: grid; place-items: center; font-size: .7rem; border-radius: 6px; }
 .match-preview figcaption { justify-content: space-between; padding: 8px 2px 1px; font-size: .75rem; }
-.marketing-proof { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); background: var(--brand-100); }
-.marketing-proof span { min-height: 50px; display: grid; place-items: center; padding: 8px; border: 1px solid var(--border); color: var(--brand-900); text-align: center; font-weight: 700; }
 .marketing-section { width: min(var(--marketing-width), 100%); margin-inline: auto; padding: clamp(52px, 7vw, 92px) 20px; }
 .marketing-section h2 { margin: 0 0 16px; color: var(--brand-900); font-size: clamp(2.8rem, 8vw, 5.6rem); line-height: .88; letter-spacing: -.02em; }
 .marketing-section p { max-width: 56ch; color: var(--muted); line-height: 1.55; }
 .marketing-section .eyebrow { display: block; margin-bottom: 10px; }
 .marketing-steps { display: grid; gap: 10px; margin-top: 30px; }
-.marketing-steps article { display: grid; grid-template-columns: auto 1fr; gap: 13px; padding: 18px; background: var(--brand-100); border-radius: 14px; }
-.marketing-steps article > span { font-family: var(--font-display); font-size: 2rem; color: var(--brand-700); line-height: 1; }
-.marketing-steps h3 { margin: 0 0 4px; color: var(--brand-900); font-size: 1.17rem; }
-.marketing-steps p { margin: 0; }
+.marketing-steps article { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 13px; padding: 18px; background: #142542; border: 1px solid #ffffff45; border-radius: 14px; box-shadow: inset 0 1px #ffffff25; }
+.marketing-steps article > span { font-family: var(--font-display); font-size: 2rem; color: var(--brand-accent); line-height: 1; }
+.marketing-steps h3 { margin: 0 0 4px; color: #fff; font-size: 1.17rem; }
+.marketing-steps p { margin: 0; color: #eef3ff; }
 .marketing-story {
   position: relative;
   isolation: isolate;
@@ -129,12 +127,17 @@
 .marketing-story .marketing-section-head p { color: white; }
 .marketing-story { padding-bottom: max(58px, 7vw); }
 .marketing-showcase { display: grid; align-items: center; gap: 25px; width: 100%; background: var(--brand-100); padding-inline: max(20px, calc((100% - var(--marketing-width)) / 2)); }
-.marketing-showcase ul, .marketing-price-card ul { list-style: none; padding: 0; }
-.marketing-showcase ul { display: grid; gap: 1px; margin: 22px 0 0; }
-.marketing-showcase li { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border); }
-.marketing-showcase li span { color: var(--muted); }
 .marketing-feature-art { position: relative; isolation: isolate; overflow: hidden; min-height: 320px; padding: 12px; background: var(--brand-700); border-radius: 18px; }
 .marketing-feature-art .tactical-pitch { height: clamp(180px, 31vw, 400px); }
+.marketing-features { display: grid; grid-template-columns: minmax(0, 1fr); align-items: end; gap: 16px; }
+.marketing-features h2 { margin: 0; }
+.marketing-features-controls { display: flex; grid-row: 3; justify-self: end; gap: 6px; }
+.marketing-features-controls .button { min-width: 44px; min-height: 44px; padding: 8px; }
+.marketing-features-controls svg { width: 20px; height: 20px; }
+.marketing-feature-list { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: 87%; gap: 12px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; margin: 0; padding: 0 0 12px; list-style: none; scrollbar-color: var(--control-border) transparent; }
+.marketing-feature-list li { scroll-snap-align: start; padding: clamp(18px, 3vw, 26px); background: var(--surface-alt); border: 1px solid var(--border); border-top: 3px solid var(--brand-700); border-radius: 14px; }
+.marketing-feature-list h3 { margin: 0 0 8px; color: var(--brand-900); font-size: 1.28rem; line-height: 1.15; }
+.marketing-feature-list p { margin: 0; }
 .marketing-pricing { display: grid; align-items: center; gap: 28px; }
 .marketing-price-card { padding: 22px; border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); }
 .marketing-price-badge { display: inline-block; padding: 5px 8px; border-radius: 6px; background: var(--brand-accent); color: #101a35; font-weight: 700; }
@@ -142,7 +145,7 @@
 .marketing-price-card del, .marketing-price-card small { color: var(--muted); }
 .marketing-price { display: flex; align-items: baseline; gap: 7px; }
 .marketing-price strong { color: var(--brand-900); font-family: var(--font-display); font-size: clamp(2.5rem, 9vw, 4rem); line-height: 1; }
-.marketing-price-card ul { display: grid; gap: 8px; }
+.marketing-price-card ul { display: grid; gap: 8px; list-style: none; padding: 0; }
 .marketing-price-card li::before { content: "✓"; color: var(--brand-700); margin-right: 8px; font-weight: 700; }
 .marketing-extra { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; padding: 12px 0; margin-bottom: 10px; border-block: 1px solid var(--border); }
 .marketing-price-card .marketing-primary { width: 100%; margin-top: 14px; }
@@ -154,10 +157,16 @@
   .marketing-header nav { display: flex; gap: clamp(12px, 3vw, 30px); font-weight: 600; }
   .marketing-hero-layout { min-height: 590px; padding-block: 64px; }
   .marketing-hero h1 { font-size: clamp(4.15rem, 8.7vw, 8rem); }
-  .marketing-proof { grid-template-columns: repeat(4, minmax(0,1fr)); }
   .marketing-steps { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .marketing-features { grid-template-columns: minmax(0, 1fr) auto; }
+  .marketing-features-controls { grid-row: auto; }
+  .marketing-feature-list { grid-auto-columns: calc((100% - 24px) / 3); }
   .marketing-showcase, .marketing-pricing { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 48px; }
   .marketing-feature-art { border-radius: 22px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marketing-feature-list { scroll-behavior: smooth; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -171,6 +180,7 @@
     .marketing-login { color: var(--brand-900); border-color: var(--control-border); background: #ffffff63; }
     .marketing-login:hover { background: var(--brand-100); }
     .marketing-hero .marketing-secondary { background: #ffffff16; backdrop-filter: blur(8px); }
+    .marketing-steps article { background: #101e38b8; backdrop-filter: blur(5px); }
     .marketing-primary { background: linear-gradient(145deg, #d1ff5c, #b6ff00e8); backdrop-filter: blur(6px); box-shadow: inset 0 1px #ffffff80; }
     [data-theme="dark"] .marketing-header { background: #142542d9; }
   }

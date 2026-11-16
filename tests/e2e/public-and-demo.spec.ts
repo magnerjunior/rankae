@@ -10,7 +10,16 @@ test("página pública e acesso do organizador carregam sem vazamento lateral", 
   await expect(page.getByRole("heading", { name: /Seu futebol.*no ritmo do jogo/i })).toBeVisible();
   await expect(page).toHaveTitle("Rankaê | App para organizar peladas e futebol amador");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^https?:\/\/[^/]+\/?$/);
-  await expect(page.locator("#recursos .match-preview")).toBeVisible();
+  await expect(page.locator(".marketing-showcase .match-preview")).toBeVisible();
+  const features = page.locator("#recursos");
+  const featureList = features.getByRole("list", { name: "Funcionalidades do Rankaê" });
+  const previousFeature = features.getByRole("button", { name: "Recurso anterior" });
+  await expect(featureList.getByRole("listitem")).toHaveCount(8);
+  await expect(previousFeature).toBeDisabled();
+  await features.getByRole("button", { name: "Próximo recurso" }).click();
+  await expect.poll(() => featureList.evaluate((list) => list.scrollLeft)).toBeGreaterThan(0);
+  await previousFeature.click();
+  await expect(previousFeature).toBeDisabled();
   await expect(page.locator(".marketing-hero .match-preview")).toHaveCount(0);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "Rankaê | App para organizar peladas e futebol amador");
   await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();

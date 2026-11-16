@@ -176,7 +176,7 @@ async function rpc(name: string, args: Record<string, unknown>) {
 export async function startRankaAction(rankaId: string) {
   const scheduledOn = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const { error } = await rpc("start_ranka_session", { p_ranka_id: rankaId, p_scheduled_on: scheduledOn });
-  if (error && error.code !== "PGRST202") finish(rankaId, "inicio", false, "iniciar");
+  if (error) finish(rankaId, "inicio", false, error.code === "PT402" ? "teste-encerrado" : "iniciar");
   revalidatePath(`/app/rankas/${rankaId}`);
   redirect(`/app/rankas/${rankaId}/chegada`);
 }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalFooter } from "@/components/legal-document";
 import { MatchPreview, TacticalPitch } from "@/components/match-preview";
 import { FriendsVideo, MarketingVideo } from "@/components/marketing-video";
+import { MarketingFeatureRail } from "@/components/marketing-feature-rail";
 import { commercialPlanSchema, DEFAULT_COMMERCIAL_PLAN, formatCurrency, trialMessage, whatsappLink } from "@/lib/commercial";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
@@ -22,6 +23,17 @@ export const metadata: Metadata = {
     images: [{ url: "/rankae-brand-social.png", alt: "Rankaê" }],
   },
 };
+
+const features = [
+  { title: "Chegada e presença", description: "Registre quem chegou primeiro, cole a lista da turma e separe os goleiros." },
+  { title: "Times sem panelinha", description: "Monte os times pela ordem de chegada e acerte as trocas antes da bola rolar." },
+  { title: "Cronômetro e placar", description: "Inicie, pause e retome o relógio. Anote gols, assistências e cartões pelo celular." },
+  { title: "Fila e rodízio", description: "Veja quem joga a próxima, acompanhe os reservas e rode os times a cada partida." },
+  { title: "Pagamentos em dia", description: "Marque as contribuições pagas e confira o que falta receber sem depender de planilha." },
+  { title: "Ranking e resultados", description: "Veja gols, assistências, jogos, vitórias e derrotas. Consulte os detalhes de cada partida." },
+  { title: "Agenda e regras da turma", description: "Defina os dias da pelada, o tamanho dos times, o tempo de jogo e como resolver empates." },
+  { title: "Portal para a turma", description: "Compartilhe os resultados e as estatísticas por link e escolha quem pode acessar." },
+];
 
 async function loadPlan() {
   try {
@@ -68,8 +80,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="marketing-proof" aria-label="Principais benefícios"><span>Chegada rápida</span><span>Times justos</span><span>Cronômetro confiável</span><span>Estatísticas do dia</span></section>
-
       <section className="marketing-section marketing-story" id="como-funciona">
         <FriendsVideo />
         <header className="marketing-section-head"><h2 className="display">Largue o papel<br />e deixe a bola rolar</h2><p>Da chegada da turma ao último jogo, o Rankaê organiza o futebol sem tirar você da beira do campo.</p></header>
@@ -80,14 +90,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="marketing-section marketing-showcase" id="recursos">
-        <div className="marketing-showcase-copy"><span className="eyebrow">Feito para a beira da quadra</span><h2 className="display">O jogo todo na palma da mão</h2><p>Mais ritmo na quadra, mais assunto no grupo depois. Cada partida alimenta a história do seu ranka.</p><ul>
-          <li><strong>Resposta imediata</strong><span>Toques rápidos e operação preparada para a conexão do campo.</span></li>
-          <li><strong>Rodízio organizado</strong><span>Fila de times, próximos jogadores e histórico de partidas.</span></li>
-          <li><strong>O dia fica registrado</strong><span>Artilharia, assistências, resultados e contribuições.</span></li>
-          <li><strong>Compartilhamento com controle</strong><span>Portal esportivo com privacidade configurável.</span></li>
-        </ul></div>
+      <section className="marketing-section marketing-showcase">
+        <div className="marketing-showcase-copy"><span className="eyebrow">Feito para a beira da quadra</span><h2 className="display">O jogo todo na palma da mão</h2><p>Mais ritmo na quadra, mais assunto no grupo depois. Cada partida alimenta a história do seu ranka.</p></div>
         <div className="marketing-hero-visual marketing-feature-art"><TacticalPitch /><MatchPreview /></div>
+      </section>
+
+      <section className="marketing-section marketing-features" id="recursos" aria-labelledby="marketing-features-title">
+        <h2 className="display" id="marketing-features-title">Tudo para organizar sua pelada</h2>
+        <MarketingFeatureRail features={features} />
       </section>
 
       <section className="marketing-section marketing-pricing" id="plano">
