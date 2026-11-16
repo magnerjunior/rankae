@@ -62,14 +62,33 @@ export function GameStatusBar({
     };
   }, [running, serverNow]);
   useEffect(() => {
-    const scoreboard = collapse && document.querySelector(".scoreboard .score-sides");
+    const scoreboard = collapse && document.querySelector(".scoreboard .timer-bar");
     if (!scoreboard) return;
-    const bounds = scoreboard.closest(".app-shell")?.querySelector(".topbar")?.getBoundingClientRect();
-    const observer = new IntersectionObserver(([entry]) => {
-      setAway(!entry.isIntersecting && entry.boundingClientRect.bottom <= (entry.rootBounds?.top ?? 0));
-    }, { rootMargin: `-${Math.ceil(bounds?.height ?? 60)}px 0px 0px 0px` });
-    observer.observe(scoreboard);
-    return () => observer.disconnect();
+    const header = scoreboard.closest(".app-shell")?.querySelector(".topbar");
+    let frame = 0;
+    let hidden: boolean | undefined;
+    const update = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const next = scoreboard.getBoundingClientRect().bottom <= (header?.getBoundingClientRect().bottom ?? 0);
+        if (next === hidden) return;
+        hidden = next;
+        setAway(next);
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true, capture: true });
+    window.addEventListener("resize", update);
+    const resize = new ResizeObserver(update);
+    resize.observe(scoreboard);
+    if (header) resize.observe(header);
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
   }, [collapse]);
   const total =
     elapsedMs +
