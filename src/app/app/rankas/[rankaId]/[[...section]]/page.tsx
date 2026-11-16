@@ -14,6 +14,9 @@ import { getAccountTrial } from "@/server/account-trial";
 import type { PlayerActivity } from "@/domain/player-activity";
 import { scheduleSchema } from "@/domain/ranka/schedule";
 import { randomUUID } from "node:crypto";
+import { formatDayShare } from "@/domain/ranka/day-share";
+import { getDayShareData } from "@/data/supabase/day-share-repository";
+import { siteUrl } from "@/lib/site-url";
 import { TeamPanel, type Team } from "@/app/app/equipe/team-panel";
 import type { PendingContribution } from "@/domain/player-activity";
 
@@ -57,9 +60,21 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   const inactivitySettings = settings ? { months: Number.isInteger(rawMonths) && rawMonths >= 1 && rawMonths <= 24 ? rawMonths : 6, revision: settings.revision } : undefined;
 
   const period = parsePortalPeriod(periodValue, date);
-  const [statsSnapshot, sessionSummary] = active === "estatisticas" ? await Promise.all([
+  const [statsSnapshot, sessionSummary, shareText] = active === "estatisticas" ? await Promise.all([
     snapshot.portal && new PublicPortalRepository(client).getSnapshot({ slug: snapshot.portal.slug, period: period.period, date: period.date, internal: true }).catch(() => null),
     snapshot.sessionId ? repository.getSessionSummary(snapshot.sessionId).catch(() => undefined) : undefined,
+    snapshot.sessionState === "completed" && snapshot.sessionId && snapshot.orgId && (sucesso === "ranka_encerrado" || period.period === "last")
+      ? getDayShareData(client, snapshot.sessionId, snapshot.orgId).then((data) => {
+          const portal = snapshot.portal;
+          const link = portal && (portal.visibility === "public" || portal.visibility === "pin_protected")
+            ? new URL(`/r/${encodeURIComponent(portal.slug)}`, siteUrl) : undefined;
+          if (link) {
+            link.searchParams.set("period", "day");
+            link.searchParams.set("date", snapshot.sessionDate);
+          }
+          return formatDayShare({ name: snapshot.name, date: snapshot.sessionDate, publicUrl: link?.href, data });
+        }).catch(() => undefined)
+      : undefined,
   ]) : [];
   const playerActivity = activityResult ? (activityResult.data ?? []) as PlayerActivity[] : undefined;
   const pending = ((pendingResult?.data ?? []) as Omit<PendingContribution, "requestId">[]).map((row) => ({ ...row, requestId: randomUUID() }));
@@ -70,5 +85,5 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     {equipe_sucesso && <p role="status" className="notice">Acesso removido.</p>}
     <TeamPanel team={team} rankaId={rankaId} />
   </div> : teamsResult?.error ? <p id="equipe" role="alert" className="notice notice-warning">Não foi possível carregar a equipe.</p> : undefined;
-  return <RealRankaWorkspace userId={userId} active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} playerFilter={filtro === "pendentes" ? "debt" : filtro === "ausentes" ? "inactive" : "all"} trial={trial} teamTools={teamTools} overview={overviewResult?.data as RankaDayOverview | undefined} />;
+  return <RealRankaWorkspace userId={userId} active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} shareText={shareText} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} playerFilter={filtro === "pendentes" ? "debt" : filtro === "ausentes" ? "inactive" : "all"} trial={trial} teamTools={teamTools} overview={overviewResult?.data as RankaDayOverview | undefined} />;
 }

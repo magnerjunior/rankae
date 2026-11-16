@@ -1515,6 +1515,7 @@ function Stats({
   snapshot,
   publicSnapshot,
   sessionSummary,
+  shareText,
   date,
   finished,
 }: {
@@ -1522,17 +1523,9 @@ function Stats({
   snapshot: RankaSnapshot;
   publicSnapshot?: PublicRankaSnapshot;
   sessionSummary?: SessionSummary;
+  shareText?: string;
   date?: string;
 }) {
-  const shareText = [
-    `${snapshot.name} · Estatísticas do dia`,
-    snapshot.sessionLabel,
-    sessionSummary && `${sessionSummary.matches} jogos`,
-    sessionSummary?.topTeam && `Mais vitórias: ${sessionSummary.topTeam.label ?? `T${sessionSummary.topTeam.number}`} (${sessionSummary.topTeam.wins})`,
-    sessionSummary?.topScorer && `Artilheiro: ${sessionSummary.topScorer.name} (${sessionSummary.topScorer.total} gols)`,
-    sessionSummary?.topAssist && `Assistências: ${sessionSummary.topAssist.name} (${sessionSummary.topAssist.total})`,
-    ...(publicSnapshot?.period === "last" ? publicSnapshot.results.slice(0, 12).map((result) => `Jogo ${result.ordinal}: T${result.yellowSquadNumber} ${result.yellowScore} × ${result.redScore} T${result.redSquadNumber}`) : []),
-  ].filter(Boolean).join("\n");
   return (
     <>
       <Heading
@@ -1543,7 +1536,7 @@ function Stats({
       />
       {snapshot.sessionState === "completed" && (finished || !publicSnapshot || publicSnapshot.period === "last") && <section className="panel day-finished-actions">
         <div><h2 className="panel-title display">{finished ? "Ranka encerrado" : "Último encontro"}</h2><p>Compartilhe o resumo e acerte as contribuições do dia.</p></div>
-        <div className="cluster"><a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="button button-primary">Compartilhar no WhatsApp</a><Link className="button button-secondary" href={`/app/rankas/${snapshot.id}/contribuicoes`}>Conferir contribuições</Link></div>
+        <div className="cluster">{shareText ? <a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="button button-primary">Compartilhar no WhatsApp</a> : <span role="status" className="muted">O resumo para compartilhar está indisponível. Atualize a página para tentar novamente.</span>}<Link className="button button-secondary" href={`/app/rankas/${snapshot.id}/contribuicoes`}>Conferir contribuições</Link></div>
       </section>}
       {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de {snapshot.sessionLabel}</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Mais vitórias</span><strong>{sessionSummary.topTeam ? `${sessionSummary.topTeam.label ?? `T${sessionSummary.topTeam.number}`} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Mais derrotas</span><strong>{sessionSummary.bottomTeam ? `${sessionSummary.bottomTeam.label ?? `T${sessionSummary.bottomTeam.number}`} · ${sessionSummary.bottomTeam.losses}` : "—"}</strong><small>{sessionSummary.bottomTeam?.players.join(" · ") ?? "Sem derrotas"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article><article><span>Goleiro mais vazado</span><strong>{sessionSummary.worstKeeper?.name ?? "—"}</strong><small>{sessionSummary.worstKeeper ? `${sessionSummary.worstKeeper.conceded} gol(s) em ${sessionSummary.worstKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
       {publicSnapshot ? (
@@ -1656,6 +1649,7 @@ export function RealRankaWorkspace({
   error,
   publicSnapshot,
   sessionSummary,
+  shareText,
   statsDate,
   gameStage,
   playerActivity,
@@ -1676,6 +1670,7 @@ export function RealRankaWorkspace({
   error?: string;
   publicSnapshot?: PublicRankaSnapshot;
   sessionSummary?: SessionSummary;
+  shareText?: string;
   statsDate?: string;
   gameStage?: string;
   playerActivity?: PlayerActivity[];
@@ -1713,6 +1708,7 @@ export function RealRankaWorkspace({
         snapshot={snapshot}
         publicSnapshot={publicSnapshot}
         sessionSummary={sessionSummary}
+        shareText={shareText}
         date={statsDate}
         finished={success === "ranka_encerrado"}
       />

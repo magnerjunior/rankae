@@ -453,3 +453,9 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - O gol que cruza o limite configurado pausa o cronômetro na mesma transação. A confirmação de continuar retoma a contagem. O navegador já congela a contagem enquanto o gol aguarda envio.
 - Gols digitados na partida aberta podem ficar em uma fila deste aparelho, associada ao operador e à partida. O envio reaproveita a chave de idempotência. Uma troca do segmento do cronômetro ou encerramento em outro aparelho pode exigir revisão do placar. A navegação autenticada continua usando respostas da rede.
 - O ícone instalável usa fundo azul e a marca verde dentro da margem de segurança. A tela de espera do modo instalado usa a mesma identidade.
+
+## Compartilhamento do resumo do dia
+
+- A mensagem do WhatsApp usa apenas as partidas concluídas da sessão encerrada. Traz o placar em ordem de jogo, todos os líderes empatados e os elencos dos destaques únicos por time.
+- O portal público recebe o filtro da data do encontro. Links protegidos por PIN mantêm o fluxo de acesso existente. O resumo omite a URL quando o portal estiver desativado ou depender de um token que apenas o organizador possui.
+- Para verificar, abra Estatísticas do último encontro encerrado, clique em Compartilhar no WhatsApp e confira a mensagem preenchida.

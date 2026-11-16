@@ -1,12 +1,25 @@
 import type { FieldSide } from "@/domain/ranka/types";
 
-type Game = { id: string; state: string; yellow_squad_id: string; red_squad_id: string };
-type Assignment = { match_id: string; field_side: string | null; role: string; status: string; player_id: string; start_ms: number };
-type Event = {
+export type HistoryGame = { id: string; state: string; yellow_squad_id: string; red_squad_id: string };
+export type HistoryAssignment = { match_id: string; field_side: string | null; role: string; status: string; player_id: string; start_ms: number };
+export type HistoryEvent = {
   match_id: string; event_type: string; status: string; side: string | null;
   assist_player_id: string | null; goal_kind: string | null; penalty_outcome: string | null;
   metadata?: { winner_squad_id?: string; method?: string } | null;
 };
+
+function scoringEvents(events: HistoryEvent[]) {
+  return events.filter((event) => event.status === "active" &&
+    (event.event_type === "goal" || (event.event_type === "penalty_attempt" && event.penalty_outcome === "converted")));
+}
+
+function countBySide(goals: HistoryEvent[]) {
+  return { yellow: goals.filter((event) => event.side === "yellow").length, red: goals.filter((event) => event.side === "red").length };
+}
+
+export function historyScore(events: HistoryEvent[]) {
+  return countBySide(scoringEvents(events));
+}
 type TeamHistory = {
   key: string; numbers: Set<number>; sides: Set<FieldSide>; players: Set<string>;
   wins: number; losses: number; draws: number; goals: number; assists: number;
@@ -22,7 +35,7 @@ function groupMatches<T extends { match_id: string }>(rows: T[]) {
   return groups;
 }
 
-export function summarizeTeamHistory(games: Game[], squads: { id: string; squad_number: number }[], assignments: Assignment[], events: Event[], officialResults: ReadonlyMap<string, string>) {
+export function summarizeTeamHistory(games: HistoryGame[], squads: { id: string; squad_number: number }[], assignments: HistoryAssignment[], events: HistoryEvent[], officialResults: ReadonlyMap<string, string>) {
   const teams = new Map<string, TeamHistory>();
   const formationBySquad = new Map<string, string>();
   const numbers = new Map(squads.map((squad) => [squad.id, squad.squad_number]));
@@ -31,9 +44,8 @@ export function summarizeTeamHistory(games: Game[], squads: { id: string; squad_
   for (const game of games) {
     if (game.state !== "completed") continue;
     const actions = scoring.get(game.id) ?? [];
-    const goals = actions.filter((event) => event.event_type === "goal" || (event.event_type === "penalty_attempt" && event.penalty_outcome === "converted"));
-    const onYellow = goals.filter((event) => event.side === "yellow").length;
-    const onRed = goals.filter((event) => event.side === "red").length;
+    const goals = scoringEvents(actions);
+    const { yellow: onYellow, red: onRed } = countBySide(goals);
     const tie = actions.findLast((event) => event.event_type === "tie_resolution")?.metadata;
     const official = officialResults.get(game.id);
     const winner = official === "both_out" ? undefined : official ?? (
