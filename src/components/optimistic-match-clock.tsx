@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LiveTimer } from "@/components/live-timer";
+import { enableMatchAudio } from "@/components/match-deadline";
 import { computeClockElapsed } from "@/domain/ranka/rules";
 import type { MatchState } from "@/domain/ranka/types";
 import type { ClockMutationResult } from "@/app/app/rankas/[rankaId]/actions";
@@ -33,14 +34,13 @@ interface OptimisticMatchClockProps extends ClockView {
 
 function running(state: MatchState) { return state === "live" || state === "overtime_live"; }
 
-function currentElapsed(clock: ClockView) {
-  const offset = Date.parse(clock.serverNow) - Date.now();
-  return computeClockElapsed({ state: clock.state, startedAtServer: clock.startedAtServer, elapsedMsBeforeStart: clock.elapsedMsBeforeStart, durationLimitMs: clock.durationLimitMs, asOfServer: clock.serverNow }, new Date(Date.now() + offset).toISOString());
+function currentElapsed(clock: ClockView, receivedAt: number) {
+  return computeClockElapsed({ state: clock.state, startedAtServer: clock.startedAtServer, elapsedMsBeforeStart: clock.elapsedMsBeforeStart, durationLimitMs: clock.durationLimitMs, asOfServer: clock.serverNow }, new Date(Date.parse(clock.serverNow) + Date.now() - receivedAt).toISOString());
 }
 
-function optimisticTransition(clock: ClockView, command: Command): ClockView {
+function optimisticTransition(clock: ClockView, command: Command, receivedAt: number): ClockView {
   const now = new Date().toISOString();
-  const elapsed = currentElapsed(clock);
+  const elapsed = currentElapsed(clock, receivedAt);
   if (command === "start") return { ...clock, state: "live", startedAtServer: now, serverNow: now };
   if (command === "resume") return { ...clock, state: clock.state === "overtime_paused" ? "overtime_live" : "live", startedAtServer: now, serverNow: now };
   if (command === "pause") return { ...clock, state: clock.state === "overtime_live" ? "overtime_paused" : "paused", elapsedMsBeforeStart: elapsed, startedAtServer: undefined, serverNow: now };
@@ -55,12 +55,15 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const busyRef = useRef(false);
+  const receivedAt = useRef(0);
+  useEffect(() => { receivedAt.current = Date.now(); }, []);
 
   async function run(command: Command, action: ClockAction) {
     if (busyRef.current) return;
+    enableMatchAudio();
     busyRef.current = true;
     const before = clock;
-    const optimistic = optimisticTransition(before, command);
+    const optimistic = optimisticTransition(before, command, receivedAt.current || Date.now());
     setClock(optimistic);
     setBusy(true);
     setError("");
@@ -75,8 +78,9 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
         return;
       }
       const confirmed: ClockView = { state: result.state, startedAtServer: result.startedAtServer, elapsedMsBeforeStart: result.elapsedMsBeforeStart, durationLimitMs: result.durationLimitMs, serverNow: result.serverNow, revision: result.revision };
+      receivedAt.current = Date.now();
       setClock(confirmed);
-      if (command === "finish_regulation" || command === "finish_overtime") router.refresh();
+      router.refresh();
     } catch {
       setClock(before);
       setError("Sem conexão. O relógio continuou no estado anterior.");
@@ -99,7 +103,9 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
         return;
       }
       setClock({ state: result.state, startedAtServer: result.startedAtServer, elapsedMsBeforeStart: result.elapsedMsBeforeStart, durationLimitMs: result.durationLimitMs, serverNow: result.serverNow, revision: result.revision });
+      receivedAt.current = Date.now();
       setError("");
+      router.refresh();
     } catch { setError("Não foi possível adicionar tempo."); }
     finally { busyRef.current = false; setBusy(false); }
   }

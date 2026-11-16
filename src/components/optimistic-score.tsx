@@ -24,6 +24,10 @@ export function useMatchScore() {
   return score;
 }
 
+export function useOptionalMatchScore() {
+  return useContext(ScoreContext)?.score;
+}
+
 export function OptimisticScore({ side }: { side: Side }) {
   const { score } = useMatchScore();
   return <div className="score-number" aria-live="polite">{score[side]}</div>;

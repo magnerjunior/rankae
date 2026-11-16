@@ -5,7 +5,10 @@ import Link from "next/link";
 import { RankaRanking, RankaResults } from "@/components/ranka-results";
 import { AppShell } from "@/components/app-shell";
 import { ContributionManager } from "@/components/contribution-manager";
-import { GameStatusBar } from "@/components/game-status-bar";
+import { GameStatusBar, MatchStatusBar } from "@/components/game-status-bar";
+import { MatchDeadline } from "@/components/match-deadline";
+import { MatchPushSettings } from "@/components/match-push-settings";
+import { kitColors, kitStyle, type KitColor } from "@/domain/ranka/kit-colors";
 import { GoalDialog } from "@/components/goal-dialog";
 import { ArrivalManager } from "@/components/arrival-manager";
 import { EmptyState } from "@/components/feedback";
@@ -63,6 +66,7 @@ import {
   configurePortalAction,
   startRankaAction,
   saveRankaScheduleAction,
+  saveRankaKitsAction,
   reorderArrivalAction,
   renameArrivalAction,
   removeArrivalAction,
@@ -726,36 +730,38 @@ function MatchConsole({
           adjustAction={adjustMatchClockAction.bind(null, snapshot.id, match.id)}
           showOvertimeOption={score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0}
         />
-        <MatchScoreProvider key={match.id} initial={{ yellow: score.yellow, red: score.red }} recordedKeys={match.events.flatMap((event) => event.idempotencyKey ? [event.idempotencyKey] : [])}>
+
         <div className="score-sides">
           <div className="score-side">
-            <span className="side-label side-yellow">
-              Amarelo · T{yellow?.number}
+            <span className="side-label" style={kitStyle(snapshot.kits?.yellow ?? "yellow")}>
+              {kitColors[snapshot.kits?.yellow ?? "yellow"].label} · T{yellow?.number}
             </span>
             <OptimisticScore side="yellow" />
             {canRecord && (
               <GoalForm
                 side="yellow"
+                kit={snapshot.kits?.yellow}
                 players={yellowPlayers}
                 action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
           <div className="score-side">
-            <span className="side-label side-red">
-              Vermelho · T{red?.number}
+            <span className="side-label" style={kitStyle(snapshot.kits?.red ?? "red")}>
+              {kitColors[snapshot.kits?.red ?? "red"].label} · T{red?.number}
             </span>
             <OptimisticScore side="red" />
             {canRecord && (
               <GoalForm
                 side="red"
+                kit={snapshot.kits?.red}
                 players={redPlayers}
                 action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
         </div>
-        </MatchScoreProvider>
+
         <div className="match-rosters">
           <CompactMatchRoster
             side="yellow"
@@ -791,6 +797,7 @@ function MatchConsole({
             </div>
           ))}
           <SupportAssignments
+            kitLabels={{ yellow: kitColors[snapshot.kits?.yellow ?? "yellow"].label, red: kitColors[snapshot.kits?.red ?? "red"].label }}
             action={confirmOfficialsAction.bind(
               null,
               snapshot.id,
@@ -882,7 +889,7 @@ function MatchConsole({
                   <span>
                     <strong>
                       {event.type === "goal"
-                        ? `Gol ${event.side === "yellow" ? "amarelo" : "vermelho"}`
+                        ? `Gol${event.side ? ` · ${kitColors[snapshot.kits?.[event.side] ?? event.side].label}` : ""}`
                         : event.type === "penalty_attempt"
                           ? `Pênalti ${event.penaltyOutcome}`
                           : (event.label ?? "Desempate")}
@@ -1009,8 +1016,8 @@ function MatchConsole({
               <label className="field">
                 Lado
                 <select className="select" name="side">
-                  <option value="yellow">Amarelo</option>
-                  <option value="red">Vermelho</option>
+                  <option value="yellow">{kitColors[snapshot.kits?.yellow ?? "yellow"].label}</option>
+                  <option value="red">{kitColors[snapshot.kits?.red ?? "red"].label}</option>
                 </select>
               </label>
               <label className="field">
@@ -1082,14 +1089,16 @@ function MatchConsole({
 
 function GoalForm({
   side,
+  kit,
   players,
   action,
 }: {
   side: "yellow" | "red";
+  kit?: KitColor;
   players: Player[];
   action: (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").MatchEventMutationResult>;
 }) {
-  return <GoalDialog side={side} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
+  return <GoalDialog side={side} kit={kit} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
 }
 
 function CompactMatchRoster({
@@ -1179,8 +1188,8 @@ function TieForm({ snapshot }: { snapshot: RankaSnapshot }) {
       </select>
       <select className="select compact-select" name="winnerSquadId">
         <option value="">Sem vencedor</option>
-        <option value={match.yellowSquadId}>Amarelo</option>
-        <option value={match.redSquadId}>Vermelho</option>
+        <option value={match.yellowSquadId}>{kitColors[snapshot.kits?.yellow ?? "yellow"].label}</option>
+        <option value={match.redSquadId}>{kitColors[snapshot.kits?.red ?? "red"].label}</option>
       </select>
       <button className="button button-secondary">Registrar desempate</button>
       {fullWaiting < 2 && (
@@ -1280,6 +1289,17 @@ function Rules({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
+      {snapshot.rankaRevision !== undefined && <section className="panel kit-settings" id="coletes">
+        <h2 className="panel-title display">Coletes em campo</h2>
+        <form className="kit-settings-form" action={saveRankaKitsAction.bind(null, snapshot.id, snapshot.rankaRevision)}>
+          <Key />
+          {(["yellow", "red"] as const).map((side, index) => <label key={side} className="field">Time {index + 1}<select name={side === "yellow" ? "kitYellow" : "kitRed"} className="select" defaultValue={snapshot.kits?.[side] ?? side}>
+            {Object.entries(kitColors).map(([value, kit]) => <option key={value} value={value}>{kit.label}</option>)}
+          </select></label>)}
+          <button className="button button-primary">Salvar coletes</button>
+        </form>
+      </section>}
+      <MatchPushSettings rankaId={snapshot.id} />
       {canManageTeam && <a className="button button-secondary" href="#equipe">Equipe e colaboradores</a>}
       <div className="two-column">
         <section className="panel">
@@ -1649,17 +1669,18 @@ export function RealRankaWorkspace({
         date={statsDate}
       />
     );
-  const score = snapshot.activeMatch ? projectScore(snapshot.activeMatch.events) : undefined;
   const isMatchScreen = active === "partida" || (active === "jogo" && (gameStage === "partida" || (!gameStage && Boolean(snapshot.activeMatch))));
   const yellowTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.yellowSquadId)?.number : undefined;
   const redTeam = snapshot.activeMatch ? snapshot.squads.find((squad) => squad.id === snapshot.activeMatch?.redSquadId)?.number : undefined;
-  const status = snapshot.sessionState === "completed" || isMatchScreen ? undefined : snapshot.activeMatch
-    ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} state={snapshot.activeMatch.state} score={`${score?.yellow ?? 0} × ${score?.red ?? 0}`} startedAt={snapshot.activeMatch.startedAtServer} elapsedMs={snapshot.activeMatch.elapsedMsBeforeStart} label={`Jogo ${snapshot.activeMatch.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} />
-    : snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
-  return (
+  const status = snapshot.sessionState === "completed" || snapshot.activeMatch?.state === "completed" ? undefined : snapshot.activeMatch
+    ? <MatchStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=partida`} match={snapshot.activeMatch} yellowTeam={yellowTeam} redTeam={redTeam} collapse={isMatchScreen} kits={snapshot.kits} />
+    : !isMatchScreen && snapshot.hasPersistedSquads ? <GameStatusBar href={`/app/rankas/${snapshot.id}/jogo?etapa=times`} elapsedMs={0} label="Pré-jogo pronto" /> : undefined;
+  const workspace = (
     <AppShell active={active} rankaId={snapshot.id} title={snapshot.name} gameStatus={status} gameNeedsFreshData={Boolean(snapshot.activeMatch)} trial={trial}>
-      {isMatchScreen && snapshot.sessionId && snapshot.sessionState !== "completed" && <RealtimeSessionRefresh sessionId={snapshot.sessionId} />}
+      {snapshot.activeMatch && snapshot.sessionId && snapshot.sessionState !== "completed" && <><RealtimeSessionRefresh sessionId={snapshot.sessionId} /><MatchDeadline match={snapshot.activeMatch} /></>}
       {content}
     </AppShell>
   );
+  const match = snapshot.activeMatch;
+  return match ? <MatchScoreProvider key={match.id} initial={projectScore(match.events)} recordedKeys={match.events.flatMap((event) => event.idempotencyKey ? [event.idempotencyKey] : [])}>{workspace}</MatchScoreProvider> : workspace;
 }

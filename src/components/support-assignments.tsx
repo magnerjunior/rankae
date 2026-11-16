@@ -10,12 +10,14 @@ export function SupportAssignments({
   ballBoys,
   defaults,
   autoSave,
+  kitLabels,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   keepers: Option[];
   ballBoys: Option[];
   defaults: { yellow?: string; red?: string; first?: string; second?: string };
   autoSave: boolean;
+  kitLabels?: { yellow: string; red: string };
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const submitted = useRef(false);
@@ -44,7 +46,7 @@ export function SupportAssignments({
     <form ref={formRef} className="support-grid" action={action}>
       <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
       <label className="field">
-        Goleiro amarelo
+        Goleiro · {kitLabels?.yellow ?? "Amarelo"}
         <select
           className="select"
           name="yellowKeeperId"
@@ -55,7 +57,7 @@ export function SupportAssignments({
         </select>
       </label>
       <label className="field">
-        Goleiro vermelho
+        Goleiro · {kitLabels?.red ?? "Vermelho"}
         <select
           className="select"
           name="redKeeperId"

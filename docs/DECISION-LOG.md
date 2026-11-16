@@ -433,3 +433,9 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 
 - Migrações de testes, colaboradores e retenção aplicadas no Supabase de produção. Os nomes locais foram alinhados às versões registradas no banco.
 - Job `rankae-weekly-observability-retention` confirmado ativo às segundas-feiras, 07h17 UTC (04h17 em Brasília). A primeira execução e o envio real de convites ainda precisam de validação operacional.
+
+## Cronômetro em segundo plano e coletes
+
+- O Postgres encerra o jogo pelo prazo do cronômetro ou inicia a prorrogação a partir do fim do tempo normal. O empate ao fim da prorrogação mantém o fluxo de desempate.
+- Com o aplicativo visível, o prazo dispara uma checagem imediata e apito após interação. Com a tela bloqueada, o cron processa os prazos e o Web Push entrega o placar e o tempo do envio, conforme as permissões do aparelho.
+- As cores dos coletes são configurações das vagas em campo. Os identificadores internos das vagas continuam os mesmos para preservar placares e histórico.

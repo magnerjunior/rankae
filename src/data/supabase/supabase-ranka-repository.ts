@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { groupSquads } from "@/domain/ranka/rules";
+import { isKitColor } from "@/domain/ranka/kit-colors";
 import type { Attendance, MatchEvent, Player, Squad } from "@/domain/ranka/types";
 import type { LiveMatch, MatchAssignment, RankaRepository, RankaSnapshot, SessionRules, SessionSummary } from "@/data/ports/ranka-repository";
 
@@ -14,7 +15,7 @@ const sessionSummarySchema = z.object({
   worstKeeper: z.object({ name: z.string(), conceded: z.coerce.number().int(), matches: z.coerce.number().int() }).nullish(),
 });
 
-interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; }
+interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; revision: number; settings_json?: { kits?: { yellow?: unknown; red?: unknown } }; }
 interface SessionRow { id: string; scheduled_on: string; state: RankaSnapshot["sessionState"]; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
 interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; membership_status: "regular" | "guest"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
@@ -77,7 +78,7 @@ export class SupabaseRankaRepository implements RankaRepository {
   async getSnapshot(rankaId: string): Promise<RankaSnapshot> {
     // Independent reads retain RLS and share one network round instead of two.
     const [rankaResult, sessionResult] = await Promise.all([
-      this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash").eq("id", rankaId).maybeSingle(),
+      this.client.from("rankas").select("id,org_id,name,slug,visibility,invite_token_hash,revision,settings_json").eq("id", rankaId).maybeSingle(),
       this.client.from("sessions").select("id,scheduled_on,state,revision,rules_snapshot,contribution_amount_cents").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("created_at", { ascending: false }).limit(1),
     ]);
     const { data: ranka, error: rankaError } = rankaResult;
@@ -129,7 +130,7 @@ export class SupabaseRankaRepository implements RankaRepository {
       const clock = clockResult.data as { state: LiveMatch["state"]; started_at_server: string | null; elapsed_ms_before_start: number; duration_limit_ms: number; revision: number; server_now: string };
       activeMatch = {
         id: latestMatch.id, ordinal: latestMatch.ordinal, yellowSquadId: latestMatch.yellow_squad_id, redSquadId: latestMatch.red_squad_id,
-        state: clock.state, clockPhase: latestMatch.clock_phase, startedAtServer: clock.started_at_server ?? undefined,
+        state: clock.state, clockPhase: clock.state.startsWith("overtime") ? "overtime" : latestMatch.clock_phase, startedAtServer: clock.started_at_server ?? undefined,
         elapsedMsBeforeStart: Number(clock.elapsed_ms_before_start), durationLimitMs: clock.duration_limit_ms,
         regulationDurationMs: latestMatch.regulation_duration_ms, overtimeDurationMs: latestMatch.overtime_duration_ms,
         revision: Number(clock.revision), serverNow: clock.server_now,
@@ -138,8 +139,10 @@ export class SupabaseRankaRepository implements RankaRepository {
       };
     }
 
+    const kits = typedRanka.settings_json?.kits;
     return {
-      id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session?.id, name: typedRanka.name,
+      id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session?.id, name: typedRanka.name, rankaRevision: typedRanka.revision,
+      kits: { yellow: isKitColor(kits?.yellow) ? kits.yellow : "yellow", red: isKitColor(kits?.red) ? kits.red : "red" },
       sessionLabel: session ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${session.scheduled_on}T12:00:00Z`)) : "Nenhum dia de futebol iniciado",
       sessionDate: session?.scheduled_on ?? "",
       sessionState: session?.state ?? "planned",

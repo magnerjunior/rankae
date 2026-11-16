@@ -3,6 +3,10 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppShell } from "@/components/app-shell";
 import { FlashNotice } from "@/components/flash-notice";
+import { MatchStatusBar } from "@/components/game-status-bar";
+import { MatchDeadline } from "@/components/match-deadline";
+import { RealtimeSessionRefresh } from "@/components/realtime-session-refresh";
+import { SupabaseRankaRepository } from "@/data/supabase/supabase-ranka-repository";
 import type { TrialAccess } from "@/server/account-trial";
 import { editHistoricalGoalAction, voidHistoricalMatchEventAction } from "@/app/app/rankas/[rankaId]/actions";
 
@@ -26,7 +30,13 @@ function encounterLabel(day: Day) {
 export async function RankaHistory({ client, rankaId, rankaName, orgId, selectedId, page, month, success, failure, trial }: { client: SupabaseClient; rankaId: string; rankaName: string; orgId: string; selectedId?: string; page?: string; month?: string; success?: string; failure?: string; trial?: TrialAccess }) {
   const pageNumber = /^\d+$/.test(page ?? "") ? Math.min(Number(page), 1000) : 0;
   const offset = pageNumber * 20;
-  const { data: rows, error } = await client.from("sessions").select("id,scheduled_on,session_number,state,created_at").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("session_number", { ascending: false }).range(offset, offset + 20);
+  const [{ data: rows, error }, snapshot] = await Promise.all([
+    client.from("sessions").select("id,scheduled_on,session_number,state,created_at").eq("ranka_id", rankaId).order("scheduled_on", { ascending: false }).order("session_number", { ascending: false }).range(offset, offset + 20),
+    new SupabaseRankaRepository(client).getSnapshot(rankaId),
+  ]);
+  const live = snapshot.sessionState !== "completed" && snapshot.activeMatch?.state !== "completed" ? snapshot.activeMatch : undefined;
+  const gameStatus = live && <MatchStatusBar match={live} href={`/app/rankas/${rankaId}/jogo?etapa=partida`} kits={snapshot.kits} />;
+  const liveUpdates = live && snapshot.sessionId && <><RealtimeSessionRefresh sessionId={snapshot.sessionId} /><MatchDeadline match={live} /></>;
   if (error) throw new Error("Não foi possível carregar o histórico.");
   const hasNextPage = (rows ?? []).length > 20;
   const days = ((rows ?? []) as Day[]).slice(0, 20);
@@ -82,7 +92,8 @@ export async function RankaHistory({ client, rankaId, rankaName, orgId, selected
   const total = payments.reduce((sum, payment) => sum + payment.amount_cents, 0);
   const paid = payments.filter((payment) => payment.status === "paid").reduce((sum, payment) => sum + payment.amount_cents, 0);
 
-  return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData trial={trial}>
+  return <AppShell active="historico" rankaId={rankaId} title={rankaName} gameNeedsFreshData trial={trial} gameStatus={gameStatus}>
+    {liveUpdates}
     <header className="page-heading"><span className="eyebrow">Cada encontro registrado</span><h1 className="display">Histórico do ranka</h1></header>
     {success && <FlashNotice kind="success" message="Correção salva e registrada no histórico." />}
     {failure && <FlashNotice kind="error" message="Não foi possível salvar. Atualize o histórico e tente novamente." />}

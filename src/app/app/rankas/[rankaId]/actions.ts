@@ -2,6 +2,8 @@
 
 import { isRevisionConflict } from "@/lib/database-errors";
 import { validInitialSelection } from "@/domain/initial-teams";
+import { isKitColor } from "@/domain/ranka/kit-colors";
+import type { MatchState } from "@/domain/ranka/types";
 
 import { randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -372,6 +374,23 @@ export async function saveRankaScheduleAction(rankaId: string, revision: number,
   const schedule = parsed.data;
   const { error } = await rpc("update_ranka_schedule", { p_ranka_id: rankaId, p_expected_revision: revision, p_idempotency_key: idempotencyKey(formData), p_mode: schedule.mode, p_date: "date" in schedule ? schedule.date : null, p_weekdays: schedule.mode === "weekly" ? schedule.weekdays : null, p_alternate_day: schedule.mode === "alternating" ? schedule.alternateDay : null });
   finish(rankaId, "configuracoes", !error, "agenda");
+}
+
+export async function saveRankaKitsAction(rankaId: string, revision: number, formData: FormData) {
+  const yellow = formData.get("kitYellow");
+  const red = formData.get("kitRed");
+  if (!isKitColor(yellow) || !isKitColor(red) || yellow === red) finish(rankaId, "configuracoes", false, "coletes");
+  const { error } = await rpc("save_ranka_kits", {
+    p_ranka_id: rankaId, p_revision: revision, p_key: idempotencyKey(formData), p_yellow: yellow, p_red: red,
+  });
+  finish(rankaId, "configuracoes", !error, "coletes");
+}
+
+export async function expireMatchClockAction(matchId: string): Promise<{ changed?: boolean; state?: MatchState }> {
+  if (!uuid.safeParse(matchId).success) return {};
+  const { data, error } = await rpc("expire_match_clock", { p_match_id: matchId });
+  if (error) return {};
+  return data ?? {};
 }
 
 export async function setPlayerMembershipAction(rankaId: string, playerId: string, formData: FormData) {

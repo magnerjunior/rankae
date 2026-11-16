@@ -1,4 +1,4 @@
-const CACHE = "rankae-static-v5";
+const CACHE = "rankae-static-v6";
 const STATIC = ["/offline", "/rankae-icon.svg", "/rankae-icon-transparent.svg", "/rankae-wordmark.svg", "/rankae-logo-completa.svg"];
 
 self.addEventListener("install", (event) => {
@@ -9,6 +9,34 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(caches.keys().then((keys) => Promise.all(
     keys.filter((key) => key.startsWith("rankae-static-") && key !== CACHE).map((key) => caches.delete(key)),
   )).then(() => self.clients.claim()));
+});
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  const data = event.data.json();
+  if (typeof data.title !== "string" || typeof data.body !== "string" ||
+      typeof data.tag !== "string" || typeof data.url !== "string" ||
+      !/^\/app\/rankas\/[a-f0-9-]{36}\/jogo\?etapa=partida$/.test(data.url)) return;
+  event.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body,
+    tag: data.tag,
+    icon: "/rankae-icon.svg",
+    renotify: Boolean(data.alert),
+    silent: data.alert ? undefined : true,
+    data: { url: data.url },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  const path = event.notification.data?.url;
+  event.notification.close();
+  if (!path) return;
+  const url = new URL(path, self.location.origin);
+  if (url.origin !== self.location.origin) return;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+    const target = windows.find((client) => client.url === url.href);
+    return target ? target.focus() : self.clients.openWindow(url.href);
+  }));
 });
 
 self.addEventListener("fetch", (event) => {

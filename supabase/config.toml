@@ -24,3 +24,6 @@ minimum_password_length = 8
 
 [functions.account-provisioning]
 verify_jwt = true
+
+[functions.match-push]
+verify_jwt = true

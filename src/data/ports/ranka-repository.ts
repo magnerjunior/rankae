@@ -7,6 +7,7 @@ import type {
   Player,
   Squad,
 } from "@/domain/ranka/types";
+import type { KitColor } from "@/domain/ranka/kit-colors";
 
 export interface SessionRules {
   squadSize: number;
@@ -52,6 +53,8 @@ export interface LiveMatch {
 
 export interface RankaSnapshot {
   id: string;
+  rankaRevision?: number;
+  kits?: { yellow: KitColor; red: KitColor };
   orgId?: string;
   sessionId?: string;
   name: string;
