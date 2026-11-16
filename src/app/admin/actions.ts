@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/server/platform-admin";
-import { adminAuthConfigured, createAdminAuthClient } from "@/lib/supabase/admin-auth";
+import { provisionAccount } from "@/lib/supabase/account-provisioning";
 import { siteUrl } from "@/lib/site-url";
 
 const resolutionSchema = z.object({ incidentId: z.string().uuid(), reason: z.string().trim().min(8).max(500) });
@@ -28,19 +28,16 @@ export async function inviteOrganizerAction(_previous: { link?: string; error?: 
   const client = await requirePlatformAdmin();
   const email = z.email().max(254).safeParse(formData.get("email"));
   const access = accessFieldsSchema.safeParse(Object.fromEntries(formData));
-  if (!email.success || !access.success || !adminAuthConfigured()) return { error: "Confira os dados da conta e a configuração de convites." };
-  const { error: auditError } = await client.rpc("admin_audit_organizer_invite");
-  if (auditError) return { error: "Não foi possível autorizar o convite." };
-  const { data, error } = await createAdminAuthClient().auth.admin.generateLink({
-    type: "invite",
-    email: email.data.toLowerCase(),
-  });
-  if (error || !data?.properties.hashed_token || !data.user.id) return { error: "Não foi possível gerar o convite. Confira se esse e-mail já tem conta." };
-  const { error: accessError } = await client.rpc("admin_configure_account", accountAccessArgs(data.user.id, access.data));
-  if (accessError) return { error: "O convite ficou sem configuração de acesso. Confira a conta em Contas e testes antes de enviar o acesso." };
+  if (!email.success || !access.success) return { error: "Confira os dados da conta." };
+  const { data, error } = await provisionAccount(client, { ...access.data, operation: "organizer", email: email.data, paying: access.data.paying === "on" });
+  if (error === "exists") return { error: "Esse e-mail já tem cadastro. Abra a conta na lista para ajustar o acesso." };
+  if (error === "configuration") return { error: "O acesso não foi configurado. Confira a conta em Contas e testes antes de enviar o convite." };
+  if (error === "forbidden") return { error: "Sua sessão não tem permissão para criar contas. Entre novamente pelo painel." };
+  const invite = z.object({ tokenHash: z.string().min(1) }).safeParse(data);
+  if (!invite.success) return { error: "Não foi possível gerar o convite agora. Tente novamente." };
   const link = new URL("/auth/callback", siteUrl);
   link.searchParams.set("type", "invite");
-  link.searchParams.set("token_hash", data.properties.hashed_token);
+  link.searchParams.set("token_hash", invite.data.tokenHash);
   revalidatePath("/admin");
   return { link: link.href };
 }

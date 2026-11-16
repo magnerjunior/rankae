@@ -424,8 +424,6 @@ body { overscroll-behavior-y: auto; }
 .topbar { min-height: 66px; display: grid; grid-template-columns: 44px minmax(0,1fr) auto 44px; align-items: center; gap: 8px; }
 .brand-compact { width: 42px; }
 .topbar-brand { justify-self: end; }
-.topbar-players { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid var(--border); border-radius: 11px; background: white; color: var(--brand-900); font-size: .875rem; font-weight: 700; }
-.topbar-players.active { border-color: var(--brand-accent); background: var(--brand-accent); color: var(--ink); }
 .topbar-title { min-width: 0; }
 .topbar-title strong, .topbar-title span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-title span { margin-top: 2px; color: var(--brand-100); font-size: .75rem; }
@@ -643,7 +641,6 @@ form[aria-busy="true"] button { pointer-events: none; opacity: .72; }
   .player-directory-controls { grid-template-columns: 1fr; }
   .topbar { grid-template-columns: 44px minmax(0,1fr) auto; }
   .topbar-brand { display: none; }
-  .topbar-players { padding-inline: 9px; font-size: .8rem; }
   .next-match-bar { top: 6px; align-items: stretch; flex-direction: column; }
   .next-match-form { align-items: stretch; flex-direction: column; }
   .cookie-consent { align-items: stretch; flex-direction: column; bottom: 84px; }
@@ -766,9 +763,6 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 .bottom-link.game-tab svg { width: 23px; height: 23px; }
 .bottom-link.game-tab.active { outline: 2px solid var(--brand-700); outline-offset: -3px; }
 .topbar .brand-mark { width: 40px; }
-.topbar-players { gap: 5px; background: transparent; color: inherit; }
-.topbar-players svg { width: 17px; height: 17px; }
-@media (max-width: 359px) { .topbar-players { padding-inline: 6px; } .topbar-players svg { display: none; } }
 .ranking-filter { margin: 12px 0; }
 .result-entry { border-top: 1px solid var(--border); padding: 8px 0 12px; }
 .result-details { margin-top: 8px; }
@@ -793,15 +787,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 [data-theme="dark"] :is(.metric,.squad,.scoreboard,.history-calendar,.history-metrics span,.history-days a,.account-popover,.search-results,.arrival-capacity span,.arrival-row-actions button,.game-status-bar,.portal-scoreboard,.portal-gate-card,.modal,.goal-modal,.player-manage-modal,.next-match-bar,.teams-confirm-bar,.bulk-bar,.cookie-consent,.activity-setting) { background: var(--surface); color: var(--ink); }
 [data-theme="dark"] :is(.topbar,.bottom-nav,.marketing-header,.timer-bar,.portal-timer,.marketing-final-cta,.marketing-story,.marketing-feature-art,.toast,.flash-toast) { background: #142542; color: #f3f6ff; }
 [data-theme="dark"] :is(.button-primary,.quick-arrival-confirm,.start-ranka-button,.period-tab.active,.game-flow-nav a.active,.drawer-nav a.active,.history-calendar-grid .selected,.marketing-primary,.bottom-link.active) { color: #101a35; }
-[data-theme="dark"] :is(.button-secondary,.topbar-players,.marketing-login) { background: var(--surface-alt); color: var(--ink); }
-[data-theme="dark"] .topbar-players.active { background: var(--brand-accent); color: #101a35; }
+[data-theme="dark"] :is(.button-secondary,.marketing-login) { background: var(--surface-alt); color: var(--ink); }
 [data-theme="dark"] :is(.score-side:first-child,.portal-side-yellow) { background: #352e1e; }
 [data-theme="dark"] :is(.score-side:last-child,.portal-side-red) { background: #391f2a; }
 [data-theme="dark"] :is(.button-danger,.notice-warning,.activity-notice) { color: #402421; }
 [data-theme="dark"] .brand-name { background-image: url("/rankae-wordmark-dark.svg"); }
 [data-theme="dark"] .bottom-link.active { background: var(--brand-accent); }
 [data-theme="dark"] .match-preview .timer { color: var(--brand-accent); }
-.topbar-players:focus-visible { outline-color: var(--brand-700); }
 
 @supports (backdrop-filter: blur(8px)) {
   @media (prefers-reduced-transparency: no-preference) {
@@ -819,12 +811,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 }
 
 .topbar { grid-template-columns: 44px minmax(0,1fr) 44px auto; row-gap: 4px; }
-.topbar-players { grid-row: 2; grid-column: 2 / -1; justify-self: start; }
-.theme-toggle { grid-row: 1; grid-column: 3; width: 44px; height: 44px; display: grid; place-items: center; color: inherit; background: transparent; border: 1px solid var(--border); border-radius: 11px; }
-.theme-toggle:hover { background: var(--surface-alt); color: var(--ink); }
+.theme-toggle { grid-row: 1; grid-column: 3; width: 44px; height: 44px; display: grid; place-items: center; color: inherit; background: transparent; border: 0; padding: 0; }
+.theme-toggle:hover { color: var(--brand-700); }
+.theme-toggle:focus-visible { outline-color: currentColor; }
+[data-theme="dark"] .theme-toggle:hover { color: var(--brand-accent); }
 .topbar .topbar-brand { grid-row: 1; grid-column: 4; display: inline-flex; }
 .topbar-brand .brand-name { width: clamp(68px, 22vw, 102px); }
-.game-status-bar { top: 114px; }
+.game-status-bar { top: 66px; }
 .topbar:has(.account-trial-banner) + .game-status-bar { position: static; }
 .account-trial-banner { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border: 1px solid #ffffff52; border-radius: 12px; background: #042068; color: #fff; box-shadow: inset 0 1px #ffffff40; }
 .account-trial-banner strong, .account-trial-banner span { display: block; }
@@ -849,7 +842,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 .ranking-filter-options input:checked + span { background: var(--brand-accent); color: #101a35; border-color: var(--brand-accent); font-weight: 700; }
 .ranking-filter-options input:focus-visible + span { outline: 2px solid var(--brand-700); outline-offset: 2px; }
 [data-theme="dark"] :is(.session-day-strip,.session-finished-panel,.team-editor-card,.team-player,.player-event-counts small,.session-summary,.session-awards article) { background: var(--surface); color: var(--ink); border-color: var(--border); }
-[data-theme="dark"] :is(.topbar-players,.game-flow-nav a,.ranking-filter-options span) { border-color: var(--control-border); }
+[data-theme="dark"] :is(.game-flow-nav a,.ranking-filter-options span) { border-color: var(--control-border); }
 [data-theme="dark"] .arrival-start-sticky { background: var(--surface-alt); }
 [data-theme="dark"] .next-match-bar { border-color: var(--border); }
 [data-theme="dark"] :is(.finish-day-banner,.finish-day-banner summary,.finish-day-banner form,.end-ranka-zone details > div,.leave-day-option) { background: #30202b; border-color: #634454; color: var(--ink); }

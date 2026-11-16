@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/commercial";
-import { adminAuthConfigured } from "@/lib/supabase/admin-auth";
 import { recordReceiptAction } from "./actions";
 import { OrganizerInvite } from "./organizer-invite";
 
@@ -21,7 +20,7 @@ export async function AdminAccounts({ client, trialDays }: { client: SupabaseCli
     <section className="panel admin-section" id="contas">
       <h2 className="panel-title display">Contas e testes</h2>
       <details className="admin-account-create"><summary>Adicionar conta</summary>
-        {adminAuthConfigured() ? <OrganizerInvite trialDays={trialDays} /> : <p className="muted">Configure SUPABASE_SECRET_KEY no servidor para gerar convites.</p>}
+        <OrganizerInvite trialDays={trialDays} />
       </details>
       <p>{accounts.length} {accounts.length === 1 ? "conta cadastrada" : "contas cadastradas"}</p>
       <div className="table-scroll"><table className="data-table"><thead><tr><th>Responsável</th><th>Rankas</th><th>Acesso</th><th><span className="sr-only">Detalhes</span></th></tr></thead><tbody>

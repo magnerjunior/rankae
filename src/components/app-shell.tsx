@@ -141,17 +141,6 @@ export function AppShell({
           </div>
           <ThemeToggle />
           <Link
-            className={`topbar-players ${active === "jogadores" ? "active" : ""}`}
-            href={sectionHref("jogadores", rankaId)}
-            prefetch={warmSection === "jogadores" ? true : undefined}
-            onMouseEnter={() => onIntent("jogadores")}
-            onFocus={() => onIntent("jogadores")}
-            aria-current={active === "jogadores" ? "page" : undefined}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={tabIcons.jogadores} /></svg>
-            <span>Jogadores</span>
-          </Link>
-          <Link
             className="brand topbar-brand"
             href="/app"
             aria-label="Meus rankas"
@@ -197,7 +186,7 @@ export function AppShell({
               {rankaSections
                 .filter(
                   (item) =>
-                    !["jogadores", "chegada", "times", "partida"].includes(
+                    !["chegada", "times", "partida"].includes(
                       item.key,
                     ),
                 )
