@@ -103,6 +103,7 @@ export interface MatchEvent {
   penaltyOutcome?: PenaltyOutcome;
   occurrenceMs: number;
   status: "active" | "void";
+  card?: { color: "yellow" | "red" | "blue"; playerId: string; ejected?: boolean };
   label?: string;
 }
 

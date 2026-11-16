@@ -446,3 +446,10 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - A configuração de isenção dos goleiros vale para o encontro aberto e os próximos. Pagamentos individuais e encontros encerrados são preservados. O lote padrão exclui isentos.
 - A tela inicial usa o total de partidas concluídas do ranka, o último encontro encerrado e os gols e assistências creditados na semana local. O histórico reúne times renumerados pela formação de linha.
 - O encerramento leva ao resumo com um link de WhatsApp que prepara a mensagem e um atalho para contribuições.
+
+## Substituições, cartões e registro de gols com conexão instável
+
+- A escalação identifica a entrada e a saída registradas em uma substituição e o mesmo registro aparece nos eventos. O cartão vermelho encerra a atuação naquela partida e mantém a presença para o próximo jogo.
+- O gol que cruza o limite configurado pausa o cronômetro na mesma transação. A confirmação de continuar retoma a contagem. O navegador já congela a contagem enquanto o gol aguarda envio.
+- Gols digitados na partida aberta podem ficar em uma fila deste aparelho, associada ao operador e à partida. O envio reaproveita a chave de idempotência. Uma troca do segmento do cronômetro ou encerramento em outro aparelho pode exigir revisão do placar. A navegação autenticada continua usando respostas da rede.
+- O ícone instalável usa fundo azul e a marca verde dentro da margem de segurança. A tela de espera do modo instalado usa a mesma identidade.

@@ -7,6 +7,7 @@ import { enableMatchAudio } from "@/components/match-deadline";
 import { computeClockElapsed } from "@/domain/ranka/rules";
 import type { MatchState } from "@/domain/ranka/types";
 import type { ClockMutationResult } from "@/app/app/rankas/[rankaId]/actions";
+import { useGoalClockFreeze } from "@/components/optimistic-score";
 
 type ClockAction = (formData: FormData) => Promise<ClockMutationResult>;
 type Command = "start" | "pause" | "resume" | "reset" | "finish_regulation" | "finish_overtime";
@@ -51,6 +52,7 @@ function optimisticTransition(clock: ClockView, command: Command, receivedAt: nu
 
 export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
   const router = useRouter();
+  const frozenElapsed = useGoalClockFreeze();
   const [clock, setClock] = useState<ClockView>({ state: props.state, startedAtServer: props.startedAtServer, elapsedMsBeforeStart: props.elapsedMsBeforeStart, durationLimitMs: props.durationLimitMs, serverNow: props.serverNow, revision: props.revision });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -111,8 +113,8 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
   }
 
   return <>
-    <div className="timer-bar"><LiveTimer {...clock} /></div>
-    <div className="score-actions optimistic-clock-actions" aria-busy={busy}>
+    <div className="timer-bar"><LiveTimer {...clock} {...(frozenElapsed === undefined ? {} : { state: clock.state.startsWith("overtime") ? "overtime_paused" : "paused", startedAtServer: undefined, elapsedMsBeforeStart: frozenElapsed })} /></div>
+    <fieldset className="score-actions optimistic-clock-actions" disabled={frozenElapsed !== undefined} aria-busy={busy}>
       {clock.state === "ready" && <button className="button button-primary" disabled={busy} type="button" onClick={() => run("start", props.startAction)}>Iniciar cronômetro</button>}
       {running(clock.state) && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("pause", props.pauseAction)}>Pausar</button>}
       {(clock.state === "paused" || clock.state === "overtime_paused") && <button className="button button-primary" disabled={busy} type="button" onClick={() => run("resume", props.resumeAction)}>Retomar</button>}
@@ -120,7 +122,7 @@ export function OptimisticMatchClock(props: OptimisticMatchClockProps) {
       {props.showOvertimeOption && (clock.state === "live" || clock.state === "paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_regulation", props.finishRegulationAction)}>Ir para prorrogação</button>}
       {props.showOvertimeOption && (clock.state === "overtime_live" || clock.state === "overtime_paused") && <button className="button button-secondary" disabled={busy} type="button" onClick={() => run("finish_overtime", props.finishOvertimeAction)}>Encerrar prorrogação e desempatar</button>}
       {['live','paused','overtime_live','overtime_paused'].includes(clock.state) && <form action={addTime} className="cluster"><label className="sr-only" htmlFor="clock-add-minutes">Minutos para adicionar</label><select id="clock-add-minutes" name="minutes" className="select" defaultValue="1"><option value="1">+1 min</option><option value="2">+2 min</option><option value="3">+3 min</option><option value="5">+5 min</option><option value="10">+10 min</option></select><button className="button button-secondary" disabled={busy}>Adicionar tempo</button></form>}
-    </div>
+    </fieldset>
     {error && <div className="flash-toast error" role="alert">{error}</div>}
   </>;
 }

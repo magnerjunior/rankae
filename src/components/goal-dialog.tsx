@@ -2,53 +2,30 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { kitColors, kitStyle, type KitColor } from "@/domain/ranka/kit-colors";
-import { useRouter } from "next/navigation";
 import { useMatchScore } from "@/components/optimistic-score";
-import type { MatchEventMutationResult } from "@/app/app/rankas/[rankaId]/actions";
 
 type PlayerOption = { id: string; name: string };
 
-export function GoalDialog({ side, kit = side, players, action }: { side: "yellow" | "red"; kit?: KitColor; players: PlayerOption[]; action: (formData: FormData) => Promise<MatchEventMutationResult> }) {
+export function GoalDialog({ side, kit = side, players }: { side: "yellow" | "red"; kit?: KitColor; players: PlayerOption[] }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const saving = useRef(false);
-  const router = useRouter();
-  const { addGoal, rejectGoal } = useMatchScore();
+  const { enqueue, frozenElapsed } = useMatchScore();
   const [scorer, setScorer] = useState("");
-  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving.current) return;
-    saving.current = true;
     const form = event.currentTarget;
-    const formData = new FormData(form);
-    const id = crypto.randomUUID();
-    formData.set("idempotencyKey", id);
-    addGoal(id, side);
-    setPending(true);
-    setMessage("");
-    dialog.current?.close();
-    try {
-      const result = await action(formData);
-      if (result.status === "error") {
-        rejectGoal(id);
-        setMessage(result.message);
-      } else {
-        setScorer("");
-        form.reset();
-        router.refresh();
-      }
-    } catch {
-      rejectGoal(id);
-      setMessage("Sem conexão para confirmar o gol. Tente novamente.");
-      router.refresh();
-    } finally {
-      saving.current = false;
-      setPending(false);
+    if (!enqueue(new FormData(form), side)) {
+      setMessage("Aguarde a sincronização ou verifique o armazenamento do aparelho.");
+      dialog.current?.close();
+      return;
     }
-  };
+    setScorer("");
+    setMessage("");
+    form.reset();
+    dialog.current?.close();
+  }
   return <>
-    <button className="goal-button" style={kitStyle(kit)} type="button" disabled={pending} onClick={() => dialog.current?.showModal()}>{pending ? "Salvando…" : "+ gol"}</button>
+    <button className="goal-button" style={kitStyle(kit)} type="button" disabled={frozenElapsed !== undefined} onClick={() => dialog.current?.showModal()}>+ gol</button>
     {message && <span className="inline-error" role="alert">{message}</span>}
     <dialog ref={dialog} className="modal goal-modal" onClick={(event) => { if (event.target === dialog.current) dialog.current?.close(); }}>
       <form className="stack goal-sheet" onSubmit={submit}>

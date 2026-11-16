@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { LiveMatch } from "@/data/ports/ranka-repository";
 import { expireMatchClockAction } from "@/app/app/rankas/[rankaId]/actions";
+import { useGoalClockFreeze } from "@/components/optimistic-score";
 
 let audio: AudioContext | undefined;
 let lastWhistle: string | undefined;
@@ -37,6 +38,7 @@ function whistle(phase: string, overtime: boolean) {
 
 export function MatchDeadline({ match }: { match: LiveMatch }) {
   const router = useRouter();
+  const frozenElapsed = useGoalClockFreeze();
   const { id, state, startedAtServer, elapsedMsBeforeStart, durationLimitMs, serverNow } = match;
   const previous = useRef<{ id: string; phase: string; state: string; due: number }>(null);
   useEffect(() => {
@@ -46,7 +48,7 @@ export function MatchDeadline({ match }: { match: LiveMatch }) {
       whistle(last.phase, state === "overtime_live");
     }
     previous.current = null;
-    if (!startedAtServer || (state !== "live" && state !== "overtime_live")) return;
+    if (frozenElapsed !== undefined || !startedAtServer || (state !== "live" && state !== "overtime_live")) return;
     const unlock = () => enableMatchAudio();
     window.addEventListener("pointerdown", unlock, { once: true });
     const remaining = Date.parse(startedAtServer) + durationLimitMs - elapsedMsBeforeStart - Date.parse(serverNow);
@@ -84,6 +86,6 @@ export function MatchDeadline({ match }: { match: LiveMatch }) {
       document.removeEventListener("visibilitychange", check);
       window.removeEventListener("pointerdown", unlock);
     };
-  }, [id, state, startedAtServer, elapsedMsBeforeStart, durationLimitMs, serverNow, router]);
+  }, [id, state, startedAtServer, elapsedMsBeforeStart, durationLimitMs, serverNow, router, frozenElapsed]);
   return null;
 }

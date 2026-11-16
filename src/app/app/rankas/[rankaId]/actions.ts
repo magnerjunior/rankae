@@ -60,6 +60,7 @@ export interface MatchEventMutationResult {
   status: "success" | "error";
   message: string;
   revision?: number;
+  retryable?: boolean;
 }
 
 export interface ContributionMutationResult {
@@ -519,6 +520,13 @@ export async function recordEventAction(matchId: string, expectedRevision: numbe
   if (!parsed.success) return { status: "error", message: "Revise os dados do evento." };
   if (parsed.data.eventType === "goal" && parsed.data.scorerPlayerId && parsed.data.scorerPlayerId === parsed.data.assistPlayerId) return { status: "error", message: "Quem marcou não pode receber a assistência." };
   const cardPlayer = parsed.data.cardPlayerId && parsed.data.markerKind === "card" ? parsed.data.cardPlayerId : undefined;
+  if (parsed.data.eventType === "marker" && parsed.data.markerKind === "card" && parsed.data.cardColor !== "blue") {
+    if (!cardPlayer) return { status: "error", message: "Escolha um jogador em campo." };
+    const { error } = await rpc("record_player_match_card", { p_match_id: matchId, p_player_id: cardPlayer,
+      p_color: parsed.data.cardColor ?? "yellow", p_revision: expectedRevision, p_key: idempotencyKey(formData) });
+    return error ? { status: "error", message: "Confira se o jogador ainda está em campo e tente novamente." }
+      : { status: "success", message: "Cartão registrado." };
+  }
   let cardPlayerName: string | undefined;
   if (cardPlayer) {
     const supabase = await createClient();
@@ -533,6 +541,13 @@ export async function recordEventAction(matchId: string, expectedRevision: numbe
   const { error } = await rpc("record_match_event", { p_match_id: matchId, p_event_type: parsed.data.eventType, p_side: parsed.data.side ?? null, p_scorer_player_id: cardPlayer ?? parsed.data.scorerPlayerId ?? null, p_assist_player_id: parsed.data.assistPlayerId ?? null, p_keeper_player_id: parsed.data.keeperPlayerId ?? null, p_goal_kind: parsed.data.goalKind ?? null, p_penalty_outcome: parsed.data.penaltyOutcome ?? null, p_label: parsed.data.eventType === "marker" ? markerLabel.slice(0, 80) : parsed.data.label ?? null, p_metadata: metadata, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A partida mudou em outro aparelho. Tente novamente." : "Não foi possível registrar o evento." };
   return { status: "success", message: parsed.data.eventType === "marker" ? "Ocorrência registrada." : "Evento registrado." };
+}
+
+export async function cardForPlayerAction(matchId: string, revision: number, playerId: string, form: FormData): Promise<FastMutationResult> {
+  form.set("eventType", "marker");
+  form.set("markerKind", "card");
+  form.set("cardPlayerId", playerId);
+  return recordEventAction(matchId, revision, form);
 }
 
 export async function recordGoalFastAction(matchId: string, expectedRevision: number, formData: FormData): Promise<MatchEventMutationResult> {
@@ -562,7 +577,10 @@ export async function recordGoalFastAction(matchId: string, expectedRevision: nu
     p_goal_kind: parsed.data.goalKind,
     p_penalty_outcome: null,
     p_label: null,
-    p_metadata: {},
+    p_metadata: formData.has("clockStartedAt") ? {
+      clockStartedAt: formData.get("clockStartedAt") || null,
+      capturedElapsedMs: Number(formData.get("capturedElapsedMs")),
+    } : {},
     p_expected_revision: revision,
     p_idempotency_key: key,
   });
@@ -573,7 +591,9 @@ export async function recordGoalFastAction(matchId: string, expectedRevision: nu
     if (clock?.revision) result = await rpc("record_match_event", args(clock.revision));
   }
   if (result.error) {
-    return { status: "error", message: result.error.code === "55000" ? "A partida não aceita gols neste momento." : "O gol não foi confirmado. Tente novamente." };
+    const retryable = result.status === 0 || result.status >= 500;
+    return { status: "error", retryable, message: result.error.code === "PT412" ? "O cronômetro mudou enquanto o gol aguardava envio. Confira o placar."
+      : result.error.code === "55000" ? "A partida não aceita gols neste momento." : "O gol não foi confirmado. Confira o placar." };
   }
   const output = z.object({ match_revision: z.coerce.number().int().positive() }).safeParse(result.data);
   return { status: "success", message: "Gol confirmado.", revision: output.success ? output.data.match_revision : undefined };

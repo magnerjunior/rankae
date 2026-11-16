@@ -164,6 +164,18 @@ button { cursor: pointer; }
 .roster-player-button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roster-player-button > small { margin-left: auto; color: var(--brand-700); font-size: .67rem; font-weight: 800; opacity: .72; }
 .roster-player-button:hover small, .roster-player-button:focus-visible small { opacity: 1; }
+.roster-player-entry { min-width: 0; flex: 1; }
+.roster-player-entry .roster-player-button { width: 100%; }
+.roster-replacement, .event-change { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.roster-replacement { padding-bottom: 5px; }
+.roster-replacement span { font-weight: 900; color: var(--brand-700); }
+.match-card { display: inline-block; width: .7rem; height: 1rem; vertical-align: middle; border-radius: 2px; border: 1px solid #101a3552; }
+.match-card.yellow { background: #f7cc31; }
+.match-card.red { background: #d63549; }
+.match-card.blue { background: #679afd; }
+.player-card-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0; }
+.match-sync-status { position: fixed; z-index: 36; right: 10px; bottom: 87px; margin: 0; max-width: min(90vw, 340px); padding: 8px 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+fieldset.optimistic-clock-actions { min-width: 0; margin: 0; border-inline: 0; border-bottom: 0; }
 .player-manage-modal { width: min(500px, calc(100vw - 24px)); padding: 20px; border: 0; border-radius: 22px; box-shadow: 0 28px 80px rgba(8,28,19,.28); }
 .player-manage-modal::backdrop { background: rgba(8,28,19,.42); }
 .leave-day-option { align-items: flex-start; padding: 13px; border: 1px solid #efd4d6; border-radius: 15px; background: #fff8f8; }
@@ -767,6 +779,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 800; }
 .workspace-loading-panel span { display: block; height: 18px; border-radius: 5px; background: var(--brand-100); }
 .workspace-loading-panel span:first-child { width: 42%; height: 28px; }
 .workspace-loading-panel span:last-child { width: 70%; }
+.workspace-loading-mark { display: none; }
+@media (display-mode: standalone) {
+  .workspace-loading { max-width: none; min-height: 100dvh; display: grid; align-content: center; justify-items: center; gap: 12px; color: white; background: #0739d5; }
+  .workspace-loading-mark { display: block; width: 128px; aspect-ratio: 1; background: url("/rankae-pwa-192.png") center / contain no-repeat; }
+  .workspace-loading-label { color: inherit; margin: 0; }
+  .workspace-loading-panel { display: none; }
+}
 .bottom-link.game-tab { align-self: end; min-height: 64px; margin-top: -12px; background: var(--brand-accent); color: #101a35; box-shadow: 0 3px 9px #101a3538; }
 .bottom-link.game-tab svg { width: 23px; height: 23px; }
 .bottom-link.game-tab.active { outline: 2px solid var(--brand-700); outline-offset: -3px; }

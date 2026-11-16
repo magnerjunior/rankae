@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/rankae-icon.svg", type: "image/svg+xml" }],
     shortcut: "/rankae-icon.svg",
-    apple: "/rankae-icon.svg",
+    apple: "/rankae-pwa-192.png",
   },
   openGraph: {
     title: "Rankaê | Seu futebol organizado em um só lugar",

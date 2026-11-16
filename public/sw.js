@@ -1,5 +1,5 @@
-const CACHE = "rankae-static-v6";
-const STATIC = ["/offline", "/rankae-icon.svg", "/rankae-icon-transparent.svg", "/rankae-wordmark.svg", "/rankae-logo-completa.svg"];
+const CACHE = "rankae-static-v7";
+const STATIC = ["/offline", "/rankae-icon.svg", "/rankae-icon-transparent.svg", "/rankae-wordmark.svg", "/rankae-logo-completa.svg", "/rankae-pwa-192.png", "/rankae-pwa-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(STATIC)).then(() => self.skipWaiting()));
@@ -20,7 +20,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
     tag: data.tag,
-    icon: "/rankae-icon.svg",
+    icon: "/rankae-pwa-192.png",
     renotify: Boolean(data.alert),
     silent: data.alert ? undefined : true,
     data: { url: data.url },

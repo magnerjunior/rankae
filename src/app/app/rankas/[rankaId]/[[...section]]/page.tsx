@@ -27,7 +27,7 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
   }
   if (!hasSupabaseConfig()) redirect("/entrar");
   const client = await createClient();
-  await requireUserId({ client });
+  const userId = await requireUserId({ client });
   const { sucesso, erro, period: periodValue, date, etapa, dia, pagina, mes, filtro, equipe_erro, equipe_sucesso } = await searchParams;
   if (active === "historico") {
     const [{ data: ranka, error: rankaError }, trial] = await Promise.all([
@@ -70,5 +70,5 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     {equipe_sucesso && <p role="status" className="notice">Acesso removido.</p>}
     <TeamPanel team={team} rankaId={rankaId} />
   </div> : teamsResult?.error ? <p id="equipe" role="alert" className="notice notice-warning">Não foi possível carregar a equipe.</p> : undefined;
-  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} playerFilter={filtro === "pendentes" ? "debt" : filtro === "ausentes" ? "inactive" : "all"} trial={trial} teamTools={teamTools} overview={overviewResult?.data as RankaDayOverview | undefined} />;
+  return <RealRankaWorkspace userId={userId} active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} playerFilter={filtro === "pendentes" ? "debt" : filtro === "ausentes" ? "inactive" : "all"} trial={trial} teamTools={teamTools} overview={overviewResult?.data as RankaDayOverview | undefined} />;
 }

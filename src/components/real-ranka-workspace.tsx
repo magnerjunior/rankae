@@ -57,6 +57,7 @@ import {
   finishRankaSessionAction,
   prepareMatchAction,
   recordEventAction,
+  cardForPlayerAction,
   recordGoalFastAction,
   resolveTieAction,
   substitutePlayerAction,
@@ -663,18 +664,26 @@ function MatchConsole({
   const assignedBallBoys = match.assignments
     .filter((assignment) => assignment.role === "ball_boy")
     .map((assignment) => assignment.playerId);
-  const yellowPlayers = snapshot.players.filter((player) =>
+  const ejectedIds = new Set(match.events.flatMap((event) => event.status === "active" && event.card?.ejected ? [event.card.playerId] : []));
+  const yellowPlayers = snapshot.players.filter((player) => !ejectedIds.has(player.id) &&
     yellow?.playerIds.includes(player.id),
   );
-  const redPlayers = snapshot.players.filter((player) =>
+  const redPlayers = snapshot.players.filter((player) => !ejectedIds.has(player.id) &&
     red?.playerIds.includes(player.id),
   );
   const fieldPlayers = [...yellowPlayers, ...redPlayers];
   const activeEvents = match.events
     .filter((event) => event.status === "active")
     .toReversed();
+  const nameOf = (id: string) => snapshot.players.find((player) => player.id === id)?.fullName ?? "Jogador";
+  const changes = (match.substitutions ?? []).map((change) => ({ ...change, outgoing: nameOf(change.outgoingId), incoming: nameOf(change.incomingId) }));
+  const timeline = [
+    ...activeEvents.map((event) => ({ event, at: event.occurrenceMs })),
+    ...changes.map((change) => ({ change, at: change.occurrenceMs ?? -1 })),
+  ].sort((a, b) => b.at - a.at);
+  const canCard = ["live", "paused", "overtime_live", "overtime_paused"].includes(match.state);
   const editableMarkers = activeEvents.filter(
-    (event) => event.type === "marker",
+    (event) => event.type === "marker" && !event.card?.ejected,
   );
   const clock = (command: string) =>
     clockAction.bind(null, snapshot.id, match.id, command);
@@ -688,7 +697,8 @@ function MatchConsole({
     "regulation_ended",
     "tie_break",
   ].includes(match.state);
-  const scoreRuleReached = reachedMatchGoalRule(score, snapshot.rules.targetGoals, snapshot.rules.targetGoalDifference);
+  const scoreRuleReached = (match.state === "paused" || match.state === "overtime_paused") &&
+    reachedMatchGoalRule(score, snapshot.rules.targetGoals, snapshot.rules.targetGoalDifference);
   return (
     <>
       <Heading
@@ -720,7 +730,7 @@ function MatchConsole({
           </FastMutationForm>
         </section>
       )}
-      {!["ready", "completed", "cancelled"].includes(match.state) && <section className="next-match-bar next-match-primary"><span><strong>{scoreRuleReached ? "Fim de partida" : "Partida em andamento"}</strong><small>{scoreRuleReached && score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number} chegou ao limite de gols.` : ""}</small></span><FinishMatchControl action={finishMatchAction.bind(null, snapshot.id, match.id, match.revision)} ruleReached={scoreRuleReached} promptKey={`${match.id}:${score.yellow}:${score.red}`} winnerLabel={score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number}` : undefined} /></section>}
+      {!["ready", "completed", "cancelled"].includes(match.state) && <section className="next-match-bar next-match-primary"><span><strong>{scoreRuleReached ? "Fim de partida" : "Partida em andamento"}</strong><small>{scoreRuleReached && score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number} chegou ao limite de gols.` : ""}</small></span><FinishMatchControl action={finishMatchAction.bind(null, snapshot.id, match.id, match.revision)} ruleReached={scoreRuleReached} revision={match.revision} resume={scoreRuleReached && (match.state === "paused" || match.state === "overtime_paused") ? clock("resume") : undefined} promptKey={`${match.id}:${score.yellow}:${score.red}`} winnerLabel={score.yellow !== score.red ? `T${score.yellow > score.red ? yellow.number : red.number}` : undefined} /></section>}
       <section className="scoreboard">
         <OptimisticMatchClock
           key={`${match.id}:${match.revision}`}
@@ -752,7 +762,6 @@ function MatchConsole({
                 side="yellow"
                 kit={snapshot.kits?.yellow}
                 players={yellowPlayers}
-                action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
@@ -766,7 +775,6 @@ function MatchConsole({
                 side="red"
                 kit={snapshot.kits?.red}
                 players={redPlayers}
-                action={recordGoalFastAction.bind(null, match.id, match.revision)}
               />
             )}
           </div>
@@ -778,6 +786,9 @@ function MatchConsole({
             title={`T${yellow?.number ?? "-"}`}
             players={yellowPlayers}
             events={match.events}
+            changes={changes.filter((change) => change.squadId === yellow.id)}
+            sentOff={snapshot.players.filter((player) => ejectedIds.has(player.id) && yellow.playerIds.includes(player.id))}
+            cardFor={canCard ? (playerId) => cardForPlayerAction.bind(null, match.id, match.revision, playerId) : undefined}
             replacements={waitingSquads.flatMap((squad) => squad.playerIds.map((id) => ({ id, team: squad.number }))).map((entry) => ({ ...entry, name: snapshot.players.find((player) => player.id === entry.id)?.fullName ?? "Jogador" }))}
             actionFor={(playerId) => manageMatchPlayerAction.bind(null, snapshot.id, snapshot.sessionId!, match.id, yellow.id, playerId, snapshot.revision, match.revision)}
           />
@@ -786,6 +797,9 @@ function MatchConsole({
             title={`T${red?.number ?? "-"}`}
             players={redPlayers}
             events={match.events}
+            changes={changes.filter((change) => change.squadId === red.id)}
+            sentOff={snapshot.players.filter((player) => ejectedIds.has(player.id) && red.playerIds.includes(player.id))}
+            cardFor={canCard ? (playerId) => cardForPlayerAction.bind(null, match.id, match.revision, playerId) : undefined}
             replacements={waitingSquads.flatMap((squad) => squad.playerIds.map((id) => ({ id, team: squad.number }))).map((entry) => ({ ...entry, name: snapshot.players.find((player) => player.id === entry.id)?.fullName ?? "Jogador" }))}
             actionFor={(playerId) => manageMatchPlayerAction.bind(null, snapshot.id, snapshot.sessionId!, match.id, red.id, playerId, snapshot.revision, match.revision)}
           />
@@ -889,11 +903,14 @@ function MatchConsole({
         <section className="panel">
           <div className="panel-head">
             <h2 className="panel-title display">Eventos</h2>
-            <span className="badge">{activeEvents.length} ativos</span>
+            <span className="badge">{timeline.length} registros</span>
           </div>
-          {activeEvents.length ? (
+          {timeline.length ? (
             <div className="event-list">
-              {activeEvents.map((event) => (
+              {timeline.map((item) => {
+                if ("change" in item) return <div className="event" key={item.change.id}><span><strong>⇄ Substituição</strong><small className="event-change"><s>{item.change.outgoing}</s> → {item.change.incoming}{item.at >= 0 ? ` · ${Math.floor(item.at / 60000)}:${String(Math.floor(item.at / 1000) % 60).padStart(2, '0')}` : ""}</small></span></div>;
+                const { event } = item;
+                return (
                 <div key={event.id}>
                 <div className="event">
                   <span>
@@ -936,7 +953,8 @@ function MatchConsole({
                 </div>
                 {event.type === "goal" && <details className="goal-attribution"><summary>Autor e assistência</summary><FastMutationForm action={updateGoalAttributionAction.bind(null, snapshot.id, event.id, match.revision)}><Key /><label>Gol de<select className="select" name="scorer" defaultValue={event.scorerPlayerId ?? ""}><option value="">Não informado</option>{(event.side === "yellow" ? event.goalKind === "own_goal" ? redPlayers : yellowPlayers : event.goalKind === "own_goal" ? yellowPlayers : redPlayers).map((player) => <option key={player.id} value={player.id}>{player.fullName}</option>)}</select></label><label>Assistência<select className="select" name="assist" defaultValue={event.assistPlayerId ?? ""}><option value="">Sem assistência</option>{(event.side === "yellow" ? yellowPlayers : redPlayers).map((player) => <option key={player.id} value={player.id}>{player.fullName}</option>)}</select></label><button className="button button-secondary button-small">Salvar autoria</button></FastMutationForm></details>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -1097,18 +1115,8 @@ function MatchConsole({
   );
 }
 
-function GoalForm({
-  side,
-  kit,
-  players,
-  action,
-}: {
-  side: "yellow" | "red";
-  kit?: KitColor;
-  players: Player[];
-  action: (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").MatchEventMutationResult>;
-}) {
-  return <GoalDialog side={side} kit={kit} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
+function GoalForm({ side, kit, players }: { side: "yellow" | "red"; kit?: KitColor; players: Player[] }) {
+  return <GoalDialog side={side} kit={kit} players={players.map((player) => ({ id: player.id, name: player.fullName }))} />;
 }
 
 function CompactMatchRoster({
@@ -1116,6 +1124,9 @@ function CompactMatchRoster({
   title,
   players,
   events,
+  changes,
+  sentOff,
+  cardFor,
   replacements,
   actionFor,
 }: {
@@ -1123,6 +1134,9 @@ function CompactMatchRoster({
   title: string;
   players: Player[];
   events: MatchEvent[];
+  changes: { incomingId: string; outgoing: string }[];
+  sentOff: Player[];
+  cardFor?: (playerId: string) => (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").FastMutationResult>;
   replacements: { id: string; name: string; team: number }[];
   actionFor: (playerId: string) => (formData: FormData) => void | Promise<void>;
 }) {
@@ -1146,10 +1160,13 @@ function CompactMatchRoster({
           const assists = active.filter(
             (event) => event.assistPlayerId === player.id,
           ).length;
+          const changed = changes.findLast((item) => item.incomingId === player.id);
+          const cards = events.filter((event) => event.status === "active" && event.card?.playerId === player.id);
           return (
             <li key={player.id}>
-              <MatchPlayerManager name={player.fullName} replacements={replacements.filter((candidate) => candidate.id !== player.id)} action={actionFor(player.id)} />
+              <div className="roster-player-entry"><MatchPlayerManager name={player.fullName} cardAction={cardFor?.(player.id)} replacements={replacements.filter((candidate) => candidate.id !== player.id)} action={actionFor(player.id)} />{changed && <small className="roster-replacement"><span aria-label="Entrou no lugar de">⇄</span> <s>{changed.outgoing}</s></small>}</div>
               <span className="player-event-counts">
+                {cards.map((event) => <i key={event.id} className={`match-card ${event.card?.color}`} title={event.label} aria-label={event.label} />)}
                 {goals > 0 && (
                   <small title={`${goals} gol(s)`}>⚽ {goals}x</small>
                 )}
@@ -1162,6 +1179,7 @@ function CompactMatchRoster({
             </li>
           );
         })}
+        {sentOff.map((player) => <li key={player.id}><s className="muted">{player.fullName}</s><i className="match-card red" title="Expulso" aria-label="Expulso" /></li>)}
       </ul>
     </section>
   );
@@ -1648,7 +1666,9 @@ export function RealRankaWorkspace({
   trial,
   teamTools,
   overview,
+  userId,
 }: {
+  userId: string;
   active: RankaSection;
   schedule: RankaSchedule;
   snapshot: RankaSnapshot;
@@ -1710,5 +1730,5 @@ export function RealRankaWorkspace({
     </AppShell>
   );
   const match = snapshot.activeMatch;
-  return match ? <MatchScoreProvider key={match.id} initial={projectScore(match.events)} recordedKeys={match.events.flatMap((event) => event.idempotencyKey ? [event.idempotencyKey] : [])}>{workspace}</MatchScoreProvider> : workspace;
+  return match ? <MatchScoreProvider key={match.id} storagePrefix={`rankae:goals:${userId}:${match.id}:`} record={recordGoalFastAction.bind(null, match.id, match.revision)} clock={match} targetGoals={snapshot.rules.targetGoals} targetDifference={snapshot.rules.targetGoalDifference} initial={projectScore(match.events)} recordedKeys={match.events.flatMap((event) => event.idempotencyKey ? [event.idempotencyKey] : [])}>{workspace}</MatchScoreProvider> : workspace;
 }

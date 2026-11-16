@@ -25,11 +25,12 @@ interface MatchRow {
   clock_phase: LiveMatch["clockPhase"]; started_at_server: string | null; elapsed_ms_before_start: number;
   duration_limit_ms: number; regulation_duration_ms: number; overtime_duration_ms: number; revision: number;
 }
-interface AssignmentRow { id: string; player_id: string; squad_id: string | null; field_side: MatchAssignment["side"] | null; role: MatchAssignment["role"]; }
+interface AssignmentRow { id: string; player_id: string; squad_id: string | null; field_side: MatchAssignment["side"] | null; role: MatchAssignment["role"]; start_ms: number; end_ms: number | null; created_at: string; }
 interface EventRow {
   id: string; idempotency_key: string; event_type: MatchEvent["type"]; side: MatchEvent["side"] | null; scorer_player_id: string | null;
   assist_player_id: string | null; keeper_player_id: string | null; goal_kind: MatchEvent["goalKind"] | null;
   penalty_outcome: MatchEvent["penaltyOutcome"] | null; occurrence_ms: number; status: MatchEvent["status"]; label: string | null;
+  metadata?: { kind?: string; color?: "yellow" | "red" | "blue"; playerId?: string; ejectedAssignmentId?: string };
 }
 interface ContributionRow { player_id: string; amount_cents: number; status: "pending" | "paid" | "waived"; }
 
@@ -121,21 +122,30 @@ export class SupabaseRankaRepository implements RankaRepository {
     const latestMatch = ((matchResult.data ?? [])[0] ?? null) as MatchRow | null;
     let activeMatch: LiveMatch | undefined;
     if (latestMatch && latestMatch.state !== "cancelled") {
-      const [assignmentsResult, eventsResult, clockResult] = await Promise.all([
-        this.client.from("match_assignments").select("id,player_id,squad_id,field_side,role").eq("match_id", latestMatch.id).neq("status", "cancelled"),
-        this.client.from("match_events").select("id,idempotency_key,event_type,side,scorer_player_id,assist_player_id,keeper_player_id,goal_kind,penalty_outcome,occurrence_ms,status,label").eq("match_id", latestMatch.id).order("created_at"),
+      const [assignmentsResult, eventsResult, clockResult, substitutionsResult] = await Promise.all([
+        this.client.from("match_assignments").select("id,player_id,squad_id,field_side,role,start_ms,end_ms,created_at").eq("match_id", latestMatch.id).neq("status", "cancelled").order("created_at"),
+        this.client.from("match_events").select("id,idempotency_key,event_type,side,scorer_player_id,assist_player_id,keeper_player_id,goal_kind,penalty_outcome,occurrence_ms,status,label,metadata").eq("match_id", latestMatch.id).order("created_at"),
         this.client.rpc("get_match_clock_snapshot", { p_match_id: latestMatch.id }),
+        this.client.from("substitutions").select("id,outgoing_player_id,incoming_player_id,target_squad_id,created_at").eq("match_id", latestMatch.id).order("created_at"),
       ]);
-      if (assignmentsResult.error || eventsResult.error || clockResult.error) throw new Error("Não foi possível carregar a partida ativa.");
+      if (assignmentsResult.error || eventsResult.error || clockResult.error || substitutionsResult.error) throw new Error("Não foi possível carregar a partida ativa.");
       const clock = clockResult.data as { state: LiveMatch["state"]; started_at_server: string | null; elapsed_ms_before_start: number; duration_limit_ms: number; revision: number; server_now: string };
+      const assignments = (assignmentsResult.data ?? []) as AssignmentRow[];
+      const substitutionTimes = new Map<string, number>();
+      for (const assignment of assignments) {
+        if (assignment.role !== "line" || !assignment.squad_id) continue;
+        substitutionTimes.set(`${assignment.squad_id}:${assignment.player_id}:${assignment.created_at}`, assignment.start_ms);
+      }
       activeMatch = {
         id: latestMatch.id, ordinal: latestMatch.ordinal, yellowSquadId: latestMatch.yellow_squad_id, redSquadId: latestMatch.red_squad_id,
         state: clock.state, clockPhase: clock.state.startsWith("overtime") ? "overtime" : latestMatch.clock_phase, startedAtServer: clock.started_at_server ?? undefined,
         elapsedMsBeforeStart: Number(clock.elapsed_ms_before_start), durationLimitMs: clock.duration_limit_ms,
         regulationDurationMs: latestMatch.regulation_duration_ms, overtimeDurationMs: latestMatch.overtime_duration_ms,
         revision: Number(clock.revision), serverNow: clock.server_now,
-        assignments: ((assignmentsResult.data ?? []) as AssignmentRow[]).map((row) => ({ id: row.id, playerId: row.player_id, squadId: row.squad_id ?? undefined, side: row.field_side ?? undefined, role: row.role })),
-        events: ((eventsResult.data ?? []) as EventRow[]).map((row) => ({ id: row.id, idempotencyKey: row.idempotency_key, type: row.event_type, side: row.side ?? undefined, scorerPlayerId: row.scorer_player_id ?? undefined, assistPlayerId: row.assist_player_id ?? undefined, keeperPlayerId: row.keeper_player_id ?? undefined, goalKind: row.goal_kind ?? undefined, penaltyOutcome: row.penalty_outcome ?? undefined, occurrenceMs: Number(row.occurrence_ms), status: row.status, label: row.label ?? undefined })),
+        assignments: assignments.map((row) => ({ id: row.id, playerId: row.player_id, squadId: row.squad_id ?? undefined, side: row.field_side ?? undefined, role: row.role, endMs: row.end_ms ?? undefined })),
+        substitutions: (substitutionsResult.data ?? []).map((row) => ({ id: row.id, outgoingId: row.outgoing_player_id, incomingId: row.incoming_player_id, squadId: row.target_squad_id, occurrenceMs: substitutionTimes.get(`${row.target_squad_id}:${row.incoming_player_id}:${row.created_at}`) })),
+        events: ((eventsResult.data ?? []) as EventRow[]).map((row) => ({ id: row.id, idempotencyKey: row.idempotency_key, type: row.event_type, side: row.side ?? undefined, scorerPlayerId: row.scorer_player_id ?? undefined, assistPlayerId: row.assist_player_id ?? undefined, keeperPlayerId: row.keeper_player_id ?? undefined, goalKind: row.goal_kind ?? undefined, penaltyOutcome: row.penalty_outcome ?? undefined, occurrenceMs: Number(row.occurrence_ms), status: row.status, label: row.label ?? undefined,
+          card: row.metadata?.kind === "card" && row.metadata.color && row.metadata.playerId ? { color: row.metadata.color, playerId: row.metadata.playerId, ejected: Boolean(row.metadata.ejectedAssignmentId) } : undefined })),
       };
     }
 

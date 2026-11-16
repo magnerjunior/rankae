@@ -5,14 +5,15 @@ import { useEffect, useState } from "react";
 import { projectScore } from "@/domain/ranka/rules";
 import type { LiveMatch } from "@/data/ports/ranka-repository";
 import { kitStyle, type KitColor } from "@/domain/ranka/kit-colors";
-import { useOptionalMatchScore } from "@/components/optimistic-score";
+import { useGoalClockFreeze, useOptionalMatchScore } from "@/components/optimistic-score";
 
 type Kits = { yellow: KitColor; red: KitColor };
 
 export function MatchStatusBar({ match, href, yellowTeam, redTeam, collapse, kits }: { match: LiveMatch; href: string; yellowTeam?: number; redTeam?: number; collapse?: boolean; kits?: Kits }) {
   const optimistic = useOptionalMatchScore();
+  const frozenElapsed = useGoalClockFreeze();
   const score = optimistic ?? projectScore(match.events);
-  return <GameStatusBar href={href} state={match.state} score={`${score.yellow} × ${score.red}`} startedAt={match.startedAtServer} elapsedMs={match.elapsedMsBeforeStart} durationMs={match.durationLimitMs} serverNow={match.serverNow} label={match.state.includes("overtime") ? "Prorrogação" : `Jogo ${match.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} collapse={collapse} kits={kits} />;
+  return <GameStatusBar href={href} state={frozenElapsed === undefined ? match.state : "paused"} score={`${score.yellow} × ${score.red}`} startedAt={match.startedAtServer} elapsedMs={frozenElapsed ?? match.elapsedMsBeforeStart} durationMs={match.durationLimitMs} serverNow={match.serverNow} label={match.state.includes("overtime") ? "Prorrogação" : `Jogo ${match.ordinal}`} yellowTeam={yellowTeam} redTeam={redTeam} collapse={collapse} kits={kits} />;
 }
 
 export function GameStatusBar({

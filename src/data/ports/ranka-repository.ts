@@ -31,6 +31,7 @@ export interface MatchAssignment {
   squadId?: string;
   side?: FieldSide;
   role: "line" | "keeper" | "borrowed_keeper" | "ball_boy";
+  endMs?: number;
 }
 
 export interface LiveMatch {
@@ -48,6 +49,7 @@ export interface LiveMatch {
   revision: number;
   serverNow: string;
   assignments: MatchAssignment[];
+  substitutions?: { id: string; outgoingId: string; incomingId: string; squadId: string; occurrenceMs?: number }[];
   events: MatchEvent[];
 }
 
