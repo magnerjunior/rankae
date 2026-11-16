@@ -684,12 +684,11 @@ export async function batchContributionsAction(sessionId: string, expectedRevisi
   return { status: "success", message: `${parsed.data.playerIds.length} contribuição(ões) atualizada(s).`, revision: output.success ? output.data.session_revision : undefined };
 }
 
-export async function setKeeperWaiverAction(rankaId: string, sessionId: string, expectedRevision: number, enabled: boolean): Promise<ContributionMutationResult> {
-  const { data, error } = await rpc("set_session_keeper_waiver", { p_session_id: sessionId, p_enabled: enabled, p_expected_revision: expectedRevision, p_idempotency_key: randomUUID() });
+export async function setKeeperWaiverAction(rankaId: string, expectedRevision: number, enabled: boolean): Promise<ContributionMutationResult> {
+  const { error } = await rpc("set_ranka_keeper_waiver", { p_ranka_id: rankaId, p_enabled: enabled, p_revision: expectedRevision, p_key: randomUUID() });
   if (error) return { status: "error", message: isRevisionConflict(error.code) ? "A rodada mudou em outro aparelho. Atualize e tente novamente." : "Não foi possível atualizar a isenção dos goleiros." };
-  const output = z.object({ session_revision: z.coerce.number().int().positive() }).safeParse(data);
   revalidatePath(`/app/rankas/${rankaId}`);
-  return { status: "success", message: enabled ? "Goleiros isentos nesta rodada." : "Isenção dos goleiros removida." , revision: output.success ? output.data.session_revision : undefined };
+  return { status: "success", message: enabled ? "Isenção aplicada aos próximos rankas." : "Isenção automática dos goleiros desativada." };
 }
 
 export async function updateRulesAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {

@@ -439,3 +439,10 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - O Postgres encerra o jogo pelo prazo do cronômetro ou inicia a prorrogação a partir do fim do tempo normal. O empate ao fim da prorrogação mantém o fluxo de desempate.
 - Com o aplicativo visível, o prazo dispara uma checagem imediata e apito após interação. Com a tela bloqueada, o cron processa os prazos e o Web Push entrega o placar e o tempo do envio, conforme as permissões do aparelho.
 - As cores dos coletes são configurações das vagas em campo. Os identificadores internos das vagas continuam os mesmos para preservar placares e histórico.
+
+## Rodízio de gandulas e fechamento do encontro
+
+- Ao concluir uma partida, os gandulas registrados passam para o fim da ordem interna do time que aguarda. A ordem acompanha a formação ao renumerar o time.
+- A configuração de isenção dos goleiros vale para o encontro aberto e os próximos. Pagamentos individuais e encontros encerrados são preservados. O lote padrão exclui isentos.
+- A tela inicial usa o total de partidas concluídas do ranka, o último encontro encerrado e os gols e assistências creditados na semana local. O histórico reúne times renumerados pela formação de linha.
+- O encerramento leva ao resumo com um link de WhatsApp que prepara a mensagem e um atalho para contribuições.

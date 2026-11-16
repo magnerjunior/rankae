@@ -10,7 +10,7 @@ export type PlayerActivity = {
 
 export type PendingContribution = { player_id: string; session_id: string; scheduled_on: string; session_number: number; amount_cents: number; revision: number; requestId: string };
 
-export type PlayerActivityFilter = "all" | "debt" | "absent";
+export type PlayerActivityFilter = "all" | "debt" | "absent" | "inactive";
 export type PlayerAbsenceOrder = "longest" | "shortest";
 export type PlayerActivityRow<TPlayer extends { fullName: string } = { fullName: string }> = {
   player: TPlayer;
@@ -24,7 +24,13 @@ export function selectPlayerActivityRows<TPlayer extends { fullName: string }>(
   today: string,
 ): PlayerActivityRow<TPlayer>[] {
   return rows
-    .filter(({ activity }) => filter === "all" || (filter === "debt" ? (activity?.unpaid_sessions ?? 0) > 0 : (activity?.missed_sessions ?? 0) > 0))
+    .filter(({ activity }) => {
+      if (filter === "all") return true;
+      if (!activity) return false;
+      if (filter === "debt") return activity.unpaid_sessions > 0;
+      if (filter === "inactive") return absenceDetails(activity, today).alert;
+      return activity.missed_sessions > 0;
+    })
     .toSorted((a, b) => {
       const dateA = a.activity?.absence_since_on ?? today;
       const dateB = b.activity?.absence_since_on ?? today;

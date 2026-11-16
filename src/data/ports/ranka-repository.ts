@@ -54,6 +54,7 @@ export interface LiveMatch {
 export interface RankaSnapshot {
   id: string;
   rankaRevision?: number;
+  keeperWaiver?: boolean;
   kits?: { yellow: KitColor; red: KitColor };
   orgId?: string;
   sessionId?: string;
@@ -85,6 +86,17 @@ export interface SessionSummary {
   topAssist?: { name: string; total: number };
   bestKeeper?: { name: string; conceded: number; matches: number };
   worstKeeper?: { name: string; conceded: number; matches: number };
+}
+
+export interface RankaDayTotals {
+  matches: number;
+  goals: number;
+  assists: number;
+}
+
+export interface RankaDayOverview extends RankaDayTotals {
+  lastDay: (RankaDayTotals & { id: string; date: string }) | null;
+  star: { name: string; goals: number; assists: number } | null;
 }
 
 export interface RankaRepository {

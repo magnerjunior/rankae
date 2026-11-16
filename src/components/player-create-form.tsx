@@ -8,7 +8,7 @@ export function PlayerCreateForm({ players, action, requestId }: { players: Play
   const [fullName, setFullName] = useState("");
   const [nickname, setNickname] = useState("");
   const possible = useMemo(() => findPotentialDuplicates(players, fullName, [nickname]), [players, fullName, nickname]);
-  return <form className="stack" action={action} style={{marginTop: 18}}>
+  return <form className="player-create-fields" action={action}>
     <input type="hidden" name="idempotencyKey" value={requestId} />
     <div className="field"><label htmlFor="fullName">Nome</label><input className="input" id="fullName" name="fullName" required minLength={2} maxLength={120} value={fullName} onChange={(event) => setFullName(event.target.value)} /></div>
     <div className="field"><label htmlFor="nickname">Apelido (opcional)</label><input className="input" id="nickname" name="nickname" maxLength={60} value={nickname} onChange={(event) => setNickname(event.target.value)} /></div>

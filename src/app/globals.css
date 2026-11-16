@@ -883,3 +883,51 @@ select.select:focus-visible { outline: 2px solid var(--brand-700); outline-offse
 [data-theme="dark"] :is(.finish-day-banner,.finish-day-banner summary,.finish-day-banner form,.end-ranka-zone details > div,.leave-day-option) { background: #30202b; border-color: #634454; color: var(--ink); }
 [data-theme="dark"] .finish-day-banner summary { color: var(--danger); }
 [data-theme="dark"] :is(.team-table-row:nth-child(even),.contribution-row.alternate,.team-player:nth-child(even)) { background: var(--surface-alt); }
+
+.players-stack { display: grid; gap: 12px; margin-block: 14px; }
+.players-stack > * { min-width: 0; }
+.player-create-panel summary { cursor: pointer; padding-block: 3px; }
+.player-create-fields { display: grid; align-items: end; gap: 10px; margin-top: 12px; }
+.player-create-fields .notice { grid-column: 1 / -1; }
+.player-directory-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
+.player-directory-controls .badge { justify-self: start; }
+.player-directory-controls .field { min-width: 0; }
+.player-directory-controls .select { min-width: 0; }
+.player-catalog-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px 12px; padding-block: 12px; }
+.player-catalog-row .person-info > strong, .player-catalog-row .person-info > small { white-space: normal; overflow-wrap: anywhere; }
+.player-catalog-row .person-info { width: 100%; }
+.player-catalog-row :is(.player-membership-form,.player-waiver-form) { grid-column: 2; }
+.player-catalog-row .player-activity summary { display: flex; align-items: flex-start; gap: 4px 10px; flex-wrap: wrap; }
+.player-catalog-row .player-payment { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.contribution-exempt { margin-block: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+.contribution-exempt summary { cursor: pointer; font-weight: 700; }
+.dashboard-performance, .history-team-performance { display: grid; gap: 10px; margin-block: 12px; }
+.history-team-performance article { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+.history-team-performance small { display: block; color: var(--muted); }
+.history-team-performance p { margin: 6px 0; }
+.history-team-performance article .cluster { gap: 4px 10px; color: var(--muted); }
+.day-finished-actions { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; margin-block: 12px; }
+.day-finished-actions p { margin: 4px 0 0; }
+@media (min-width: 680px) {
+  .player-create-fields { grid-template-columns: repeat(3, minmax(0, 1fr)) auto; }
+  .player-directory-controls { grid-template-columns: minmax(0, 230px) minmax(0, 220px) auto; }
+  .player-catalog-row { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+  .player-catalog-row :is(.player-membership-form,.player-waiver-form) { grid-column: auto; }
+  .dashboard-performance { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .history-team-performance { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@supports ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+  @media not (prefers-reduced-transparency: reduce) {
+    .topbar.glass-bar, .menu-drawer.glass-panel {
+      background: linear-gradient(125deg, #fff9, #eef3ff87 55%, #dce8ff91);
+      -webkit-backdrop-filter: blur(11px) saturate(155%);
+      backdrop-filter: blur(11px) saturate(155%);
+      box-shadow: inset 0 1px 0 #ffffffe6, inset 0 -1px 0 #c4d4ff99, 0 10px 26px #12265d26;
+    }
+    [data-theme="dark"] :is(.topbar.glass-bar,.menu-drawer.glass-panel) {
+      background: linear-gradient(125deg, #233754d9, #132442bd 55%, #1c3054d1);
+      box-shadow: inset 0 1px 0 #ffffff35, 0 10px 26px #03081552;
+    }
+    .menu-backdrop { background: #14203f29; }
+  }
+}

@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import type { RankaDayOverview } from "@/data/ports/ranka-repository";
 import { RankaWorkspace } from "@/components/ranka-workspace";
 import { RealRankaWorkspace } from "@/components/real-ranka-workspace";
 import { RankaHistory } from "@/components/ranka-history";
@@ -37,7 +38,7 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     return <RankaHistory client={client} rankaId={rankaId} rankaName={ranka.name} orgId={ranka.org_id} selectedId={dia} page={pagina} month={mes} success={sucesso} failure={erro} trial={trial} />;
   }
   const repository = new SupabaseRankaRepository(client);
-  const [snapshot, activityResult, settingsResult, pendingResult, trial, teamsResult] = await Promise.all([
+  const [snapshot, activityResult, settingsResult, pendingResult, trial, teamsResult, overviewResult] = await Promise.all([
     repository.getSnapshot(rankaId).catch((error: unknown) => {
       if (error instanceof RankaNotFoundError) notFound();
       throw error;
@@ -47,6 +48,7 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     active === "jogadores" ? client.rpc("get_ranka_pending_contributions", { p_ranka_id: rankaId }) : undefined,
     getAccountTrial(client, rankaId),
     active === "configuracoes" ? client.rpc("get_owned_teams") : undefined,
+    active === "inicio" ? client.rpc("get_ranka_day_overview", { p_ranka_id: rankaId }) : undefined,
   ]);
   if (activityResult?.error) throw new Error("Não foi possível carregar o acompanhamento dos jogadores.");
   if (settingsResult?.error) throw new Error("Não foi possível carregar as configurações de alerta.");
@@ -68,5 +70,5 @@ export default async function RankaPage({ params, searchParams }: { params: Prom
     {equipe_sucesso && <p role="status" className="notice">Acesso removido.</p>}
     <TeamPanel team={team} rankaId={rankaId} />
   </div> : teamsResult?.error ? <p id="equipe" role="alert" className="notice notice-warning">Não foi possível carregar a equipe.</p> : undefined;
-  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} debtFilter={filtro === "pendentes"} trial={trial} teamTools={teamTools} />;
+  return <RealRankaWorkspace active={active} snapshot={snapshot} success={sucesso} error={erro} publicSnapshot={statsSnapshot ?? undefined} sessionSummary={sessionSummary} statsDate={period.date} gameStage={etapa} playerActivity={playerActivity} inactivitySettings={inactivitySettings} schedule={schedule} pending={pending} pendingUnavailable={Boolean(pendingResult?.error)} playerFilter={filtro === "pendentes" ? "debt" : filtro === "ausentes" ? "inactive" : "all"} trial={trial} teamTools={teamTools} overview={overviewResult?.data as RankaDayOverview | undefined} />;
 }

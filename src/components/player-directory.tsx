@@ -12,11 +12,19 @@ type Row = {
   activity?: PlayerActivity;
 };
 
-export function PlayerDirectory({ rows, today, rankaId, sessionId, revision, presentIds, waivedIds, pending, debtFilter }: { rows: Row[]; today: string; rankaId: string; sessionId?: string; revision: number; presentIds: string[]; waivedIds: string[]; pending: PendingContribution[]; debtFilter: boolean }) {
-  const [filter, setFilter] = useState<PlayerActivityFilter>(debtFilter ? "debt" : "all");
+export function PlayerDirectory({ rows, today, rankaId, sessionId, revision, presentIds, waivedIds, pending, initialFilter }: { rows: Row[]; today: string; rankaId: string; sessionId?: string; revision: number; presentIds: string[]; waivedIds: string[]; pending: PendingContribution[]; initialFilter: PlayerActivityFilter }) {
+  const [filter, setFilter] = useState<PlayerActivityFilter>(initialFilter);
   const [order, setOrder] = useState<PlayerAbsenceOrder>("longest");
   const visible = useMemo(() => selectPlayerActivityRows(rows, filter, order, today), [filter, order, rows, today]);
-  const byPlayer = useMemo(() => Map.groupBy(pending, (record) => record.player_id), [pending]);
+  const byPlayer = useMemo(() => {
+    const groups = new Map<string, PendingContribution[]>();
+    for (const record of pending) {
+      const group = groups.get(record.player_id);
+      if (group) group.push(record);
+      else groups.set(record.player_id, [record]);
+    }
+    return groups;
+  }, [pending]);
 
   return <>
     <div className="player-directory-controls">
@@ -25,6 +33,7 @@ export function PlayerDirectory({ rows, today, rankaId, sessionId, revision, pre
           <option value="all">Todos os jogadores</option>
           <option value="debt">Com contribuição pendente</option>
           <option value="absent">Que perderam encontros</option>
+          <option value="inactive">Inativos pelo limite configurado</option>
         </select>
       </label>
       <label className="field">Ordenar por ausência
@@ -42,7 +51,7 @@ export function PlayerDirectory({ rows, today, rankaId, sessionId, revision, pre
         <span className="person-info">
           <strong>{player.fullName}</strong>
           <small>{player.role === "keeper" ? "Goleiro" : "Linha"}</small>
-          {absence && activity && <details className="player-activity" open={debtFilter && activity.unpaid_sessions > 0 ? true : undefined}>
+          {absence && activity && <details className="player-activity" open={filter === "debt" && activity.unpaid_sessions > 0 ? true : undefined}>
             <summary><span className={absence.alert ? "activity-alert" : ""}>{absence.alert ? "Atenção · " : ""}{absence.short}</span>{activity.unpaid_sessions > 0 && <span className="activity-debt">{activity.unpaid_sessions} {activity.unpaid_sessions === 1 ? "contribuição pendente" : "contribuições pendentes"}</span>}</summary>
             <small>{activity.last_seen_on ? `Última presença em ${activity.last_seen_on.split("-").reverse().join("/")} · ` : "Sem presença registrada · "}{absence.exact}{activity.unpaid_sessions > 0 ? ` · ${activity.unpaid_cents.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} em aberto` : ""}</small>
             {byPlayer.get(player.id)?.map((record) => <form className="player-payment" key={record.session_id} action={payPendingContributionAction.bind(null, rankaId, record.session_id, player.id, record.revision)}>

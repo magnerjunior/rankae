@@ -15,7 +15,7 @@ const sessionSummarySchema = z.object({
   worstKeeper: z.object({ name: z.string(), conceded: z.coerce.number().int(), matches: z.coerce.number().int() }).nullish(),
 });
 
-interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; revision: number; settings_json?: { kits?: { yellow?: unknown; red?: unknown } }; }
+interface RankaRow { id: string; org_id: string; name: string; slug: string; visibility: "public" | "unlisted" | "pin_protected" | "private_off"; invite_token_hash: string | null; revision: number; settings_json?: { kits?: { yellow?: unknown; red?: unknown }; waiveKeeperContributions?: boolean }; }
 interface SessionRow { id: string; scheduled_on: string; state: RankaSnapshot["sessionState"]; revision: number; rules_snapshot: Record<string, unknown>; contribution_amount_cents: number; }
 interface PlayerRow { id: string; full_name: string; nickname: string | null; role_preference: "line" | "keeper" | "either"; membership_status: "regular" | "guest"; public_visible: boolean; public_display_name: string | null; player_aliases?: { alias: string }[]; }
 interface AttendanceRow { id: string; player_id: string; arrival_index: number; status: Attendance["status"]; role_preference: "line" | "keeper" | "either"; }
@@ -142,6 +142,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     const kits = typedRanka.settings_json?.kits;
     return {
       id: typedRanka.id, orgId: typedRanka.org_id, sessionId: session?.id, name: typedRanka.name, rankaRevision: typedRanka.revision,
+      keeperWaiver: typedRanka.settings_json?.waiveKeeperContributions ?? rules.waiveKeeperContributions,
       kits: { yellow: isKitColor(kits?.yellow) ? kits.yellow : "yellow", red: isKitColor(kits?.red) ? kits.red : "red" },
       sessionLabel: session ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${session.scheduled_on}T12:00:00Z`)) : "Nenhum dia de futebol iniciado",
       sessionDate: session?.scheduled_on ?? "",

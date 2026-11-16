@@ -4,17 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setKeeperWaiverAction } from "@/app/app/rankas/[rankaId]/actions";
 
-export function KeeperWaiverControl({ rankaId, sessionId, revision, enabled }: { rankaId: string; sessionId: string; revision: number; enabled: boolean }) {
+export function KeeperWaiverControl({ rankaId, revision, enabled }: { rankaId: string; revision: number; enabled: boolean }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   return <section className="keeper-waiver-control">
-    <div><strong>Isenção para goleiros</strong><small>Aplica ou remove a isenção de contribuição dos goleiros presentes nesta rodada.</small></div>
+    <div><strong>Isenção para goleiros</strong><small>Vale para o ranka em aberto e os futuros. Você ainda pode registrar o pagamento de um goleiro individualmente.</small></div>
     <button className={`toggle ${enabled ? "on" : ""}`} type="button" aria-pressed={enabled} disabled={pending} onClick={async () => {
       setPending(true);
       setMessage("");
       try {
-        const result = await setKeeperWaiverAction(rankaId, sessionId, revision, !enabled);
+        const result = await setKeeperWaiverAction(rankaId, revision, !enabled);
         setMessage(result.message);
         if (result.status === "success") router.refresh();
       } catch {

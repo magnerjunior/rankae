@@ -20,7 +20,7 @@ import { MatchScoreProvider, OptimisticScore } from "@/components/optimistic-sco
 import { PlayerCreateForm } from "@/components/player-create-form";
 import { RankaScheduleForm } from "@/components/ranka-schedule-form";
 import { nextRankaDate, type RankaSchedule } from "@/domain/ranka/schedule";
-import type { PendingContribution } from "@/domain/player-activity";
+import type { PendingContribution, PlayerActivityFilter } from "@/domain/player-activity";
 import { PlayerDirectory } from "@/components/player-directory";
 import { KeeperWaiverControl } from "@/components/keeper-waiver-control";
 import { SupportAssignments } from "@/components/support-assignments";
@@ -38,7 +38,7 @@ import {
 import type { MatchEvent, Player } from "@/domain/ranka/types";
 import type { PublicRankaSnapshot } from "@/domain/public-portal/types";
 import { absenceDetails, type PlayerActivity } from "@/domain/player-activity";
-import type { RankaSnapshot, SessionSummary } from "@/data/ports/ranka-repository";
+import type { RankaSnapshot, SessionSummary, RankaDayOverview } from "@/data/ports/ranka-repository";
 import type { RankaSection } from "@/lib/navigation";
 import type { TrialAccess } from "@/server/account-trial";
 import {
@@ -129,7 +129,7 @@ function money(cents: number) {
   }).format(cents / 100);
 }
 
-function Dashboard({ snapshot, playerActivity, schedule, trial, error }: { snapshot: RankaSnapshot; playerActivity?: PlayerActivity[]; schedule: RankaSchedule; trial?: TrialAccess; error?: string }) {
+function Dashboard({ snapshot, playerActivity, schedule, trial, error, overview }: { overview?: RankaDayOverview; snapshot: RankaSnapshot; playerActivity?: PlayerActivity[]; schedule: RankaSchedule; trial?: TrialAccess; error?: string }) {
   const present = snapshot.attendance.filter(
     (entry) => entry.status === "present",
   ).length;
@@ -174,8 +174,18 @@ function Dashboard({ snapshot, playerActivity, schedule, trial, error }: { snaps
       {launch}
       {!sessionOpen && trial && !trial.ended && !trial.canStart && <p className="muted">Já há um dia de futebol registrado nesta conta hoje.</p>}
       {nextDate && <p className="muted">Próximo encontro previsto: {nextDate.split("-").reverse().join("/")}</p>}
-      {(inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores${debtCount ? "?filtro=pendentes" : ""}`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
-      {snapshot.sessionState === "completed" && <Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver último ranka encerrado</Link>}
+      <div className="metric-grid quick-metrics">
+        <Link className="metric" href={`/app/rankas/${snapshot.id}/jogadores`}><strong>{snapshot.players.length}</strong><span>jogadores cadastrados</span></Link>
+        <Link className="metric" href={`/app/rankas/${snapshot.id}/jogadores?filtro=pendentes`}><strong>{debtCount}</strong><span>com contribuição pendente</span></Link>
+        <Link className="metric" href={`/app/rankas/${snapshot.id}/jogadores?filtro=ausentes`}><strong>{inactiveCount}</strong><span>inativos pelo limite configurado</span></Link>
+      </div>
+      {overview && <section className="dashboard-performance">
+        <article className="panel"><h2 className="panel-title display">Totais do ranka</h2><p><strong>{overview.matches}</strong> jogos · <strong>{overview.goals}</strong> gols · <strong>{overview.assists}</strong> assistências</p></article>
+        <article className="panel"><h2 className="panel-title display">Último ranka</h2>{overview.lastDay ? <><p>{overview.lastDay.matches} jogos · {overview.lastDay.goals} gols · {overview.lastDay.assists} assistências</p><Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${overview.lastDay.id}`}>Ver estatísticas do dia</Link></> : <p className="muted">Nenhum ranka encerrado.</p>}</article>
+        <article className="panel"><h2 className="panel-title display">Craque da semana</h2>{overview.star ? <><strong>{overview.star.name}</strong><p>{overview.star.goals} gols + {overview.star.assists} assistências</p></> : <p className="muted">Sem gols com autoria ou assistências nesta semana.</p>}</article>
+      </section>}
+      {!overview && (inactiveCount > 0 || debtCount > 0) && <Link className="activity-notice" href={`/app/rankas/${snapshot.id}/jogadores${debtCount ? "?filtro=pendentes" : ""}`}>{inactiveCount > 0 && <span>{inactiveCount} {inactiveCount === 1 ? "jogador afastado" : "jogadores afastados"}</span>}{debtCount > 0 && <span>{debtCount} {debtCount === 1 ? "jogador com contribuição pendente" : "jogadores com contribuições pendentes"}</span>}<strong>Ver jogadores →</strong></Link>}
+      {!overview && snapshot.sessionState === "completed" && <Link className="text-link" href={`/app/rankas/${snapshot.id}/historico?dia=${snapshot.sessionId}`}>Ver último ranka encerrado</Link>}
       {snapshot.sessionState !== "completed" && snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}
       <div className="metric-grid quick-metrics">
         <div className="metric">
@@ -195,7 +205,7 @@ function Dashboard({ snapshot, playerActivity, schedule, trial, error }: { snaps
           <span>jogo atual</span>
         </div>
       </div>
-      <section className="panel" style={{ marginTop: 16 }}>
+      {!overview && <section className="panel" style={{ marginTop: 16 }}>
         <div className="action-list">
           <Link className="action-row" href={`/app/rankas/${snapshot.id}/jogo`}>
             <span>
@@ -223,7 +233,7 @@ function Dashboard({ snapshot, playerActivity, schedule, trial, error }: { snaps
           </Link>
           <Link className="action-row" href={`/app/rankas/${snapshot.id}/historico`}><span><strong>Histórico dos rankas</strong><small>Veja cada data, jogo e chegada</small></span></Link>
         </div>
-      </section>
+      </section>}
     </>
   );
 }
@@ -236,7 +246,7 @@ function Players({
   inactivitySettings,
   pending,
   pendingUnavailable,
-  debtFilter,
+  playerFilter,
 }: {
   snapshot: RankaSnapshot;
   success?: string;
@@ -245,7 +255,7 @@ function Players({
   inactivitySettings?: { months: number; revision: number };
   pending: PendingContribution[];
   pendingUnavailable: boolean;
-  debtFilter: boolean;
+  playerFilter: PlayerActivityFilter;
 }) {
   const action = createPlayerAction.bind(null, snapshot.id, snapshot.orgId!);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -259,11 +269,11 @@ function Players({
       />
       <Notice success={success} error={error} />
       {inactivitySettings && <form className="activity-setting" action={updateInactivityAlertAction.bind(null, snapshot.id, inactivitySettings.revision)}><label>Alertar após <input className="input" type="number" name="months" min="1" max="24" defaultValue={inactivitySettings.months} /> meses sem comparecer</label><button className="button button-secondary button-small">Salvar</button></form>}
-      <div className="two-column" style={{ marginTop: 16 }}>
-        <section className="panel">
-          <h2 className="panel-title display">Novo jogador</h2>
+      <div className="players-stack">
+        <details className="panel player-create-panel">
+          <summary className="panel-title display">+ Novo jogador</summary>
           <PlayerCreateForm players={snapshot.players} action={action} requestId={randomUUID()} />
-        </section>
+        </details>
         <section className="panel">
           <div className="panel-head">
             <h2 className="panel-title display">Jogadores cadastrados</h2>
@@ -272,9 +282,9 @@ function Players({
           {pendingUnavailable && <p role="status">As pendências por encontro estão indisponíveis no momento.</p>}
           {snapshot.players.length ? (
             <PlayerDirectory
-              key={String(debtFilter)}
+              key={playerFilter}
               pending={pending}
-              debtFilter={debtFilter}
+              initialFilter={playerFilter}
               rows={snapshot.players.map((player) => ({ player, activity: playerActivity?.find((entry) => entry.player_id === player.id) }))}
               today={today}
               rankaId={snapshot.id}
@@ -1250,13 +1260,13 @@ function Contributions({
         </div>
       </div>
       <section className="panel" style={{ marginTop: 16 }}>
-        {snapshot.sessionId && <KeeperWaiverControl rankaId={snapshot.id} sessionId={snapshot.sessionId} revision={snapshot.revision} enabled={snapshot.rules.waiveKeeperContributions} />}
-        {snapshot.sessionId ? <ContributionManager
+        {snapshot.rankaRevision !== undefined && <KeeperWaiverControl rankaId={snapshot.id} revision={snapshot.rankaRevision} enabled={snapshot.keeperWaiver ?? false} />}
+        {snapshot.sessionId ? <ContributionManager key={`${snapshot.sessionId}:${snapshot.revision}:${snapshot.rankaRevision}`}
           rows={snapshot.attendance.map((entry) => {
             const player = snapshot.players.find((item) => item.id === entry.playerId);
             const record = byPlayer.get(entry.playerId);
             const status = record?.status ?? "pending";
-            return { id: entry.playerId, name: player?.fullName ?? "Jogador", status, detail: status === "paid" ? `Pago · ${money(record?.amountCents ?? snapshot.contributionAmountCents)}` : status === "waived" ? "Isento" : `Pendente · ${money(snapshot.contributionAmountCents)}` };
+            return { id: entry.playerId, name: player?.fullName ?? "Jogador", status, automaticWaiver: snapshot.rules.waiveKeeperContributions && entry.rolePreference === "keeper", detail: status === "paid" ? `Pago · ${money(record?.amountCents ?? snapshot.contributionAmountCents)}` : status === "waived" ? "Isento" : `Pendente · ${money(snapshot.contributionAmountCents)}` };
           })}
           action={batchContributionsAction.bind(null, snapshot.sessionId, snapshot.revision)}
         /> : <p className="muted">As contribuições aparecem após iniciar um dia de futebol.</p>}
@@ -1488,12 +1498,23 @@ function Stats({
   publicSnapshot,
   sessionSummary,
   date,
+  finished,
 }: {
+  finished?: boolean;
   snapshot: RankaSnapshot;
   publicSnapshot?: PublicRankaSnapshot;
   sessionSummary?: SessionSummary;
   date?: string;
 }) {
+  const shareText = [
+    `${snapshot.name} · Estatísticas do dia`,
+    snapshot.sessionLabel,
+    sessionSummary && `${sessionSummary.matches} jogos`,
+    sessionSummary?.topTeam && `Mais vitórias: ${sessionSummary.topTeam.label ?? `T${sessionSummary.topTeam.number}`} (${sessionSummary.topTeam.wins})`,
+    sessionSummary?.topScorer && `Artilheiro: ${sessionSummary.topScorer.name} (${sessionSummary.topScorer.total} gols)`,
+    sessionSummary?.topAssist && `Assistências: ${sessionSummary.topAssist.name} (${sessionSummary.topAssist.total})`,
+    ...(publicSnapshot?.period === "last" ? publicSnapshot.results.slice(0, 12).map((result) => `Jogo ${result.ordinal}: T${result.yellowSquadNumber} ${result.yellowScore} × ${result.redScore} T${result.redSquadNumber}`) : []),
+  ].filter(Boolean).join("\n");
   return (
     <>
       <Heading
@@ -1502,6 +1523,10 @@ function Stats({
         description=""
         sessionId={snapshot.sessionId}
       />
+      {snapshot.sessionState === "completed" && (finished || !publicSnapshot || publicSnapshot.period === "last") && <section className="panel day-finished-actions">
+        <div><h2 className="panel-title display">{finished ? "Ranka encerrado" : "Último encontro"}</h2><p>Compartilhe o resumo e acerte as contribuições do dia.</p></div>
+        <div className="cluster"><a href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer" className="button button-primary">Compartilhar no WhatsApp</a><Link className="button button-secondary" href={`/app/rankas/${snapshot.id}/contribuicoes`}>Conferir contribuições</Link></div>
+      </section>}
       {sessionSummary && sessionSummary.matches > 0 && <section className="session-summary"><div className="session-summary-head"><span className="eyebrow">Ranka de {snapshot.sessionLabel}</span><h2 className="panel-title display">Resumo do dia</h2><small>{sessionSummary.matches} partida(s)</small></div><div className="session-awards"><article><span>Mais vitórias</span><strong>{sessionSummary.topTeam ? `${sessionSummary.topTeam.label ?? `T${sessionSummary.topTeam.number}`} · ${sessionSummary.topTeam.wins}` : "—"}</strong><small>{sessionSummary.topTeam?.players.join(" · ") ?? "Sem vencedor"}</small></article><article><span>Mais derrotas</span><strong>{sessionSummary.bottomTeam ? `${sessionSummary.bottomTeam.label ?? `T${sessionSummary.bottomTeam.number}`} · ${sessionSummary.bottomTeam.losses}` : "—"}</strong><small>{sessionSummary.bottomTeam?.players.join(" · ") ?? "Sem derrotas"}</small></article><article><span>Artilheiro</span><strong>{sessionSummary.topScorer?.name ?? "—"}</strong><small>{sessionSummary.topScorer ? `${sessionSummary.topScorer.total} gol(s)` : "Sem gols com autoria"}</small></article><article><span>Assistências</span><strong>{sessionSummary.topAssist?.name ?? "—"}</strong><small>{sessionSummary.topAssist ? `${sessionSummary.topAssist.total} assistência(s)` : "Sem assistências"}</small></article><article><span>Goleiro menos vazado</span><strong>{sessionSummary.bestKeeper?.name ?? "—"}</strong><small>{sessionSummary.bestKeeper ? `${sessionSummary.bestKeeper.conceded} gol(s) em ${sessionSummary.bestKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article><article><span>Goleiro mais vazado</span><strong>{sessionSummary.worstKeeper?.name ?? "—"}</strong><small>{sessionSummary.worstKeeper ? `${sessionSummary.worstKeeper.conceded} gol(s) em ${sessionSummary.worstKeeper.matches} jogo(s)` : "Sem goleiro registrado"}</small></article></div></section>}
       {publicSnapshot ? (
         <>
@@ -1619,9 +1644,10 @@ export function RealRankaWorkspace({
   inactivitySettings,
   pending,
   pendingUnavailable,
-  debtFilter,
+  playerFilter,
   trial,
   teamTools,
+  overview,
 }: {
   active: RankaSection;
   schedule: RankaSchedule;
@@ -1636,13 +1662,14 @@ export function RealRankaWorkspace({
   inactivitySettings?: { months: number; revision: number };
   pending: PendingContribution[];
   pendingUnavailable: boolean;
-  debtFilter: boolean;
+  playerFilter: PlayerActivityFilter;
   trial?: TrialAccess;
   teamTools?: React.ReactNode;
+  overview?: RankaDayOverview;
 }) {
   let content: React.ReactNode;
   if (active === "jogadores")
-    content = <Players snapshot={snapshot} success={success} error={error} playerActivity={playerActivity} inactivitySettings={inactivitySettings} pending={pending} pendingUnavailable={pendingUnavailable} debtFilter={debtFilter} />;
+    content = <Players snapshot={snapshot} success={success} error={error} playerActivity={playerActivity} inactivitySettings={inactivitySettings} pending={pending} pendingUnavailable={pendingUnavailable} playerFilter={playerFilter} />;
   else if (active === "jogo" || (["chegada", "times", "partida"].includes(active) && (!snapshot.sessionId || (trial && (snapshot.sessionState === "completed" || (!trial.canPlayToday && !snapshot.activeMatch))))))
     content = <GameHub snapshot={snapshot} success={success} error={error} stage={gameStage} trial={trial} />;
   else if (active === "chegada")
@@ -1659,7 +1686,7 @@ export function RealRankaWorkspace({
     );
   else if (active === "configuracoes")
     content = <><Rules snapshot={snapshot} success={success} error={error} canManageTeam={Boolean(teamTools)} />{teamTools}{inactivitySettings && <div className="settings-schedule" id="agenda"><RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} /></div>}</>;
-  else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} schedule={schedule} trial={trial} error={error} />;
+  else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} schedule={schedule} trial={trial} error={error} overview={overview} />;
   else
     content = (
       <Stats
@@ -1667,6 +1694,7 @@ export function RealRankaWorkspace({
         publicSnapshot={publicSnapshot}
         sessionSummary={sessionSummary}
         date={statsDate}
+        finished={success === "ranka_encerrado"}
       />
     );
   const isMatchScreen = active === "partida" || (active === "jogo" && (gameStage === "partida" || (!gameStage && Boolean(snapshot.activeMatch))));
