@@ -1,20 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { FastMutationForm } from "@/components/fast-mutation-form";
 import type { FastMutationResult } from "@/app/app/rankas/[rankaId]/actions";
 
 export function FinishMatchControl({ action, ruleReached, winnerLabel, promptKey }: { action: (formData: FormData) => Promise<FastMutationResult>; ruleReached: boolean; winnerLabel?: string; promptKey: string }) {
-  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const lastPrompt = useRef<string>(null);
+  const titleId = useId();
   useEffect(() => {
-    if (ruleReached && !sessionStorage.getItem(`rankae:finish-prompt:${promptKey}`)) {
-      sessionStorage.setItem(`rankae:finish-prompt:${promptKey}`, "1");
-      const timer = window.setTimeout(() => setOpen(true), 0);
-      return () => window.clearTimeout(timer);
-    }
+    if (!ruleReached || lastPrompt.current === promptKey) return;
+    lastPrompt.current = promptKey;
+    try {
+      const storageKey = `rankae:finish-prompt:${promptKey}`;
+      if (sessionStorage.getItem(storageKey)) return;
+      sessionStorage.setItem(storageKey, "1");
+    } catch { /* The ref still keeps the prompt from repeating on this screen. */ }
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
   }, [ruleReached, promptKey]);
   return <>
-    <button type="button" className="button button-primary" onClick={() => setOpen(true)}>{ruleReached ? "Finalizar partida" : "Encerrar partida"}</button>
-    {open && <div className="modal-backdrop" role="presentation" onClick={() => setOpen(false)}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="finish-match-title" onClick={(event) => event.stopPropagation()}><h2 id="finish-match-title">{ruleReached ? "Fim de partida" : "Encerrar partida?"}</h2><p>{ruleReached && winnerLabel ? `${winnerLabel} venceu pela regra de gols. ` : ""}O resultado ficará disponível para revisão. Você poderá iniciar o próximo jogo ou encerrar o ranka.</p><div className="cluster"><button type="button" className="button button-secondary" onClick={() => setOpen(false)}>Continuar partida</button><FastMutationForm action={action}><input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} /><button className="button button-danger">Finalizar partida</button></FastMutationForm></div></div></div>}
+    <button type="button" className="button button-primary" onClick={() => dialog.current?.showModal()}>{ruleReached ? "Finalizar partida" : "Encerrar partida"}</button>
+    <dialog ref={dialog} className="modal finish-match-dialog" aria-labelledby={titleId}>
+      <h2 id={titleId}>{ruleReached ? "Fim de partida" : "Encerrar partida?"}</h2>
+      <p>{ruleReached && winnerLabel ? `${winnerLabel} atingiu a regra de gols. ` : ""}O resultado ficará disponível para revisão. Você poderá iniciar o próximo jogo ou encerrar o ranka.</p>
+      <div className="cluster"><button type="button" className="button button-secondary" onClick={() => dialog.current?.close()}>Continuar partida</button><FastMutationForm action={action}><input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} /><button className="button button-danger">Finalizar partida</button></FastMutationForm></div>
+    </dialog>
   </>;
 }

@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 
-export const SCORE_EVENT = "rankae:optimistic-score";
+type Side = "yellow" | "red";
+type Score = Record<Side, number>;
+const ScoreContext = createContext<{ score: Score; addGoal: (id: string, side: Side) => void; rejectGoal: (id: string) => void } | null>(null);
 
-export function OptimisticScore({ matchId, side, initial }: { matchId: string; side: "yellow" | "red"; initial: number }) {
-  const [score, setScore] = useState(initial);
+export function MatchScoreProvider({ initial, recordedKeys, children }: { initial: Score; recordedKeys: string[]; children: ReactNode }) {
+  const [goals, setGoals] = useState<{ id: string; side: Side }[]>([]);
+  const recorded = new Set(recordedKeys);
+  const score = { ...initial };
+  for (const goal of goals) if (!recorded.has(goal.id)) score[goal.side] += 1;
+  return <ScoreContext.Provider value={{
+    score,
+    addGoal: (id, side) => setGoals((current) => [...current.filter((goal) => !recorded.has(goal.id)), { id, side }]),
+    rejectGoal: (id) => setGoals((current) => current.filter((goal) => goal.id !== id)),
+  }}>{children}</ScoreContext.Provider>;
+}
 
-  useEffect(() => {
-    const update = (event: Event) => {
-      const detail = (event as CustomEvent<{ matchId: string; side: "yellow" | "red"; delta: number }>).detail;
-      if (detail.matchId === matchId && detail.side === side) setScore((current) => Math.max(0, current + detail.delta));
-    };
-    window.addEventListener(SCORE_EVENT, update);
-    return () => window.removeEventListener(SCORE_EVENT, update);
-  }, [matchId, side]);
+export function useMatchScore() {
+  const score = useContext(ScoreContext);
+  if (!score) throw new Error("MatchScoreProvider is required");
+  return score;
+}
 
-  return <div className="score-number" aria-live="polite">{score}</div>;
+export function OptimisticScore({ side }: { side: Side }) {
+  const { score } = useMatchScore();
+  return <div className="score-number" aria-live="polite">{score[side]}</div>;
 }

@@ -4,8 +4,8 @@ import { useActionState } from "react";
 import { InviteLink } from "@/components/invite-link";
 import { createTeamInvite } from "./actions";
 
-export function TeamInviteForm({ orgId, full }: { orgId: string; full: boolean }) {
-  const [result, action, pending] = useActionState(createTeamInvite.bind(null, orgId), {});
+export function TeamInviteForm({ orgId, rankaId, full }: { orgId: string; rankaId?: string; full: boolean }) {
+  const [result, action, pending] = useActionState(createTeamInvite.bind(null, orgId, rankaId), {});
   return <form className="stack" action={action}>
     {full ? <p className="muted">Todas as vagas estão ocupadas ou reservadas.</p> : <>
       <label className="field">E-mail do colaborador<input type="email" className="input" name="email" maxLength={254} required /></label>

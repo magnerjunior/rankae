@@ -26,7 +26,7 @@ interface MatchRow {
 }
 interface AssignmentRow { id: string; player_id: string; squad_id: string | null; field_side: MatchAssignment["side"] | null; role: MatchAssignment["role"]; }
 interface EventRow {
-  id: string; event_type: MatchEvent["type"]; side: MatchEvent["side"] | null; scorer_player_id: string | null;
+  id: string; idempotency_key: string; event_type: MatchEvent["type"]; side: MatchEvent["side"] | null; scorer_player_id: string | null;
   assist_player_id: string | null; keeper_player_id: string | null; goal_kind: MatchEvent["goalKind"] | null;
   penalty_outcome: MatchEvent["penaltyOutcome"] | null; occurrence_ms: number; status: MatchEvent["status"]; label: string | null;
 }
@@ -122,7 +122,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     if (latestMatch && latestMatch.state !== "cancelled") {
       const [assignmentsResult, eventsResult, clockResult] = await Promise.all([
         this.client.from("match_assignments").select("id,player_id,squad_id,field_side,role").eq("match_id", latestMatch.id).neq("status", "cancelled"),
-        this.client.from("match_events").select("id,event_type,side,scorer_player_id,assist_player_id,keeper_player_id,goal_kind,penalty_outcome,occurrence_ms,status,label").eq("match_id", latestMatch.id).order("created_at"),
+        this.client.from("match_events").select("id,idempotency_key,event_type,side,scorer_player_id,assist_player_id,keeper_player_id,goal_kind,penalty_outcome,occurrence_ms,status,label").eq("match_id", latestMatch.id).order("created_at"),
         this.client.rpc("get_match_clock_snapshot", { p_match_id: latestMatch.id }),
       ]);
       if (assignmentsResult.error || eventsResult.error || clockResult.error) throw new Error("Não foi possível carregar a partida ativa.");
@@ -134,7 +134,7 @@ export class SupabaseRankaRepository implements RankaRepository {
         regulationDurationMs: latestMatch.regulation_duration_ms, overtimeDurationMs: latestMatch.overtime_duration_ms,
         revision: Number(clock.revision), serverNow: clock.server_now,
         assignments: ((assignmentsResult.data ?? []) as AssignmentRow[]).map((row) => ({ id: row.id, playerId: row.player_id, squadId: row.squad_id ?? undefined, side: row.field_side ?? undefined, role: row.role })),
-        events: ((eventsResult.data ?? []) as EventRow[]).map((row) => ({ id: row.id, type: row.event_type, side: row.side ?? undefined, scorerPlayerId: row.scorer_player_id ?? undefined, assistPlayerId: row.assist_player_id ?? undefined, keeperPlayerId: row.keeper_player_id ?? undefined, goalKind: row.goal_kind ?? undefined, penaltyOutcome: row.penalty_outcome ?? undefined, occurrenceMs: Number(row.occurrence_ms), status: row.status, label: row.label ?? undefined })),
+        events: ((eventsResult.data ?? []) as EventRow[]).map((row) => ({ id: row.id, idempotencyKey: row.idempotency_key, type: row.event_type, side: row.side ?? undefined, scorerPlayerId: row.scorer_player_id ?? undefined, assistPlayerId: row.assist_player_id ?? undefined, keeperPlayerId: row.keeper_player_id ?? undefined, goalKind: row.goal_kind ?? undefined, penaltyOutcome: row.penalty_outcome ?? undefined, occurrenceMs: Number(row.occurrence_ms), status: row.status, label: row.label ?? undefined })),
       };
     }
 

@@ -93,6 +93,7 @@ export type PenaltyOutcome = "converted" | "missed" | "saved";
 
 export interface MatchEvent {
   id: string;
+  idempotencyKey?: string;
   type: MatchEventType;
   side?: FieldSide;
   scorerPlayerId?: string;

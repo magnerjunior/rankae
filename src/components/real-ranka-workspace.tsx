@@ -13,7 +13,7 @@ import { FlashNotice } from "@/components/flash-notice";
 import { FastMutationForm } from "@/components/fast-mutation-form";
 import { FinishMatchControl } from "@/components/finish-match-control";
 import { OptimisticMatchClock } from "@/components/optimistic-match-clock";
-import { OptimisticScore } from "@/components/optimistic-score";
+import { MatchScoreProvider, OptimisticScore } from "@/components/optimistic-score";
 import { PlayerCreateForm } from "@/components/player-create-form";
 import { RankaScheduleForm } from "@/components/ranka-schedule-form";
 import { nextRankaDate, type RankaSchedule } from "@/domain/ranka/schedule";
@@ -697,7 +697,7 @@ function MatchConsole({
         </section>
       )}
       {match.state === "completed" && waitingSquads.length > 0 && (
-        <section className="next-match-bar next-match-primary">
+        <section className="next-match-bar next-match-primary next-match-sticky">
           <span><strong>Partida encerrada</strong><small>Confira os gols ou encerre o ranka de hoje.</small></span>
           <FastMutationForm className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
             <Key />
@@ -726,15 +726,15 @@ function MatchConsole({
           adjustAction={adjustMatchClockAction.bind(null, snapshot.id, match.id)}
           showOvertimeOption={score.yellow === score.red && snapshot.rules.overtimeDurationMs > 0}
         />
+        <MatchScoreProvider key={match.id} initial={{ yellow: score.yellow, red: score.red }} recordedKeys={match.events.flatMap((event) => event.idempotencyKey ? [event.idempotencyKey] : [])}>
         <div className="score-sides">
           <div className="score-side">
             <span className="side-label side-yellow">
               Amarelo · T{yellow?.number}
             </span>
-            <OptimisticScore key={`${match.id}:${match.revision}:yellow`} matchId={match.id} side="yellow" initial={score.yellow} />
+            <OptimisticScore side="yellow" />
             {canRecord && (
               <GoalForm
-                matchId={match.id}
                 side="yellow"
                 players={yellowPlayers}
                 action={recordGoalFastAction.bind(null, match.id, match.revision)}
@@ -745,10 +745,9 @@ function MatchConsole({
             <span className="side-label side-red">
               Vermelho · T{red?.number}
             </span>
-            <OptimisticScore key={`${match.id}:${match.revision}:red`} matchId={match.id} side="red" initial={score.red} />
+            <OptimisticScore side="red" />
             {canRecord && (
               <GoalForm
-                matchId={match.id}
                 side="red"
                 players={redPlayers}
                 action={recordGoalFastAction.bind(null, match.id, match.revision)}
@@ -756,6 +755,7 @@ function MatchConsole({
             )}
           </div>
         </div>
+        </MatchScoreProvider>
         <div className="match-rosters">
           <CompactMatchRoster
             side="yellow"
@@ -1081,17 +1081,15 @@ function MatchConsole({
 }
 
 function GoalForm({
-  matchId,
   side,
   players,
   action,
 }: {
-  matchId: string;
   side: "yellow" | "red";
   players: Player[];
   action: (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").MatchEventMutationResult>;
 }) {
-  return <GoalDialog matchId={matchId} side={side} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
+  return <GoalDialog side={side} players={players.map((player) => ({ id: player.id, name: player.fullName }))} action={action} />;
 }
 
 function CompactMatchRoster({
@@ -1262,10 +1260,12 @@ function Rules({
   snapshot,
   success,
   error,
+  canManageTeam,
 }: {
   snapshot: RankaSnapshot;
   success?: string;
   error?: string;
+  canManageTeam?: boolean;
 }) {
   const presentCount = snapshot.attendance.filter(
     (entry) => entry.status === "present",
@@ -1275,11 +1275,12 @@ function Rules({
     <>
       <Heading
         eyebrow="Do seu jeito"
-        title="Configurar ranka"
+        title="Configurações"
         description="Ajuste os limites, o jogo e a contribuição."
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
+      {canManageTeam && <a className="button button-secondary" href="#equipe">Equipe e colaboradores</a>}
       <div className="two-column">
         <section className="panel">
           <div className="between"><h2 className="panel-title display">Regras</h2><a className="button button-secondary button-small" href="#agenda">Agenda</a></div>
@@ -1600,6 +1601,7 @@ export function RealRankaWorkspace({
   pendingUnavailable,
   debtFilter,
   trial,
+  teamTools,
 }: {
   active: RankaSection;
   schedule: RankaSchedule;
@@ -1616,6 +1618,7 @@ export function RealRankaWorkspace({
   pendingUnavailable: boolean;
   debtFilter: boolean;
   trial?: TrialAccess;
+  teamTools?: React.ReactNode;
 }) {
   let content: React.ReactNode;
   if (active === "jogadores")
@@ -1635,7 +1638,7 @@ export function RealRankaWorkspace({
       <Contributions snapshot={snapshot} success={success} error={error} />
     );
   else if (active === "configuracoes")
-    content = <><Rules snapshot={snapshot} success={success} error={error} />{inactivitySettings && <div className="settings-schedule" id="agenda"><RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} /></div>}</>;
+    content = <><Rules snapshot={snapshot} success={success} error={error} canManageTeam={Boolean(teamTools)} />{teamTools}{inactivitySettings && <div className="settings-schedule" id="agenda"><RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} /></div>}</>;
   else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} schedule={schedule} trial={trial} error={error} />;
   else
     content = (

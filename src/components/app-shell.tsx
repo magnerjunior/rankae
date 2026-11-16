@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { InstallAppButton } from "@/components/install-app-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -85,9 +85,22 @@ export function AppShell({
   gameNeedsFreshData?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const shell = useRef<HTMLDivElement>(null);
+  const topbar = useRef<HTMLElement>(null);
   const [predictedSection, setPredictedSection] = useState<{ from: string; to: RankaSection }>();
   const [intendedSection, setIntendedSection] = useState<{ from: string; to: RankaSection }>();
   const current = sectionHref(active, rankaId);
+
+  useEffect(() => {
+    const header = topbar.current;
+    const container = shell.current;
+    if (!header || !container) return;
+    const measure = () => container.style.setProperty("--ranka-topbar-height", `${header.offsetHeight}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (rankaId === "demo") return;
@@ -119,9 +132,9 @@ export function AppShell({
     }
   };
   return (
-    <div className="app-shell">
+    <div ref={shell} className="app-shell">
       <div className="app-main" inert={menuOpen}>
-        <header className="topbar glass-bar">
+        <header ref={topbar} className="topbar glass-bar">
           <button
             className="menu-trigger"
             type="button"
