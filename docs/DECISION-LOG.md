@@ -398,3 +398,9 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - `supabase test db` não executou os testes SQL: banco local indisponível (ECONNREFUSED). Jornadas autenticadas, convites e pgTAP continuam sem validação nesta publicação; não foram usados dados fictícios em produção. Configuração de SUPABASE_SECRET_KEY e bootstrap do administrador não fazem parte deste deploy.
 - Arquivos publicados: alterações existentes em src, public/sw.js, configurações, docs, migrações e testes. O projeto audiovisual não rastreado em videos permanece local. Não foram adicionadas dependências.
 - Reprodução: `npm run lint`, `npm run build`, `npm run typecheck`, `npm test`, `npm run test:e2e`; executar build/typecheck sequencialmente. Após o deploy, conferir `/`, `/entrar`, `/admin`, `/robots.txt`, `/sitemap.xml` e `/api/health`; sem sessão, `/app` deve retornar ao login. Acompanhar o status Vercel do SHA enviado ao GitHub.
+
+## 2026-11-14 - Jornada de jogo e acesso por convite
+
+- A navegação mantém Jogadores na barra inferior e adiciona o atalho no cabeçalho. O atalho de tema agora é um ícone. As regras de jogo guardam a preferência de desempate no snapshot da sessão, e o organizador confirma o resultado antes da rotação.
+- O acesso direto a `/admin` usa e-mail e senha e exige uma atribuição ativa em `platform_admins`. A migração `20261116124438` atualiza a função usada pelas operações privilegiadas. As atribuições existentes e as trilhas de auditoria continuam em uso.
+- O administrador gera um link individual em Contas e testes. Configure `SUPABASE_SECRET_KEY` somente no servidor e `NEXT_PUBLIC_APP_URL` com o domínio público. No Supabase hospedado, desative **Allow new users to sign up** em Auth. A configuração local já desativa cadastro aberto. O link gerado no painel é compartilhado pelo administrador e dispensa o modelo de e-mail **Invite user**.

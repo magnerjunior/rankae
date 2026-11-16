@@ -135,6 +135,7 @@ export function AppShell({
               {rankaSections.find((section) => section.key === active)?.label}
             </span>
           </div>
+          <ThemeToggle />
           <Link
             className={`topbar-players ${active === "jogadores" ? "active" : ""}`}
             href={sectionHref("jogadores", rankaId)}
@@ -147,11 +148,11 @@ export function AppShell({
             <span>Jogadores</span>
           </Link>
           <Link
-            className="brand brand-compact topbar-brand"
+            className="brand topbar-brand"
             href="/app"
             aria-label="Meus rankas"
           >
-            <span className="brand-mark">R</span>
+            <span className="brand-name">Rankaê</span>
           </Link>
         </header>
         {gameStatus}
@@ -211,7 +212,6 @@ export function AppShell({
                 ))}
             </nav>
             <div className="drawer-secondary">
-              <ThemeToggle />
               <InstallAppButton />
               <Link href="/app" onClick={() => setMenuOpen(false)}>
                 Trocar de ranka

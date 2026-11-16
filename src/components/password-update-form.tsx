@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export function PasswordUpdateForm() {
+export function PasswordUpdateForm({ email, invited = false }: { email?: string; invited?: boolean }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -26,7 +26,7 @@ export function PasswordUpdateForm() {
       setMessage("Não foi possível atualizar a senha. Solicite outro link de recuperação.");
       return;
     }
-    router.replace("/entrar?mensagem=senha_atualizada");
+    router.replace(invited ? "/app" : "/entrar?mensagem=senha_atualizada");
     router.refresh();
   }
 
@@ -34,6 +34,7 @@ export function PasswordUpdateForm() {
     <form className="login-card stack" onSubmit={submit}>
       <span className="badge badge-green">SESSÃO VERIFICADA</span>
       <h2 className="display" style={{fontSize: "2rem", marginBottom: 8}}>Criar nova senha</h2>
+      {email && <label className="field">E-mail<input className="input" type="email" value={email} readOnly /></label>}
       <div className="field"><label htmlFor="new-password">Nova senha</label><input className="input" id="new-password" type="password" minLength={8} autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
       <div className="field"><label htmlFor="confirm-password">Repetir nova senha</label><input className="input" id="confirm-password" type="password" minLength={8} autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></div>
       {message && <div className="notice notice-warning" role="alert">{message}</div>}

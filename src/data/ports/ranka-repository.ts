@@ -17,6 +17,8 @@ export interface SessionRules {
   targetGoals: number;
   targetGoalDifference: number;
   tiePolicy: "overtime" | "both_out" | "penalties" | "odd_even" | "manual";
+  tieBothOutWithFour?: boolean;
+  tieFallback?: "odd_even" | "manual" | "penalties";
   contributionMode: "fixed" | "divide_total";
   totalCostCents: number;
   waiveKeeperContributions: boolean;

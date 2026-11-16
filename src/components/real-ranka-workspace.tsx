@@ -1,3 +1,4 @@
+import { preferredTieMethod } from "@/domain/ranka/tie-preference";
 import { InitialTeamFields } from "@/components/initial-team-fields";
 import { randomUUID } from "node:crypto";
 import Link from "next/link";
@@ -684,9 +685,9 @@ function MatchConsole({
           <form action={clockForm("start_overtime")}><Key /><input type="hidden" name="expectedRevision" value={match.revision} /><button className="button button-secondary">Prorrogação de {snapshot.rules.overtimeDurationMs / 60000} min</button></form>
         </section>
       )}
-      {match.state === "tie_break" && score.yellow === score.red && (
+      {(match.state === "tie_break" || (match.state === "regulation_ended" && snapshot.rules.overtimeDurationMs === 0)) && score.yellow === score.red && (
         <section className="next-match-bar overtime-choice">
-          <span><strong>Defina o desempate</strong><small>Registre o ímpar ou par, pênaltis ou uma decisão manual.</small></span>
+          <span><strong>Defina o desempate</strong><small>Confirme a saída dos dois times ou registre quem venceu o desempate.</small></span>
           <TieForm snapshot={snapshot} />
         </section>
       )}
@@ -695,7 +696,7 @@ function MatchConsole({
           <span><strong>Partida encerrada</strong><small>Confira os gols ou encerre o ranka de hoje.</small></span>
           <FastMutationForm className="next-match-form" action={completeMatchAction.bind(null, snapshot.id, match.id, match.revision)}>
             <Key />
-            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">Usar desempate registrado</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
+            {score.yellow === score.red ? <><select className="select" name="resultOverride" defaultValue=""><option value="">Usar desempate registrado</option><option value="yellow">T{yellow.number} continua</option><option value="red">T{red.number} continua</option>{waitingSquads.filter((squad) => squad.complete).length >= 2 && <option value="both_out">Os dois saem</option>}</select><input type="hidden" name="reason" value="Decisão manual após empate" /></> : <><input type="hidden" name="resultOverride" value="" /><input type="hidden" name="reason" value="" /></>}
             <button className="button button-primary">Próximo jogo</button>
           </FastMutationForm>
         </section>
@@ -1166,11 +1167,7 @@ function TieForm({ snapshot }: { snapshot: RankaSnapshot }) {
       <select
         className="select compact-select"
         name="method"
-        defaultValue={
-          snapshot.rules.tiePolicy === "overtime"
-            ? "odd_even"
-            : snapshot.rules.tiePolicy
-        }
+        defaultValue={preferredTieMethod(fullWaiting, snapshot.rules.tieBothOutWithFour ?? false, snapshot.rules.tieFallback ?? "odd_even")}
       >
         <option value="odd_even">Ímpar ou par</option>
         <option value="penalties">Pênaltis</option>
@@ -1280,7 +1277,7 @@ function Rules({
       <Notice success={success} error={error} />
       <div className="two-column">
         <section className="panel">
-          <h2 className="panel-title display">Regras</h2>
+          <div className="between"><h2 className="panel-title display">Regras</h2><a className="button button-secondary button-small" href="#agenda">Agenda</a></div>
           <form
             className="stack compact-form"
             action={updateRulesAction.bind(
@@ -1294,16 +1291,8 @@ function Rules({
             <input type="hidden" name="presentCount" value={presentCount} />
             <div className="three-column">
               <label className="field">
-                Jogadores por time
-                <select
-                  className="select"
-                  name="squadSize"
-                  defaultValue={snapshot.rules.squadSize}
-                >
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                </select>
+                Jogadores de linha por time (sem goleiro)
+                <input className="input" type="number" name="squadSize" min="2" max="12" step="1" defaultValue={snapshot.rules.squadSize} required />
               </label>
               <label className="field">
                 Máximo de jogadores de linha
@@ -1351,21 +1340,16 @@ function Rules({
                   defaultValue={snapshot.rules.overtimeDurationMs / 60000}
                 />
               </label>
-              <label className="field">
-                Se empatar
-                <select
-                  className="select"
-                  name="tiePolicy"
-                  defaultValue={snapshot.rules.tiePolicy}
-                >
-                  <option value="overtime">Prorrogação</option>
-                  <option value="both_out">Ambos saem</option>
-                  <option value="penalties">Pênaltis</option>
-                  <option value="odd_even">Ímpar ou par</option>
-                  <option value="manual">Decidir na hora</option>
-                </select>
-              </label>
+              <input type="hidden" name="tiePolicy" value="overtime" />
             </div>
+            <fieldset className="rule-options">
+              <legend>Se o empate continuar após a prorrogação</legend>
+              <label className="check-row"><input type="checkbox" name="tieBothOutWithFour" defaultChecked={snapshot.rules.tieBothOutWithFour ?? false} />Com dois times completos na espera, sugerir que os dois times em campo saiam</label>
+              <fieldset className="ranking-filter">
+                <legend>Nos outros casos</legend>
+                <div className="ranking-filter-options">{([["odd_even", "Ímpar ou par"], ["manual", "Decidir na hora"], ["penalties", "Pênaltis"]] as const).map(([value, label]) => <label key={value}><input className="sr-only" type="radio" name="tieFallback" value={value} defaultChecked={(snapshot.rules.tieFallback ?? "odd_even") === value} /><span>{label}</span></label>)}</div>
+              </fieldset>
+            </fieldset>
             <fieldset className="rule-options">
               <legend>O jogo também pode terminar por</legend>
               <label className="check-row">
@@ -1634,7 +1618,7 @@ export function RealRankaWorkspace({
       <Contributions snapshot={snapshot} success={success} error={error} />
     );
   else if (active === "configuracoes")
-    content = <><Rules snapshot={snapshot} success={success} error={error} />{inactivitySettings && <RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} />}</>;
+    content = <><Rules snapshot={snapshot} success={success} error={error} />{inactivitySettings && <div className="settings-schedule" id="agenda"><RankaScheduleForm key={inactivitySettings.revision} schedule={schedule} action={saveRankaScheduleAction.bind(null, snapshot.id, inactivitySettings.revision)} requestId={randomUUID()} /></div>}</>;
   else if (active === "inicio") content = <Dashboard snapshot={snapshot} playerActivity={playerActivity} schedule={schedule} />;
   else
     content = (

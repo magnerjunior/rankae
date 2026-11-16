@@ -10,6 +10,5 @@ export async function requirePlatformAdmin() {
   if (error || !data?.claims?.sub) redirect("/admin");
   const capability = await new TrustRepository(client).adminCapability();
   if (!capability.active) notFound();
-  if (!capability.aal2) redirect("/admin");
   return client;
 }

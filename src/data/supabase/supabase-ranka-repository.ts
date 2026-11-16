@@ -52,6 +52,8 @@ function readRules(value: Record<string, unknown>): SessionRules {
     targetGoals: Number.isInteger(targetGoals) && targetGoals >= 0 ? targetGoals : 0,
     targetGoalDifference: Number.isInteger(targetGoalDifference) && targetGoalDifference >= 0 ? targetGoalDifference : 0,
     tiePolicy: tiePolicy === "both_out" || tiePolicy === "penalties" || tiePolicy === "odd_even" || tiePolicy === "manual" ? tiePolicy : "overtime",
+    tieBothOutWithFour: typeof value.tieBothOutWithFour === "boolean" ? value.tieBothOutWithFour : tiePolicy === "both_out",
+    tieFallback: value.tieFallback === "odd_even" || value.tieFallback === "manual" || value.tieFallback === "penalties" ? value.tieFallback : tiePolicy === "manual" || tiePolicy === "penalties" ? tiePolicy : "odd_even",
     contributionMode,
     totalCostCents: Number.isInteger(totalCostCents) && totalCostCents >= 0 ? totalCostCents : 0,
     waiveKeeperContributions: value.waiveKeeperContributions === true,

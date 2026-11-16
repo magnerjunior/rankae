@@ -10,18 +10,22 @@ import { siteUrl } from "@/lib/site-url";
 const resolutionSchema = z.object({ incidentId: z.string().uuid(), reason: z.string().trim().min(8).max(500) });
 const reasonSchema = z.string().trim().min(8).max(500);
 
-export async function inviteOrganizerAction(formData: FormData) {
+export async function inviteOrganizerAction(_previous: { link?: string; error?: string }, formData: FormData): Promise<{ link?: string; error?: string }> {
   const client = await requirePlatformAdmin();
   const email = z.email().max(254).safeParse(formData.get("email"));
-  if (!email.success || !adminAuthConfigured()) redirect("/admin?erro=convite");
+  if (!email.success || !adminAuthConfigured()) return { error: "Confira o e-mail e a configuração de convites." };
   const { error: auditError } = await client.rpc("admin_audit_organizer_invite");
-  if (auditError) redirect("/admin?erro=convite");
-  const { error } = await createAdminAuthClient().auth.admin.inviteUserByEmail(email.data.toLowerCase(), {
-    redirectTo: new URL("/auth/callback", siteUrl).href,
+  if (auditError) return { error: "Não foi possível autorizar o convite." };
+  const { data, error } = await createAdminAuthClient().auth.admin.generateLink({
+    type: "invite",
+    email: email.data.toLowerCase(),
   });
-  if (error) redirect("/admin?erro=convite");
+  if (error || !data?.properties.hashed_token) return { error: "Não foi possível gerar o convite. Confira se esse e-mail já tem conta." };
+  const link = new URL("/auth/callback", siteUrl);
+  link.searchParams.set("type", "invite");
+  link.searchParams.set("token_hash", data.properties.hashed_token);
   revalidatePath("/admin");
-  redirect("/admin?sucesso=convite");
+  return { link: link.href };
 }
 
 export async function grantTrialAction(formData: FormData) {

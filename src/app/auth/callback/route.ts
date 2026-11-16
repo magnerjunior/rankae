@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (tokenHash && url.searchParams.get("type") === "invite") {
     const supabase = await createClient();
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "invite" });
-    return NextResponse.redirect(new URL(error ? "/entrar?erro=confirmacao" : "/redefinir-senha", url.origin));
+    return NextResponse.redirect(new URL(error ? "/entrar?erro=confirmacao" : "/redefinir-senha?convite=1", url.origin));
   }
   if (code) {
     const supabase = await createClient();

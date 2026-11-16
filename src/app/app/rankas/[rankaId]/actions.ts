@@ -577,7 +577,9 @@ export async function updateMarkerAction(rankaId: string, expectedRevision: numb
 export async function resolveTieAction(rankaId: string, matchId: string, expectedRevision: number, formData: FormData) {
   const parsed = z.object({ method: z.enum(["penalties", "odd_even", "both_out", "manual"]), winnerSquadId: optionalUuid }).safeParse({ method: formData.get("method"), winnerSquadId: formData.get("winnerSquadId") });
   if (!parsed.success) finish(rankaId, "jogo", false, "desempate");
-  const { error } = await rpc("resolve_match_tie", { p_match_id: matchId, p_method: parsed.data.method, p_winner_squad_id: parsed.data.winnerSquadId ?? null, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const { method, winnerSquadId } = parsed.data;
+  if (method !== "both_out" && !winnerSquadId) finish(rankaId, "jogo", false, "desempate");
+  const { error } = await rpc("resolve_match_tie", { p_match_id: matchId, p_method: method, p_winner_squad_id: method === "both_out" ? null : winnerSquadId, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "jogo", !error, error ? "conflito" : "desempate");
 }
 
@@ -681,7 +683,8 @@ export async function updateRulesAction(rankaId: string, sessionId: string, expe
   if (!parsed.success) finish(rankaId, "configuracoes", false, "dados");
   const presentCount = Math.max(1, Number(formData.get("presentCount") ?? 1));
   const contributionAmountCents = calculateContributionShare({ mode: parsed.data.contributionMode, fixedCents: parsed.data.contributionAmountCents, totalCents: parsed.data.totalCostCents, presentCount });
-  const rules = { squadSize: parsed.data.squadSize, maxLinePlayers: parsed.data.maxLinePlayers, maxKeepers: parsed.data.maxKeepers, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalsConfigured: true, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy, contributionMode: parsed.data.contributionMode, totalCostCents: parsed.data.totalCostCents };
+  const tieFallback = z.enum(["odd_even", "manual", "penalties"]).safeParse(formData.get("tieFallback")).data ?? "odd_even";
+  const rules = { tieFallback, tieBothOutWithFour: formData.get("tieBothOutWithFour") === "on", squadSize: parsed.data.squadSize, maxLinePlayers: parsed.data.maxLinePlayers, maxKeepers: parsed.data.maxKeepers, regulationDurationMs: parsed.data.regulationMinutes * 60_000, overtimeDurationMs: parsed.data.overtimeMinutes * 60_000, targetGoals: parsed.data.targetGoals, targetGoalsConfigured: true, targetGoalDifference: parsed.data.targetGoalDifference, tiePolicy: parsed.data.tiePolicy, contributionMode: parsed.data.contributionMode, totalCostCents: parsed.data.totalCostCents };
   const { error } = await rpc("update_session_rules", { p_session_id: sessionId, p_rules: rules, p_contribution_amount_cents: contributionAmountCents, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
   finish(rankaId, "configuracoes", !error, error ? "conflito" : "regras");
 }

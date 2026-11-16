@@ -89,7 +89,8 @@ select is((public.get_platform_admin_capability()->>'aal2')::boolean, false, 'ad
 
 select set_config('request.jwt.claims', '{"sub":"61000000-0000-0000-0000-000000000001","role":"authenticated","aal":"aal2"}', true);
 select is((public.get_platform_admin_capability()->>'aal2')::boolean, true, 'verified TOTP session reaches AAL2');
-select lives_ok($$select public.get_platform_admin_overview('Teste automatizado do painel agregado')$$, 'AAL2 admin reads aggregate overview');
+select set_config('request.jwt.claims', '{"sub":"61000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+select lives_ok($$select public.get_platform_admin_overview('Teste automatizado do painel agregado')$$, 'active admin reads aggregate overview after password login');
 select lives_ok($$select public.record_authenticated_route_outcome('complete_match_and_rotate', 250, 200)$$, 'rotation telemetry accepts the phase 2 critical route');
 reset role;
 select results_eq($$select count(*)::integer from public.observability_route_samples where route_key = 'complete_match_and_rotate' and duration_ms = 250 and status_code = 200$$, array[1], 'rotation telemetry stores only route timing and status');

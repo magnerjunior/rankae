@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveIncidentAction, updateCommercialPlanAction } from "./actions";
-import { AdminMfaSetup } from "@/components/admin-mfa-setup";
 import { TrustRepository } from "@/data/supabase/trust-repository";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "@/components/login-form";
@@ -34,16 +33,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const repository = new TrustRepository(client);
   const capability = await repository.adminCapability();
   if (!capability.active) notFound();
-  if (!capability.aal2) return <main className="page trust-page"><header className="between"><Link className="brand" href="/app"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></Link><Link className="button button-secondary button-small" href="/app">Voltar</Link></header><header className="page-heading"><span className="eyebrow">Administração da plataforma</span><h1 className="display">Confirme que é você.</h1><p>Ative ou confirme a autenticação em duas etapas para acessar o painel global.</p></header><AdminMfaSetup /></main>;
 
   const [overview, plan] = await Promise.all([repository.adminOverview("Revisão operacional do painel global"), repository.commercialPlan()]);
   return <main className="page trust-page">
-    <header className="between"><Link className="brand" href="/app"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></Link><span className="badge badge-green">SUPERADMIN · AAL2</span></header>
+    <header className="between"><Link className="brand" href="/app"><span className="brand-mark">R</span><span className="brand-name">Rankaê</span></Link><span className="badge badge-green">SUPERADMIN</span></header>
     <header className="page-heading"><span className="eyebrow">Administração da plataforma</span><h1 className="display">Operação e plano.</h1><p>Acompanhe a saúde do produto e ajuste a oferta exibida na página pública.</p></header>
-    {query.erro && <div className="notice notice-warning">A operação não foi concluída. Revise os valores, o motivo e sua sessão MFA.</div>}
+    {query.erro && <div className="notice notice-warning">A operação não foi concluída. Revise os valores e o motivo.</div>}
     {query.sucesso === "resolvido" && <div className="notice">Incidente encerrado.</div>}
     {query.sucesso === "plano" && <div className="notice">Plano atualizado na página pública.</div>}
-    {query.sucesso === "convite" && <div className="notice">Convite enviado ao organizador.</div>}
     {query.sucesso === "teste" && <div className="notice">Teste liberado para a conta.</div>}
     {query.sucesso === "recebimento" && <div className="notice">Recebimento registrado.</div>}
 

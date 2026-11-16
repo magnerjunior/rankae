@@ -10,8 +10,7 @@ insert into public.platform_admins (user_id) values ('ad100000-0000-4000-8000-00
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"ad100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
-select throws_ok($$select public.admin_get_accounts_and_receipts()$$, '42501', 'Forbidden', 'admin without MFA cannot see accounts');
-select set_config('request.jwt.claims', '{"sub":"ad100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
+select lives_ok($$select public.admin_get_accounts_and_receipts()$$, 'active admin can see accounts after password login');
 select lives_ok($$select public.admin_grant_ranka_trial('ad100000-0000-4000-8000-000000000002', 3, 7, 'Teste controlado')$$, 'admin can grant quota');
 select lives_ok($$select public.admin_record_receipt('ad100000-0000-4000-8000-000000000002', 2990, current_date - 1, 'Teste pagamento', 'ad100000-0000-4000-8000-000000000003')$$, 'admin records payment');
 select lives_ok($$select public.admin_record_receipt('ad100000-0000-4000-8000-000000000002', 2990, current_date - 1, 'Teste pagamento', 'ad100000-0000-4000-8000-000000000003')$$, 'retry is safe');

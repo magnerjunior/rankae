@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { PublicPlayerStat, PublicResult } from "@/domain/public-portal/types";
 import { getPublicMatchDetails, type MatchDetails } from "@/app/r/[slug]/match-details";
 
@@ -10,13 +10,18 @@ type Metric = keyof typeof metrics;
 export function RankaRanking({ players }: { players: PublicPlayerStat[] }) {
   const [metric, setMetric] = useState<Metric>("goals");
   const [expanded, setExpanded] = useState(false);
+  const filterId = useId();
   const ranked = players.map((player, id) => ({ player, id })).toSorted((a, b) => b.player[metric] - a.player[metric] || a.player.name.localeCompare(b.player.name, "pt-BR"));
   return <>
-    <label className="field ranking-filter">Filtrar ranking por
-      <select className="select" value={metric} onChange={(event) => { setMetric(event.target.value as Metric); setExpanded(false); }}>
-        {Object.entries(metrics).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-      </select>
-    </label>
+    <fieldset className="ranking-filter">
+      <legend>Filtrar ranking por</legend>
+      <div className="ranking-filter-options">
+        {(Object.keys(metrics) as Metric[]).map((key) => <label key={key}>
+          <input className="sr-only" type="radio" name={filterId} checked={metric === key} onChange={() => { setMetric(key); setExpanded(false); }} />
+          <span>{metrics[key]}</span>
+        </label>)}
+      </div>
+    </fieldset>
     {ranked.length ? ranked.slice(0, expanded ? ranked.length : 10).map(({ player, id }, index) => <div className="ranking-row" key={id}>
       <span className="ranking-position">{index + 1}</span>
       <span><strong>{player.name}</strong><small>{player.matches} jogos · {player.wins} vitórias · {player.losses} derrotas</small></span>
