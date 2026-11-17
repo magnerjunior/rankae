@@ -117,7 +117,7 @@ export class SupabaseRankaRepository implements RankaRepository {
     const rules = readRules(session?.rules_snapshot ?? {});
     const persistedSquads: Squad[] = ((squadsResult.data ?? []) as SquadRow[]).map((row) => {
       const playerIds = (row.squad_members ?? []).filter((member) => !member.removed_at).toSorted((a, b) => a.assignment_order - b.assignment_order).map((member) => member.player_id);
-      return { id: row.id, number: row.squad_number, playerIds, complete: playerIds.length >= rules.squadSize, deficit: Math.max(0, rules.squadSize - playerIds.length) };
+      return { id: row.id, number: row.squad_number, state: row.state, playerIds, complete: playerIds.length >= rules.squadSize, deficit: Math.max(0, rules.squadSize - playerIds.length) };
     });
     const latestMatch = ((matchResult.data ?? [])[0] ?? null) as MatchRow | null;
     let activeMatch: LiveMatch | undefined;

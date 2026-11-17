@@ -459,3 +459,10 @@ Leituras independentes do snapshot são realizadas em paralelo, mantendo RLS e s
 - A mensagem do WhatsApp usa apenas as partidas concluídas da sessão encerrada. Traz o placar em ordem de jogo, todos os líderes empatados e os elencos dos destaques únicos por time.
 - O portal público recebe o filtro da data do encontro. Links protegidos por PIN mantêm o fluxo de acesso existente. O resumo omite a URL quando o portal estiver desativado ou depender de um token que apenas o organizador possui.
 - Para verificar, abra Estatísticas do último encontro encerrado, clique em Compartilhar no WhatsApp e confira a mensagem preenchida.
+
+## Convites e operação de quadra
+
+- O convite de equipe reserva uma vaga e é consumido na transação que cria a conta e concede a associação. A criação usa a API administrativa apenas no servidor.
+- O acesso à quadra é temporário, condicionado a um link aleatório e a um PIN. A primeira validação salva um identificador no navegador. O dono pode revogar o acesso, que também termina junto com o encontro ou em 24 horas. O link permite operações de jogo somente na sessão vinculada e identifica seu uso na auditoria.
+- Após a formação inicial, jogadores de linha que chegam entram no primeiro time da espera com vaga. A tela de times também pode registrar a chegada e direcionar a pessoa a um time. O novo sorteio age apenas sobre os times da espera escolhidos.
+- O modo padrão sorteia os dois primeiros times. Há opções para sortear toda a lista ou sortear separadamente cada bloco de dois times, respeitando a ordem de chegada entre os blocos.

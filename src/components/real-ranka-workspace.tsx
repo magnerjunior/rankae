@@ -11,6 +11,7 @@ import { MatchPushSettings } from "@/components/match-push-settings";
 import { kitColors, kitStyle, type KitColor } from "@/domain/ranka/kit-colors";
 import { GoalDialog } from "@/components/goal-dialog";
 import { ArrivalManager } from "@/components/arrival-manager";
+import { CourtShareControl } from "@/components/court-share-control";
 import { EmptyState } from "@/components/feedback";
 import { FlashNotice } from "@/components/flash-notice";
 import { FastMutationForm } from "@/components/fast-mutation-form";
@@ -54,6 +55,8 @@ import {
   confirmOfficialsAction,
   createPlayerAction,
   generateSquadsAction,
+  redrawTeamsAction,
+  addToTeamAction,
   finishRankaSessionAction,
   prepareMatchAction,
   recordEventAction,
@@ -392,6 +395,7 @@ function Teams({
   const present = snapshot.attendance
     .filter((entry) => entry.status === "present")
     .map((entry) => entry.playerId);
+  const waiting = snapshot.squads.filter((squad) => squad.state === "waiting");
   const assigned = new Set(snapshot.squads.flatMap((squad) => squad.playerIds));
   const replacements = snapshot.players.filter(
     (player) =>
@@ -408,7 +412,7 @@ function Teams({
         sessionId={snapshot.sessionId}
       />
       <Notice success={success} error={error} />
-      <section className="panel" style={{ marginBottom: 16 }}>
+      {!snapshot.activeMatch && <section className="panel" style={{ marginBottom: 16 }}>
         <div className="panel-head">
           <div>
             <h2 className="panel-title display">Formar times</h2>
@@ -441,10 +445,11 @@ function Teams({
             }
           />
         )}
-      </section>
+      </section>}
       {snapshot.squads.length ? (
         !snapshot.activeMatch || snapshot.activeMatch.state === "ready" ? (
           <TeamEditor
+            key={snapshot.revision}
             initialSquads={snapshot.squads}
             players={snapshot.players}
             initialRevision={snapshot.revision}
@@ -470,7 +475,19 @@ function Teams({
           />
         </section>
       )}
-      {snapshot.hasPersistedSquads && (
+      {snapshot.sessionId && snapshot.sessionState !== "completed" && waiting.length > 0 && <details className="panel waiting-team-tools">
+        <summary>Ajustar times da espera</summary>
+        {waiting.length > 1 && <FastMutationForm className="stack" action={redrawTeamsAction.bind(null, snapshot.sessionId, snapshot.revision)}>
+          <Key /><p>Marque os times que vão ao sorteio. Os demais serão mantidos.</p>
+          <div className="cluster">{waiting.map((squad) => <label key={squad.id} className="check-row"><input name="squads" type="checkbox" value={squad.id} /> T{squad.number}</label>)}</div>
+          <button className="button button-secondary">Sortear selecionados</button>
+        </FastMutationForm>}
+        {waiting.filter((squad) => !squad.complete).map((squad) => <FastMutationForm key={squad.id} className="waiting-add-form" action={addToTeamAction.bind(null, snapshot.sessionId!, squad.id, snapshot.revision)}>
+          <Key /><label className="field">Adicionar ao T{squad.number}<input className="input" name="name" minLength={2} maxLength={120} required placeholder="Nome do jogador" /></label>
+          <button className="button button-secondary">Adicionar</button>
+        </FastMutationForm>)}
+      </details>}
+      {snapshot.hasPersistedSquads && !snapshot.activeMatch && (
         <FastMutationForm
           className="teams-confirm-bar"
           action={prepareMatchAction.bind(
@@ -1134,7 +1151,7 @@ function CompactMatchRoster({
   title: string;
   players: Player[];
   events: MatchEvent[];
-  changes: { incomingId: string; outgoing: string }[];
+  changes: { incomingId: string; outgoingId: string; outgoing: string }[];
   sentOff: Player[];
   cardFor?: (playerId: string) => (formData: FormData) => Promise<import("@/app/app/rankas/[rankaId]/actions").FastMutationResult>;
   replacements: { id: string; name: string; team: number }[];
@@ -1164,7 +1181,7 @@ function CompactMatchRoster({
           const cards = events.filter((event) => event.status === "active" && event.card?.playerId === player.id);
           return (
             <li key={player.id}>
-              <div className="roster-player-entry"><MatchPlayerManager name={player.fullName} cardAction={cardFor?.(player.id)} replacements={replacements.filter((candidate) => candidate.id !== player.id)} action={actionFor(player.id)} />{changed && <small className="roster-replacement"><span aria-label="Entrou no lugar de">⇄</span> <s>{changed.outgoing}</s></small>}</div>
+              <div className="roster-player-entry"><MatchPlayerManager name={player.fullName} cardAction={cardFor?.(player.id)} returning={changed && replacements.find((candidate) => candidate.id === changed.outgoingId)} replacements={replacements.filter((candidate) => candidate.id !== player.id)} action={actionFor(player.id)} />{changed && <small className="roster-replacement"><span aria-label="Entrou no lugar de">⇄</span> <s>{changed.outgoing}</s></small>}</div>
               <span className="player-event-counts">
                 {cards.map((event) => <i key={event.id} className={`match-card ${event.card?.color}`} title={event.label} aria-label={event.label} />)}
                 {goals > 0 && (
@@ -1632,6 +1649,7 @@ function GameHub({ snapshot, success, error, stage, trial }: { snapshot: RankaSn
   return <>
     <div className="session-day-strip"><span>Ranka do dia</span><strong>{snapshot.sessionLabel}</strong><em>Em andamento</em></div>
     {snapshot.sessionId && <FinishDayControl snapshot={snapshot} />}
+    <CourtShareControl sessionId={snapshot.sessionId} />
     <nav className="game-flow-nav" aria-label="Etapas do jogo">
       <Link className={current === "chegada" ? "active" : ""} href={`${base}?etapa=chegada`}>1. Chegada</Link>
       <Link className={current === "times" ? "active" : ""} href={`${base}?etapa=times`}>2. Times</Link>

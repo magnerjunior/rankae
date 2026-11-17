@@ -583,6 +583,23 @@ body { overscroll-behavior-y: auto; }
 .arrival-remove { width: 42px; height: 42px; border: 0; border-radius: 12px; background: #fff0f0; color: var(--danger); font-size: 1.5rem; }
 .arrival-manage-row { min-height: 66px; gap: 10px; transition: opacity .18s ease, transform .18s ease; }
 .arrival-manage-row.pending { opacity: .62; }
+.invite-password { display: flex; align-items: center; gap: 6px; }
+.invite-password .input { min-width: 0; flex: 1; }
+.invite-password button { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink); }
+.court-page { padding: 10px 14px 24px; }
+.court-share, .waiting-team-tools { margin-block: 10px; }
+.court-share summary, .waiting-team-tools summary { font-weight: 700; cursor: pointer; }
+.court-install { margin-top: 12px; }
+.court-install small { display: block; margin-top: 6px; color: var(--muted); }
+.court-arrival-form, .waiting-add-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-block: 8px; }
+.court-arrival-form .field, .waiting-add-form .field { flex: 1 1 135px; }
+.court-arrivals { padding-left: 26px; }
+.court-arrivals li { padding-block: 5px; border-bottom: 1px solid var(--border); }
+.court-arrivals li strong { overflow-wrap: anywhere; }
+.court-arrivals li small { margin-left: 6px; color: var(--muted); }
+.court-arrivals .arrival-row-actions { display: inline-flex; margin-inline-start: 8px; }
+.initial-team-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,155px),1fr)); width: 100%; gap: 8px; }
+.initial-team-fields :is(p,.squad-grid) { grid-column: 1 / -1; }
 .arrival-row-actions { display: flex; gap: 4px; margin-left: auto; }
 .arrival-row-actions button, .arrival-edit button { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: white; color: var(--brand-900); font-size: 1.05rem; font-weight: 800; cursor: pointer; }
 .arrival-row-actions .move { border: 0; background: var(--brand-100); color: var(--brand-700); }
@@ -686,8 +703,10 @@ form[aria-busy="true"] button { pointer-events: none; opacity: .72; }
   .bottom-nav { left: 8px; right: 8px; bottom: max(8px, env(safe-area-inset-bottom)); min-height: 64px; }
   .bottom-link { min-width: 0; padding-inline: 2px; font-size: .72rem; }
   .arrival-panel { margin-inline: -8px; padding: 16px 12px; }
-  .arrival-manage-row { align-items: flex-start; }
-  .arrival-row-actions { width: 100%; justify-content: flex-end; padding-left: 44px; }
+  .arrival-manage-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 3px 8px; min-height: 0; padding-block: 6px; }
+  .arrival-manage-row .person-info { min-width: 0; width: 100%; }
+  .arrival-manage-row .person-info strong { white-space: normal; overflow-wrap: anywhere; color: var(--ink); }
+  .arrival-row-actions { grid-column: 2; width: auto; margin-left: 0; justify-content: flex-start; }
   .arrival-row-actions button { width: 44px; height: 44px; }
   .arrival-start { align-items: stretch; flex-direction: column; }
   .arrival-start-sticky { top: 70px; }

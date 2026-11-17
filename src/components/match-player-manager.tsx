@@ -11,11 +11,13 @@ export function MatchPlayerManager({
   replacements,
   action,
   cardAction,
+  returning,
 }: {
   name: string;
   replacements: Option[];
   action: (formData: FormData) => void | Promise<void>;
   cardAction?: (formData: FormData) => Promise<FastMutationResult>;
+  returning?: Option;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
@@ -37,6 +39,11 @@ export function MatchPlayerManager({
           <button className="button button-secondary" name="cardColor" value="yellow"><i className="match-card yellow" aria-hidden /> Cartão amarelo</button>
           <button className="button button-secondary" name="cardColor" value="red"><i className="match-card red" aria-hidden /> Cartão vermelho</button>
         </FastMutationForm>}
+        {returning && <form action={action} onSubmit={() => dialog.current?.close()}>
+          <input type="hidden" name="incomingPlayerId" value={returning.id} />
+          <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
+          <button className="button button-secondary" type="submit">Voltar {returning.name} ao campo</button>
+        </form>}
         <form className="stack" action={action} onSubmit={() => dialog.current?.close()}>
           <input type="hidden" name="idempotencyKey" value={crypto.randomUUID()} />
           <label className="field">Quem entra?

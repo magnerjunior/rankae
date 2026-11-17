@@ -28,6 +28,7 @@ export interface Attendance {
 export interface Squad {
   id: string;
   number: number;
+  state?: "waiting" | "field" | "resting" | "archived";
   playerIds: string[];
   complete: boolean;
   deficit: number;

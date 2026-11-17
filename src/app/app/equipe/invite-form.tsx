@@ -8,8 +8,7 @@ export function TeamInviteForm({ orgId, rankaId, full }: { orgId: string; rankaI
   const [result, action, pending] = useActionState(createTeamInvite.bind(null, orgId, rankaId), {});
   return <form className="stack" action={action}>
     {full ? <p className="muted">Todas as vagas estão ocupadas ou reservadas.</p> : <>
-      <label className="field">E-mail do colaborador<input type="email" className="input" name="email" maxLength={254} required /></label>
-      <button className="button button-primary" disabled={pending}>{pending ? "Gerando convite" : "Gerar convite"}</button>
+      <button className="button button-primary" name="operation" value="generate" disabled={pending}>{pending ? "Gerando convite" : "Gerar convite"}</button>
     </>}
     {result.error && <p className="notice notice-warning" role="alert">{result.error}</p>}
     {result.link && !pending && <InviteLink link={result.link} />}

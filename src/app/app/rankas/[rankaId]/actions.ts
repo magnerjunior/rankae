@@ -8,6 +8,7 @@ import type { MatchState } from "@/domain/ranka/types";
 import { randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUserId } from "@/server/auth";
@@ -167,10 +168,13 @@ async function rpc(name: string, args: Record<string, unknown>) {
     "finish_ranka_session",
   ].includes(name)) {
     const statusCode = result.error ? isRevisionConflict(result.error.code) ? 409 : 500 : 200;
-    await supabase.rpc("record_authenticated_route_outcome", {
-      p_route_key: name,
-      p_duration_ms: Math.round(performance.now() - startedAt),
-      p_status_code: statusCode,
+    const durationMs = Math.round(performance.now() - startedAt);
+    after(async () => {
+      await supabase.rpc("record_authenticated_route_outcome", {
+        p_route_key: name,
+        p_duration_ms: durationMs,
+        p_status_code: statusCode,
+      });
     });
   }
   return result;
@@ -341,13 +345,15 @@ export async function startGameFromArrivalAction(rankaId: string, sessionId: str
   const parsedRevision = z.number().int().positive().safeParse(input.expectedRevision);
   if (!parsedRevision.success) finish(rankaId, "chegada", false, "revisao");
   if (!hasPersistedSquads) {
-    const generated = await rpc("generate_session_squads", {
-      p_session_id: sessionId,
-      p_squad_size: squadSize,
-      p_method: "shuffle_blocks",
+    const generated = await rpc("generate_squads_extended", {
+      p_session: sessionId,
+      p_size: squadSize,
+      p_mode: "shuffle_blocks",
       p_seed: randomBytes(4).readUInt32BE(0) % 2_147_483_647,
-      p_expected_revision: parsedRevision.data,
-      p_idempotency_key: randomUUID(),
+      p_revision: parsedRevision.data,
+      p_key: randomUUID(),
+      p_players: [],
+      p_yellow: 1,
     });
     if (generated.error) finish(rankaId, "chegada", false, "times");
   }
@@ -416,12 +422,30 @@ export async function setAttendanceStatusAction(rankaId: string, sessionId: stri
 }
 
 export async function generateSquadsAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {
-  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks", "manual"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
+  const parsed = z.object({ squadSize: z.coerce.number().int().min(2).max(12), method: z.enum(["sequential", "shuffle_blocks", "manual", "all", "pairs"]), seed: z.coerce.number().int().optional() }).safeParse({ squadSize: formData.get("squadSize"), method: formData.get("method"), seed: formData.get("seed") || undefined });
   if (!parsed.success) finish(rankaId, "jogo", false, "dados");
   if (parsed.data.method === "manual" && !validInitialSelection(formData.getAll("manualPlayers").map(String), parsed.data.squadSize)) finish(rankaId, "jogo", false, "dados");
-  const seed = parsed.data.method === "shuffle_blocks" ? parsed.data.seed ?? randomBytes(4).readUInt32BE(0) % 2_147_483_647 : null;
-  const { error } = await rpc("generate_initial_squads", { p_manual_players: formData.getAll("manualPlayers"), p_yellow_number: Number(formData.get("yellowNumber") || 1), p_session_id: sessionId, p_squad_size: parsed.data.squadSize, p_method: parsed.data.method, p_seed: seed, p_expected_revision: expectedRevision, p_idempotency_key: idempotencyKey(formData) });
+  const seed = parsed.data.seed ?? randomBytes(4).readUInt32BE(0) % 2_147_483_647;
+  const { error } = await rpc("generate_squads_extended", { p_players: formData.getAll("manualPlayers"), p_yellow: Number(formData.get("yellowNumber") || 1), p_session: sessionId, p_size: parsed.data.squadSize, p_mode: parsed.data.method, p_seed: seed, p_revision: expectedRevision, p_key: idempotencyKey(formData) });
   finish(rankaId, "jogo", !error, error ? "conflito" : "times");
+}
+
+export async function redrawTeamsAction(sessionId: string, revision: number, form: FormData): Promise<FastMutationResult> {
+  const selected = z.array(uuid).min(2).max(60).safeParse(form.getAll("squads"));
+  if (!selected.success) return { status: "error", message: "Escolha dois ou mais times da espera." };
+  const { error } = await rpc("redraw_waiting_squads", { p_session: sessionId, p_squads: selected.data,
+    p_seed: randomBytes(4).readUInt32BE(0) % 2_147_483_647, p_revision: revision, p_key: idempotencyKey(form) });
+  return error ? { status: "error", message: "A fila mudou. Atualize a tela e selecione os times novamente." }
+    : { status: "success", message: "Times sorteados." };
+}
+
+export async function addToTeamAction(sessionId: string, squadId: string, revision: number, form: FormData): Promise<FastMutationResult> {
+  const name = z.string().trim().min(2).max(120).safeParse(form.get("name"));
+  if (!name.success) return { status: "error", message: "Digite o nome do jogador." };
+  const { error } = await rpc("add_direct_team_arrival", { p_session: sessionId, p_squad: squadId,
+    p_name: name.data, p_revision: revision, p_key: idempotencyKey(form) });
+  return error ? { status: "error", message: error.code === "PT409" ? "O time está cheio ou o jogador já pertence a outro time." : arrivalError(error.code).message }
+    : { status: "success", message: "Jogador adicionado ao time e à lista de chegada." };
 }
 
 export async function substitutePlayerAction(rankaId: string, sessionId: string, expectedRevision: number, formData: FormData) {

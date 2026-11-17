@@ -11,13 +11,13 @@ function teamPath(rankaId?: string) {
   return z.uuid().safeParse(rankaId).success ? `/app/rankas/${rankaId}/configuracoes` : "/app/equipe";
 }
 
-export async function createTeamInvite(orgId: string, rankaId: string | undefined, _previous: { link?: string; error?: string }, form: FormData): Promise<{ link?: string; error?: string }> {
+export async function createTeamInvite(orgId: string, rankaId: string | undefined, previous: { link?: string; error?: string }, form: FormData): Promise<{ link?: string; error?: string }> {
+  if (form.get("operation") !== "generate") return previous;
   const client = await createClient();
   await requireUserId({ client });
-  const parsed = z.object({ orgId: z.uuid(), email: z.email().max(254) }).safeParse({ orgId, email: form.get("email") });
-  if (!parsed.success) return { error: "Confira o e-mail do colaborador." };
-  const { data, error } = await client.rpc("create_team_invite", { p_org_id: orgId, p_email: parsed.data.email });
-  if (error?.code === "PT409") return { error: "A equipe atingiu seu limite ou esse e-mail já tem acesso." };
+  if (!z.uuid().safeParse(orgId).success) return { error: "Equipe inválida." };
+  const { data, error } = await client.rpc("create_open_team_invite", { p_org_id: orgId });
+  if (error?.code === "PT409") return { error: "A equipe atingiu seu limite de vagas." };
   if (error || typeof data !== "string") return { error: "Não foi possível criar o convite. Confira seu acesso à organização." };
   revalidatePath("/app/equipe");
   if (rankaId) revalidatePath(teamPath(rankaId));
